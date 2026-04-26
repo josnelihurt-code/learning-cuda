@@ -1,24 +1,9 @@
 import { useEffect, useId, useReducer, type ReactElement } from 'react';
 import { grpcConnectionService } from '@/infrastructure/connection/grpc-connection-service';
 import { webrtcService } from '@/infrastructure/connection/webrtc-service';
-import { SourceDetailsBadge, SOURCE_TYPES, type SourceType } from '@/presentation/components/video/SourceDetailsBadge';
+import { useVideoGridContext } from '@/presentation/context/video-grid-context';
+import { SourceDetailsBadge, SOURCE_TYPES } from '@/presentation/components/video/SourceDetailsBadge';
 import styles from './StatsPanel.module.css';
-
-type StatsPanelProps = {
-  selectedSource: {
-    type: SourceType;
-    fps?: number;
-    width?: number;
-    height?: number;
-  } | null;
-  transportService?: {
-    getConnectionStatus: () => {
-      state: 'connected' | 'disconnected' | 'connecting' | 'error';
-      lastRequest: string | null;
-      lastRequestTime: Date | null;
-    };
-  } | null;
-};
 
 type ConnectionState = 'connected' | 'disconnected' | 'connecting' | 'error';
 
@@ -106,16 +91,15 @@ function indicatorClassForState(state: ConnectionState): string {
   }
 }
 
-export function StatsPanel({
-  selectedSource,
-  transportService = null,
-}: StatsPanelProps): ReactElement {
+export function StatsPanel(): ReactElement {
+  const { selectedSourceDetails: selectedSource, activeTransportService: selectedTransportService } =
+    useVideoGridContext();
   const panelRegionId = useId();
   const [state, dispatch] = useReducer(statsPanelReducer, INITIAL_STATS_PANEL_STATE);
 
   useEffect(() => {
     const updateConnections = () => {
-      const transportStatus = transportService?.getConnectionStatus() ?? {
+      const transportStatus = selectedTransportService?.getConnectionStatus() ?? {
         state: 'disconnected' as const,
         lastRequest: null,
         lastRequestTime: null,
@@ -153,7 +137,7 @@ export function StatsPanel({
     return () => {
       clearInterval(intervalId);
     };
-  }, [transportService]);
+  }, [selectedTransportService]);
 
   if (state.expanded) {
     return (
@@ -169,6 +153,7 @@ export function StatsPanel({
             fps={selectedSource?.fps ?? 0}
             width={selectedSource?.width}
             height={selectedSource?.height}
+            metrics={selectedSource?.metrics}
             forceExpanded={true}
             layoutMode="grid"
             className={styles.sourceDetails}

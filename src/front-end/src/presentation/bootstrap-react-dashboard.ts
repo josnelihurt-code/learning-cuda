@@ -13,6 +13,7 @@ declare global {
 
 let bootstrapPromise: Promise<void> | null = null;
 let beforeUnloadAttached = false;
+const BOOTSTRAP_STEP_TIMEOUT_MS = 8000;
 
 function attachBeforeUnload(): void {
   if (beforeUnloadAttached) {
@@ -24,12 +25,18 @@ function attachBeforeUnload(): void {
     const logger = container.getLogger();
     const activeSessions = webrtcService.getActiveSessions();
     activeSessions.forEach((session) => {
-      webrtcService.stopHeartbeat(session.getId());
-      void webrtcService.closeSession(session.getId()).catch((error) => {
-        logger.warn('Failed to close WebRTC session on beforeunload', {
-          'error.message': error instanceof Error ? error.message : String(error),
+      const sessionId = session.getId();
+      webrtcService.stopHeartbeat(sessionId);
+      // Use sendBeacon: a regular fetch is cancelled by the browser during
+      // unload, so the C++ accelerator never sees CloseSession and holds
+      // encoder/CUDA-pool resources until ICE consent expires (~30s),
+      // blocking the next page load from connecting.
+      const queued = webrtcService.closeSessionBeacon(sessionId);
+      if (!queued) {
+        logger.warn('CloseSession beacon was not queued on beforeunload', {
+          'session.id': sessionId,
         });
-      });
+      }
     });
     acceleratorHealthMonitor.stopMonitoring();
     container.getLogger().shutdown();
@@ -48,11 +55,45 @@ async function runBootstrap(): Promise<void> {
 
   logger.info('Initializing dashboard (React)...');
 
-  const observabilityEnabled = await featureFlagsService.isFeatureEnabled('observability_enabled');
+  const withTimeout = async <T>(promise: Promise<T>, stepName: string, fallback: T): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    try {
+      return await Promise.race<T>([
+        promise,
+        new Promise<T>((resolve) => {
+          timer = setTimeout(() => {
+            logger.warn(`Bootstrap step timed out, continuing in degraded mode: ${stepName}`, {
+              'bootstrap.step': stepName,
+              'bootstrap.timeout_ms': BOOTSTRAP_STEP_TIMEOUT_MS,
+            });
+            resolve(fallback);
+          }, BOOTSTRAP_STEP_TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
+    }
+  };
+
+  const observabilityEnabled = await withTimeout(
+    featureFlagsService.isFeatureEnabled('observability_enabled'),
+    'featureFlagsService.isFeatureEnabled(observability_enabled)',
+    false
+  );
 
   const coreServicesResults = await Promise.allSettled([
-    telemetryService.initialize(observabilityEnabled),
-    streamConfigService.initialize(),
+    withTimeout(
+      telemetryService.initialize(observabilityEnabled),
+      'telemetryService.initialize',
+      undefined
+    ),
+    withTimeout(
+      streamConfigService.initialize(),
+      'streamConfigService.initialize',
+      undefined
+    ),
   ]);
 
   coreServicesResults.forEach((result, index) => {
@@ -94,11 +135,31 @@ async function runBootstrap(): Promise<void> {
   }
 
   const dataServicesResults = await Promise.allSettled([
-    inputSourceService.initialize(),
-    processorCapabilitiesService.initialize(),
-    toolsService.initialize(),
-    videoService.initialize(),
-    webrtcService.initialize(),
+    withTimeout(
+      inputSourceService.initialize(),
+      'inputSourceService.initialize',
+      undefined
+    ),
+    withTimeout(
+      processorCapabilitiesService.initialize(),
+      'processorCapabilitiesService.initialize',
+      undefined
+    ),
+    withTimeout(
+      toolsService.initialize(),
+      'toolsService.initialize',
+      undefined
+    ),
+    withTimeout(
+      videoService.initialize(),
+      'videoService.initialize',
+      undefined
+    ),
+    withTimeout(
+      webrtcService.initialize(),
+      'webrtcService.initialize',
+      undefined
+    ),
   ]);
 
   dataServicesResults.forEach((result, index) => {

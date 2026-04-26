@@ -1,97 +1,75 @@
 import { useMemo, useState, type ReactNode, type ReactElement } from 'react';
-import type { Detection } from '@/gen/image_processor_service_pb';
 import { colorForClassId } from '@/presentation/utils/detection-colors';
-import { SourceDetailsBadge, SOURCE_TYPES, type SourceType } from './SourceDetailsBadge';
+import { useVideoGridContext } from '@/presentation/context/video-grid-context';
+import type { GridSource } from '@/presentation/utils/grid-source';
+import { SourceDetailsBadge, SOURCE_TYPES, normalizeSourceType, type SourceType } from './SourceDetailsBadge';
 import styles from './VideoSourceCard.module.css';
 
 type VideoSourceCardProps = {
-  sourceId: string;
-  sourceNumber: number;
-  sourceName: string;
-  sourceType: SourceType;
-  imageSrc: string;
-  isSelected: boolean;
-  onSelect: (sourceId: string) => void;
-  onClose: (sourceId: string) => void;
-  onChangeImage: (sourceId: string, sourceNumber: number) => void;
+  source: GridSource;
   children?: ReactNode;
-  detections?: Detection[];
-  detectionImageWidth?: number;
-  detectionImageHeight?: number;
-  fps?: number;
-  displayWidth?: number;
-  displayHeight?: number;
 };
 
 export function VideoSourceCard({
-  sourceId,
-  sourceNumber,
-  sourceName,
-  sourceType,
-  imageSrc,
-  isSelected,
-  onSelect,
-  onClose,
-  onChangeImage,
+  source,
   children,
-  detections,
-  detectionImageWidth,
-  detectionImageHeight,
-  fps = 0,
-  displayWidth,
-  displayHeight,
 }: VideoSourceCardProps): ReactElement {
+  const { selectedSourceId, onChangeImageRequest, onCloseSource, onSelectSource } = useVideoGridContext();
+  const sourceType: SourceType = normalizeSourceType(source.type);
   const [staticImageResolution, setStaticImageResolution] = useState<{ width: number; height: number } | null>(null);
+  const isSelected = selectedSourceId === source.id;
   const cardClassName = isSelected ? `${styles.card} ${styles.selected}` : styles.card;
+  const imageSrc = source.currentImageSrc || source.imagePath;
   const shouldRenderProcessedImage = Boolean(imageSrc);
   const hasDetections =
-    Array.isArray(detections) &&
-    detections.length > 0 &&
-    (detectionImageWidth ?? 0) > 0 &&
-    (detectionImageHeight ?? 0) > 0;
+    Array.isArray(source.detections) &&
+    source.detections.length > 0 &&
+    (source.detectionImageWidth ?? 0) > 0 &&
+    (source.detectionImageHeight ?? 0) > 0;
   const sourceDetailsWidth = useMemo(() => {
-    if ((displayWidth ?? 0) > 0) {
-      return displayWidth;
+    if ((source.displayWidth ?? 0) > 0) {
+      return source.displayWidth;
     }
     if (sourceType === SOURCE_TYPES.STATIC) {
       return staticImageResolution?.width;
     }
     return undefined;
-  }, [displayWidth, sourceType, staticImageResolution?.width]);
+  }, [source.displayWidth, sourceType, staticImageResolution?.width]);
   const sourceDetailsHeight = useMemo(() => {
-    if ((displayHeight ?? 0) > 0) {
-      return displayHeight;
+    if ((source.displayHeight ?? 0) > 0) {
+      return source.displayHeight;
     }
     if (sourceType === SOURCE_TYPES.STATIC) {
       return staticImageResolution?.height;
     }
     return undefined;
-  }, [displayHeight, sourceType, staticImageResolution?.height]);
+  }, [source.displayHeight, sourceType, staticImageResolution?.height]);
 
   return (
     <div className={styles.source}>
       <div
         className={cardClassName}
-        onClick={() => onSelect(sourceId)}
-        data-testid={`source-card-${sourceNumber}`}
-        data-source-id={sourceId}
+        onClick={() => onSelectSource(source.id)}
+        data-testid={`source-card-${source.number}`}
+        data-source-id={source.id}
       >
-        <div className={styles.sourceNumber}>{sourceNumber}</div>
+        <div className={styles.sourceNumber}>{source.number}</div>
         <SourceDetailsBadge
           sourceType={sourceType}
-          fps={fps}
+          fps={source.fps}
             width={sourceDetailsWidth}
             height={sourceDetailsHeight}
+            metrics={source.metrics}
           className={styles.sourceDetails}
           stopPropagationOnToggle={true}
-          testId={`source-fps-${sourceNumber}`}
+          testId={`source-fps-${source.number}`}
         />
         {sourceType === 'static' ? (
           <button
             className={styles.changeImageBtn}
             onClick={(event) => {
               event.stopPropagation();
-              onChangeImage(sourceId, sourceNumber);
+              onChangeImageRequest(source.id);
             }}
             title="Change image"
             data-testid="change-image-button"
@@ -103,9 +81,9 @@ export function VideoSourceCard({
           className={styles.closeBtn}
           onClick={(event) => {
             event.stopPropagation();
-            onClose(sourceId);
+            onCloseSource(source.id);
           }}
-          title={`Close ${sourceName}`}
+          title={`Close ${source.name}`}
           data-testid="source-close-button"
         >
           {'\u00d7'}
@@ -114,7 +92,7 @@ export function VideoSourceCard({
           {shouldRenderProcessedImage ? (
             <img
               src={imageSrc}
-              alt={sourceName}
+              alt={source.name}
               crossOrigin="anonymous"
               onLoad={(event) => {
                 if (sourceType !== SOURCE_TYPES.STATIC) {
@@ -132,11 +110,11 @@ export function VideoSourceCard({
           {hasDetections ? (
             <svg
               className={styles.detectionOverlay}
-              viewBox={`0 0 ${detectionImageWidth} ${detectionImageHeight}`}
+              viewBox={`0 0 ${source.detectionImageWidth} ${source.detectionImageHeight}`}
               preserveAspectRatio="xMidYMid meet"
               data-testid="detection-overlay"
             >
-              {detections!.map((detection, index) => {
+              {source.detections.map((detection, index) => {
                 const color = colorForClassId(detection.classId);
                 const label = `${detection.className || `class ${detection.classId}`} ${Math.round(detection.confidence * 100)}%`;
                 return (
@@ -148,14 +126,14 @@ export function VideoSourceCard({
                       height={detection.height}
                       fill="none"
                       stroke={color}
-                      strokeWidth={Math.max(2, detectionImageWidth! / 320)}
+                      strokeWidth={Math.max(2, source.detectionImageWidth / 320)}
                       vectorEffect="non-scaling-stroke"
                     />
                     <text
                       x={detection.x + 4}
                       y={Math.max(detection.y - 4, 12)}
                       fill={color}
-                      fontSize={Math.max(12, detectionImageWidth! / 40)}
+                      fontSize={Math.max(12, source.detectionImageWidth / 40)}
                       fontFamily="sans-serif"
                       stroke="rgba(0,0,0,0.7)"
                       strokeWidth={0.5}

@@ -21,15 +21,16 @@ type SourceDetailsBadgeProps = {
   testId?: string;
   defaultExpanded?: boolean;
   layoutMode?: 'stack' | 'grid';
+  metrics?: Record<string, string>;
 };
 
-function normalizeSourceType(sourceType: SourceType): SourceType {
+export function normalizeSourceType(value: string): SourceType {
   if (
-    sourceType === SOURCE_TYPES.CAMERA ||
-    sourceType === SOURCE_TYPES.VIDEO ||
-    sourceType === SOURCE_TYPES.STATIC
+    value === SOURCE_TYPES.CAMERA ||
+    value === SOURCE_TYPES.VIDEO ||
+    value === SOURCE_TYPES.STATIC
   ) {
-    return sourceType;
+    return value;
   }
   return SOURCE_TYPES.OTHER;
 }
@@ -60,6 +61,7 @@ export function SourceDetailsBadge({
   testId,
   defaultExpanded = true,
   layoutMode = 'stack',
+  metrics,
 }: SourceDetailsBadgeProps): ReactElement {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const isExpanded = forceExpanded || expanded;
@@ -68,16 +70,22 @@ export function SourceDetailsBadge({
   const dimensions = useMemo(() => formatDimensions(width, height), [width, height]);
   const details = useMemo(() => {
     const rows: Array<{ label: string; value: string }> = [
-      { label: 'Type', value: sourceTypeLabel(sourceType) },
-      { label: 'Res', value: dimensions },
+      { label: 'type', value: sourceTypeLabel(sourceType) },
+      { label: 'resolution', value: dimensions },
     ];
 
     if (normalizedType === SOURCE_TYPES.VIDEO || normalizedType === SOURCE_TYPES.CAMERA) {
       rows.unshift({ label: 'fps', value: fps.toFixed(1) });
     }
 
+    if (metrics) {
+      for (const [key, value] of Object.entries(metrics)) {
+        rows.push({ label: key, value });
+      }
+    }
+
     return rows;
-  }, [dimensions, fps, normalizedType, sourceType]);
+  }, [dimensions, fps, metrics, normalizedType, sourceType]);
 
   const toggleExpanded = (event: MouseEvent<HTMLButtonElement>): void => {
     if (stopPropagationOnToggle) {
@@ -119,7 +127,6 @@ export function SourceDetailsBadge({
           </div>
         ))}
       </div>
-      {/* TODO: Add more source-specific detail rows as telemetry grows. */}
     </button>
   );
 }

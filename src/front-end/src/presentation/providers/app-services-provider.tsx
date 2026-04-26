@@ -29,11 +29,20 @@ export function AppServicesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    void ensureReactDashboardBootstrap().then(() => {
-      if (!cancelled) {
-        setReady(true);
-      }
-    });
+    void ensureReactDashboardBootstrap()
+      .then(() => {
+        if (!cancelled) {
+          setReady(true);
+        }
+      })
+      .catch((error) => {
+        container.getLogger().error('React dashboard bootstrap failed, continuing with degraded mode', {
+          'error.message': error instanceof Error ? error.message : String(error),
+        });
+        if (!cancelled) {
+          setReady(true);
+        }
+      });
     return () => {
       cancelled = true;
     };

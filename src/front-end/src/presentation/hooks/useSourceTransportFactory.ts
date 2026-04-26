@@ -9,6 +9,7 @@ import { GridSourceActionType } from '@/presentation/utils/grid-source';
 import { filtersToFilterData } from '@/presentation/utils/grid-source';
 import { hasModelInferenceFilter } from '@/presentation/utils/grid-source';
 import { frameResponseToDataUrl } from '@/presentation/utils/image-utils';
+import { statsFrameToMetrics } from '@/presentation/utils/metric-point';
 
 type SourceTransportFactoryOptions = {
   nextNumberRef: RefObject<number>;
@@ -166,16 +167,31 @@ export function useSourceTransportFactory({
             },
           });
         });
+        transport.onStatsResult((statsFrame) => {
+          const metrics = statsFrameToMetrics(statsFrame);
+          if (!Object.keys(metrics).length) {
+            return;
+          }
+          dispatch({
+            type: GridSourceActionType.SET_SOURCE_METRICS,
+            payload: {
+              sourceId: uniqueId,
+              metrics,
+            },
+          });
+        });
+      }
 
-        const initialFilters =
-          activeFilters.length > 0
-            ? activeFilters.map((f) => ({ id: f.id, parameters: { ...f.parameters } }))
-            : [{ id: 'none', parameters: {} }];
+      const filters =
+        activeFilters.length > 0
+          ? activeFilters.map((f) => ({ id: f.id, parameters: { ...f.parameters } }))
+          : [{ id: 'none', parameters: {} }];
 
+      if (transport) {
         if (inputSource.type === 'video') {
           waitForConnected(transport, () => {
             dispatch({ type: GridSourceActionType.SET_CONNECTED, payload: { sourceId: uniqueId, connected: true } });
-            transport.sendStartVideo(inputSource.id, filtersToFilterData(initialFilters), selectedAccelerator);
+            transport.sendStartVideo(inputSource.id, filtersToFilterData(filters), selectedAccelerator);
           });
         } else {
           waitForConnected(transport, () => {
@@ -183,11 +199,6 @@ export function useSourceTransportFactory({
           });
         }
       }
-
-      const filters =
-        activeFilters.length > 0
-          ? activeFilters.map((f) => ({ id: f.id, parameters: { ...f.parameters } }))
-          : [{ id: 'none', parameters: {} }];
 
       return {
         id: uniqueId,
@@ -212,6 +223,7 @@ export function useSourceTransportFactory({
         displayWidth: 0,
         displayHeight: 0,
         connected: false,
+        metrics: {},
       };
     },
     [activeFiltersRef, dispatch, nextNumberRef, selectedAcceleratorRef, selectedResolutionRef, sourcesRef, statsManager, toastManager]

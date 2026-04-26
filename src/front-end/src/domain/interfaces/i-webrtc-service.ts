@@ -18,11 +18,14 @@ export interface IWebRTCService {
   setupPingChannel(sessionId: string): Promise<void>;
   createSession(sourceId: string, options?: CreateWebRTCSessionOptions): Promise<WebRTCSession>;
   getDataChannel(sessionId: string): RTCDataChannel | null;
+  getStatsDataChannel(sessionId: string): RTCDataChannel | null;
+  ensureStatsDataChannel(sessionId: string): RTCDataChannel | null;
   getPeerConnection(sessionId: string): RTCPeerConnection | null;
   replaceLocalVideoTrack(sessionId: string, track: MediaStreamTrack | null): Promise<boolean>;
   waitForTransportReady(sessionId: string, timeoutMs?: number): Promise<RTCDataChannel>;
   sendControlRequest(sessionId: string, request: ProcessImageRequest): void;
   closeSession(sessionId: string): Promise<void>;
+  closeSessionBeacon(sessionId: string): boolean;
   startHeartbeat(sessionId: string, intervalMs: number): void;
   stopHeartbeat(sessionId: string): void;
   getActiveSessions(): WebRTCSession[];

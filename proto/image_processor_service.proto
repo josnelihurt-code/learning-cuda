@@ -114,6 +114,28 @@ message DetectionFrame {
   int32 image_height = 4 [json_name = "image_height"];
 }
 
+message MetricValue {
+  oneof value {
+    double double_value = 1 [json_name = "double_value"];
+    int64 int64_value = 2 [json_name = "int64_value"];
+    string string_value = 3 [json_name = "string_value"];
+  }
+}
+
+message MetricPoint {
+  string key = 1 [json_name = "key"];
+  MetricValue value = 2 [json_name = "value"];
+  string unit = 3 [json_name = "unit"];
+  map<string, string> tags = 4 [json_name = "tags"];
+}
+
+message ProcessingStatsFrame {
+  string session_id = 1 [json_name = "session_id"];
+  uint64 frame_id = 2 [json_name = "frame_id"];
+  int64 capture_ts_unix_ms = 3 [json_name = "capture_ts_unix_ms"];
+  repeated MetricPoint metrics = 4 [json_name = "metrics"];
+}
+
 message StartVideoPlaybackRequest {
   string video_id = 1 [json_name = "video_id"];
   string session_id = 3 [json_name = "session_id"];

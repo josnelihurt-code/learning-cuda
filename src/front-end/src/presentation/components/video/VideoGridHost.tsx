@@ -14,6 +14,8 @@ import { useSourceTransportFactory } from '@/presentation/hooks/useSourceTranspo
 import { useSourceFilterSync } from '@/presentation/hooks/useSourceFilterSync';
 import { useGridSources } from '@/presentation/hooks/useGridSources';
 import { useLatest } from '@/presentation/hooks/useLatest';
+import { VideoGridProvider } from '@/presentation/context/video-grid-context';
+import { normalizeSourceType } from '@/presentation/components/video/SourceDetailsBadge';
 import { VideoGrid } from '@/presentation/components/video/VideoGrid';
 import { SourceDrawer } from '@/presentation/components/video/SourceDrawer';
 import { AddSourceFab } from '@/presentation/components/video/AddSourceFab';
@@ -202,10 +204,11 @@ export function VideoGridHost(): React.ReactNode {
       return null;
     }
     return {
-      type: selected.type,
+      type: normalizeSourceType(selected.type),
       fps: selected.fps,
       width: selected.displayWidth,
       height: selected.displayHeight,
+      metrics: selected.metrics,
     };
   }, [selectedSourceId, sources]);
 
@@ -224,123 +227,130 @@ export function VideoGridHost(): React.ReactNode {
     };
   }, [sourcesRef]);
 
+  const contextValue = useMemo(
+    () => ({
+      sources,
+      selectedSourceId,
+      selectedSourceDetails,
+      activeTransportService,
+      onSelectSource: (sourceId: string) => {
+        setSelectedSourceId(sourceId);
+        const source = sourcesRef.current.find((s) => s.id === sourceId) ?? null;
+        syncSelectionToDashboard(source);
+      },
+      onCloseSource: (sourceId: string) => {
+        const source = sourcesRef.current.find((s) => s.id === sourceId);
+        const isSelected = sourceId === selectedSourceIdRef.current;
+        source?.transport?.disconnect();
+        clearSourceMetrics(sourceId);
+        if (source?.sessionId) {
+          void webrtcService.closeSession(source.sessionId).catch((error) => {
+            logger.error('Failed to close camera MediaTrack session', {
+              'error.message': error instanceof Error ? error.message : String(error),
+              'source.id': sourceId,
+            });
+          });
+        }
+        removeSource(sourceId);
+        if (isSelected) {
+          const remaining = sourcesRef.current.filter((s) => s.id !== sourceId);
+          syncSelectionToDashboard(remaining[0] ?? null);
+        }
+      },
+      onChangeImageRequest: (sourceId: string) => {
+        pendingImageChangeSourceIdRef.current = sourceId;
+        void container
+          .getInputSourceService()
+          .listAvailableImages()
+          .then((images) => {
+            setAvailableImages(images);
+            setIsImageSelectorOpen(true);
+          })
+          .catch((error) => {
+            logger.error('Failed to load image options', {
+              'error.message': error instanceof Error ? error.message : String(error),
+            });
+          });
+      },
+      onCameraFrame: (sourceId: string, payload: { base64data: string; width: number; height: number; timestamp: number }) => {
+        const cameraSource = sourcesRef.current.find((item) => item.id === sourceId);
+        if (!cameraSource || cameraSource.sessionMode === 'camera-mediatrack') return;
+        if (!cameraSource.transport?.isConnected()) return;
+        const filters = cameraSource.filters.length
+          ? cameraSource.filters
+          : [{ id: 'none', parameters: {} }];
+        cameraSource.transport.sendFrame(
+          `data:image/jpeg;base64,${payload.base64data}`,
+          payload.width,
+          payload.height,
+          filtersToFilterData(filters),
+          selectedAcceleratorRef.current
+        );
+      },
+      onCameraStreamReady,
+      onCameraStatus: (status: string, type: 'success' | 'error' | 'warning' | 'inactive') => statsManager.updateCameraStatus(status, type),
+      onCameraError: (title: string, message: string) => toastManager.error(title, message),
+      onSourceFpsUpdate: (sourceId: string, fps: number) => {
+        dispatch({
+          type: GridSourceActionType.SET_SOURCE_FPS,
+          payload: {
+            sourceId,
+            fps,
+          },
+        });
+      },
+      onSourceResolutionUpdate: (sourceId: string, width: number, height: number) => {
+        dispatch({
+          type: GridSourceActionType.SET_SOURCE_RESOLUTION,
+          payload: {
+            sourceId,
+            width,
+            height,
+          },
+        });
+      },
+    }),
+    [
+      activeTransportService,
+      clearSourceMetrics,
+      container,
+      dispatch,
+      onCameraStreamReady,
+      removeSource,
+      selectedSourceDetails,
+      selectedSourceId,
+      selectedSourceIdRef,
+      setSelectedSourceId,
+      sources,
+      sourcesRef,
+      statsManager,
+      syncSelectionToDashboard,
+      toastManager,
+      selectedAcceleratorRef,
+    ]
+  );
+
   return (
-    <>
-      <VideoGrid
-        sources={sources.map((source) => ({
-          id: source.id,
-          number: source.number,
-          name: source.name,
-          type: source.type,
-          resolution: source.resolution,
-          imageSrc: source.currentImageSrc || source.imagePath,
-          remoteStream: source.remoteStream,
-          filters: source.filters,
-          detections: source.detections,
-          detectionImageWidth: source.detectionImageWidth,
-          detectionImageHeight: source.detectionImageHeight,
-          fps: source.fps,
-          displayWidth: source.displayWidth,
-          displayHeight: source.displayHeight,
-        }))}
-        selectedSourceId={selectedSourceId}
-        onSelectSource={(sourceId) => {
-          setSelectedSourceId(sourceId);
-          const source = sourcesRef.current.find((s) => s.id === sourceId) ?? null;
-          syncSelectionToDashboard(source);
-        }}
-        onCloseSource={(sourceId) => {
-          const source = sourcesRef.current.find((s) => s.id === sourceId);
-          const isSelected = sourceId === selectedSourceIdRef.current;
-          source?.transport?.disconnect();
-          clearSourceMetrics(sourceId);
-          if (source?.sessionId) {
-            void webrtcService.closeSession(source.sessionId).catch((error) => {
-              logger.error('Failed to close camera MediaTrack session', {
-                'error.message': error instanceof Error ? error.message : String(error),
-                'source.id': sourceId,
-              });
-            });
-          }
-          removeSource(sourceId);
-          if (isSelected) {
-            const remaining = sourcesRef.current.filter((s) => s.id !== sourceId);
-            syncSelectionToDashboard(remaining[0] ?? null);
-          }
-        }}
-        onChangeImageRequest={(sourceId) => {
-          pendingImageChangeSourceIdRef.current = sourceId;
-          void container
-            .getInputSourceService()
-            .listAvailableImages()
-            .then((images) => {
-              setAvailableImages(images);
-              setIsImageSelectorOpen(true);
-            })
-            .catch((error) => {
-              logger.error('Failed to load image options', {
-                'error.message': error instanceof Error ? error.message : String(error),
-              });
-            });
-        }}
-        onCameraFrame={(sourceId, payload) => {
-          const cameraSource = sourcesRef.current.find((item) => item.id === sourceId);
-          if (!cameraSource || cameraSource.sessionMode === 'camera-mediatrack') return;
-          if (!cameraSource.transport?.isConnected()) return;
-          const filters = cameraSource.filters.length
-            ? cameraSource.filters
-            : [{ id: 'none', parameters: {} }];
-          cameraSource.transport.sendFrame(
-            `data:image/jpeg;base64,${payload.base64data}`,
-            payload.width,
-            payload.height,
-            filtersToFilterData(filters),
-            selectedAcceleratorRef.current
-          );
-        }}
-        onCameraStreamReady={onCameraStreamReady}
-        onCameraStatus={(status, type) => statsManager.updateCameraStatus(status, type)}
-        onCameraError={(title, message) => toastManager.error(title, message)}
-        onSourceFpsUpdate={(sourceId, fps) => {
-          dispatch({
-            type: GridSourceActionType.SET_SOURCE_FPS,
-            payload: {
-              sourceId,
-              fps,
-            },
-          });
-        }}
-        onSourceResolutionUpdate={(sourceId, width, height) => {
-          dispatch({
-            type: GridSourceActionType.SET_SOURCE_RESOLUTION,
-            payload: {
-              sourceId,
-              width,
-              height,
-            },
-          });
-        }}
-        data-testid="video-grid-host"
-      />
-      <AddSourceFab onClick={openDrawer} />
-      <AcceleratorStatusFab />
-      <SourceDrawer
-        isOpen={isDrawerOpen}
-        availableSources={availableSources}
-        onClose={() => setIsDrawerOpen(false)}
-        onSelectSource={onSelectSourceFromDrawer}
-        onSourcesChanged={refreshDrawerSources}
-      />
-      <ImageSelectorModal
-        isOpen={isImageSelectorOpen}
-        availableImages={availableImages}
-        onClose={() => setIsImageSelectorOpen(false)}
-        onSelectImage={onSelectImage}
-      />
-      <ReactStatsPanel
-        selectedSource={selectedSourceDetails}
-        transportService={activeTransportService}
-      />
-    </>
+    <VideoGridProvider value={contextValue}>
+      <>
+        <VideoGrid />
+        <ReactStatsPanel />
+        <AddSourceFab onClick={openDrawer} />
+        <AcceleratorStatusFab />
+        <SourceDrawer
+          isOpen={isDrawerOpen}
+          availableSources={availableSources}
+          onClose={() => setIsDrawerOpen(false)}
+          onSelectSource={onSelectSourceFromDrawer}
+          onSourcesChanged={refreshDrawerSources}
+        />
+        <ImageSelectorModal
+          isOpen={isImageSelectorOpen}
+          availableImages={availableImages}
+          onClose={() => setIsImageSelectorOpen(false)}
+          onSelectImage={onSelectImage}
+        />
+      </>
+    </VideoGridProvider>
   );
 }

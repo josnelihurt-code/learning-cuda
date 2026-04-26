@@ -755,6 +755,173 @@ export class DetectionFrame extends Message<DetectionFrame> {
 }
 
 /**
+ * @generated from message cuda_learning.MetricValue
+ */
+export class MetricValue extends Message<MetricValue> {
+  /**
+   * @generated from oneof cuda_learning.MetricValue.value
+   */
+  value: {
+    /**
+     * @generated from field: double double_value = 1 [json_name = "double_value"];
+     */
+    value: number;
+    case: "doubleValue";
+  } | {
+    /**
+     * @generated from field: int64 int64_value = 2 [json_name = "int64_value"];
+     */
+    value: bigint;
+    case: "int64Value";
+  } | {
+    /**
+     * @generated from field: string string_value = 3 [json_name = "string_value"];
+     */
+    value: string;
+    case: "stringValue";
+  } | { case: undefined; value?: undefined } = { case: undefined };
+
+  constructor(data?: PartialMessage<MetricValue>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cuda_learning.MetricValue";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "double_value", jsonName: "double_value", kind: "scalar", T: 1 /* ScalarType.DOUBLE */, oneof: "value" },
+    { no: 2, name: "int64_value", jsonName: "int64_value", kind: "scalar", T: 3 /* ScalarType.INT64 */, oneof: "value" },
+    { no: 3, name: "string_value", jsonName: "string_value", kind: "scalar", T: 9 /* ScalarType.STRING */, oneof: "value" },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetricValue {
+    return new MetricValue().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetricValue {
+    return new MetricValue().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetricValue {
+    return new MetricValue().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetricValue | PlainMessage<MetricValue> | undefined, b: MetricValue | PlainMessage<MetricValue> | undefined): boolean {
+    return proto3.util.equals(MetricValue, a, b);
+  }
+}
+
+/**
+ * @generated from message cuda_learning.MetricPoint
+ */
+export class MetricPoint extends Message<MetricPoint> {
+  /**
+   * @generated from field: string key = 1;
+   */
+  key = "";
+
+  /**
+   * @generated from field: cuda_learning.MetricValue value = 2;
+   */
+  value?: MetricValue;
+
+  /**
+   * @generated from field: string unit = 3;
+   */
+  unit = "";
+
+  /**
+   * @generated from field: map<string, string> tags = 4;
+   */
+  tags: { [key: string]: string } = {};
+
+  constructor(data?: PartialMessage<MetricPoint>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cuda_learning.MetricPoint";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "key", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "value", kind: "message", T: MetricValue },
+    { no: 3, name: "unit", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "tags", kind: "map", K: 9 /* ScalarType.STRING */, V: {kind: "scalar", T: 9 /* ScalarType.STRING */} },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): MetricPoint {
+    return new MetricPoint().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): MetricPoint {
+    return new MetricPoint().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): MetricPoint {
+    return new MetricPoint().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: MetricPoint | PlainMessage<MetricPoint> | undefined, b: MetricPoint | PlainMessage<MetricPoint> | undefined): boolean {
+    return proto3.util.equals(MetricPoint, a, b);
+  }
+}
+
+/**
+ * @generated from message cuda_learning.ProcessingStatsFrame
+ */
+export class ProcessingStatsFrame extends Message<ProcessingStatsFrame> {
+  /**
+   * @generated from field: string session_id = 1 [json_name = "session_id"];
+   */
+  sessionId = "";
+
+  /**
+   * @generated from field: uint64 frame_id = 2 [json_name = "frame_id"];
+   */
+  frameId = protoInt64.zero;
+
+  /**
+   * @generated from field: int64 capture_ts_unix_ms = 3 [json_name = "capture_ts_unix_ms"];
+   */
+  captureTsUnixMs = protoInt64.zero;
+
+  /**
+   * @generated from field: repeated cuda_learning.MetricPoint metrics = 4;
+   */
+  metrics: MetricPoint[] = [];
+
+  constructor(data?: PartialMessage<ProcessingStatsFrame>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cuda_learning.ProcessingStatsFrame";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "session_id", jsonName: "session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "frame_id", jsonName: "frame_id", kind: "scalar", T: 4 /* ScalarType.UINT64 */ },
+    { no: 3, name: "capture_ts_unix_ms", jsonName: "capture_ts_unix_ms", kind: "scalar", T: 3 /* ScalarType.INT64 */ },
+    { no: 4, name: "metrics", kind: "message", T: MetricPoint, repeated: true },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ProcessingStatsFrame {
+    return new ProcessingStatsFrame().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ProcessingStatsFrame {
+    return new ProcessingStatsFrame().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ProcessingStatsFrame {
+    return new ProcessingStatsFrame().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ProcessingStatsFrame | PlainMessage<ProcessingStatsFrame> | undefined, b: ProcessingStatsFrame | PlainMessage<ProcessingStatsFrame> | undefined): boolean {
+    return proto3.util.equals(ProcessingStatsFrame, a, b);
+  }
+}
+
+/**
  * @generated from message cuda_learning.StartVideoPlaybackRequest
  */
 export class StartVideoPlaybackRequest extends Message<StartVideoPlaybackRequest> {

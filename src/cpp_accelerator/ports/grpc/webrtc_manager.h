@@ -51,6 +51,7 @@ public:
     std::shared_ptr<rtc::PeerConnection> peer_connection;
     std::shared_ptr<rtc::DataChannel> data_channel;
     std::shared_ptr<rtc::DataChannel> detection_channel;
+    std::shared_ptr<rtc::DataChannel> stats_channel;
     std::shared_ptr<rtc::Track> inbound_video_track;
     std::shared_ptr<rtc::Track> outbound_video_track;
     std::shared_ptr<rtc::RtcpReceivingSession> inbound_rtcp_session;

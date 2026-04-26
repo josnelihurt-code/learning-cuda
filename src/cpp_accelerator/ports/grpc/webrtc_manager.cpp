@@ -29,6 +29,7 @@ namespace {
 constexpr std::string_view kGoVideoSessionPrefix = "go-video-";
 constexpr uint32_t kProcessedVideoBitrate = 2'500'000;
 constexpr const char* kProcessedVideoTrackLabel = "processed-video";
+constexpr const char* kStatsChannelLabel = "cpp-processor-stats";
 
 bool IsGoVideoSession(const std::string& value) {
   return value.rfind(kGoVideoSessionPrefix, 0) == 0;
@@ -62,6 +63,12 @@ void CopyProcessMetadata(const cuda_learning::ProcessImageRequest& request,
 
   response->set_api_version(request.api_version());
   response->mutable_trace_context()->CopyFrom(request.trace_context());
+}
+
+int64_t CurrentUnixTimeMs() {
+  return std::chrono::duration_cast<std::chrono::milliseconds>(
+             std::chrono::system_clock::now().time_since_epoch())
+      .count();
 }
 
 std::string NormalizeCodecName(const std::string& value) {
@@ -218,6 +225,9 @@ void WebRTCManager::Shutdown() {
       if (session->data_channel) {
         session->data_channel->close();
       }
+      if (session->stats_channel) {
+        session->stats_channel->close();
+      }
       if (session->peer_connection) {
         session->peer_connection->close();
       }
@@ -268,7 +278,7 @@ bool WebRTCManager::CreateSession(const std::string& session_id, const std::stri
         engine_.get(), session->memory_pool.get());
     session->live_filter_state.set_accelerator(cuda_learning::ACCELERATOR_TYPE_CUDA);
     session->live_filter_state.add_filters(cuda_learning::FILTER_TYPE_NONE);
-    session->live_filter_state.set_api_version("1.0");
+    session->live_filter_state.set_api_version("1.1");
     session->memory_pool = std::make_unique<jrb::infrastructure::cuda::CudaMemoryPool>();
     engine_->SetMemoryPool(session->memory_pool.get());
     spdlog::info("[WebRTC:{}] Created dedicated CUDA memory pool for session", session_id);
@@ -543,6 +553,7 @@ bool WebRTCManager::CreateSession(const std::string& session_id, const std::stri
           return;
         }
 
+        const auto process_started = std::chrono::steady_clock::now();
         std::vector<EncodedAccessUnit> encoded_units;
         cuda_learning::DetectionFrame detection_frame;
         std::string error_message;
@@ -566,6 +577,42 @@ bool WebRTCManager::CreateSession(const std::string& session_id, const std::stri
             spdlog::error("[WebRTC:{}] Failed to send processed video frame: {}", session_id,
                           exception.what());
             return;
+          }
+        }
+
+        {
+          std::shared_ptr<rtc::DataChannel> stats_ch;
+          {
+            std::lock_guard<std::mutex> lock(session->mutex);
+            stats_ch = session->stats_channel;
+          }
+          if (stats_ch && stats_ch->isOpen()) {
+            const auto elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(
+                                        std::chrono::steady_clock::now() - process_started)
+                                        .count() /
+                                    1000.0;
+            cuda_learning::ProcessingStatsFrame stats_frame;
+            stats_frame.set_session_id(session_id);
+            stats_frame.set_frame_id(0);
+            stats_frame.set_capture_ts_unix_ms(CurrentUnixTimeMs());
+
+            auto* total_ms_metric = stats_frame.add_metrics();
+            total_ms_metric->set_key("pipeline.total.ms");
+            total_ms_metric->set_unit("ms");
+            total_ms_metric->mutable_value()->set_double_value(elapsed_ms);
+
+            auto* detections_metric = stats_frame.add_metrics();
+            detections_metric->set_key("detections.count");
+            detections_metric->set_unit("count");
+            detections_metric->mutable_value()->set_int64_value(detection_frame.detections_size());
+
+            std::string stats_payload;
+            if (stats_frame.SerializeToString(&stats_payload)) {
+              SendFramed(*stats_ch, stats_payload,
+                         session->outgoing_message_id.fetch_add(1, std::memory_order_relaxed) + 1U);
+            } else {
+              spdlog::error("[WebRTC:{}] Failed to serialize ProcessingStatsFrame", session_id);
+            }
           }
         }
 
@@ -608,6 +655,25 @@ bool WebRTCManager::CreateSession(const std::string& session_id, const std::stri
         {
           std::lock_guard<std::mutex> lock(session->mutex);
           session->detection_channel = data_channel;
+        }
+        return;
+      }
+
+      if (label == kStatsChannelLabel) {
+        data_channel->onOpen([session_id]() {
+          spdlog::info("[WebRTC:{}] Stats channel opened", session_id);
+        });
+        data_channel->onClosed([session_id, session]() {
+          spdlog::warn("[WebRTC:{}] Stats channel closed", session_id);
+          std::lock_guard<std::mutex> cl(session->mutex);
+          session->stats_channel = nullptr;
+        });
+        data_channel->onError([session_id](std::string err) {
+          spdlog::error("[WebRTC:{}] Stats channel error: {}", session_id, err);
+        });
+        {
+          std::lock_guard<std::mutex> lock(session->mutex);
+          session->stats_channel = data_channel;
         }
         return;
       }
@@ -705,6 +771,7 @@ bool WebRTCManager::CreateSession(const std::string& session_id, const std::stri
         cuda_learning::ProcessImageResponse response;
         CopyProcessMetadata(request, &response);
 
+        const auto process_started = std::chrono::steady_clock::now();
         const bool ok = self->engine_->ProcessImage(request, &response);
         if (!ok || response.code() != 0) {
           spdlog::warn("[WebRTC:{}] DataChannel frame processing failed (code={}): {}", session_id,
@@ -727,6 +794,42 @@ bool WebRTCManager::CreateSession(const std::string& session_id, const std::stri
 
         SendFramed(*dc, output,
                    session->outgoing_message_id.fetch_add(1, std::memory_order_relaxed) + 1U);
+
+        {
+          std::shared_ptr<rtc::DataChannel> stats_ch;
+          {
+            std::lock_guard<std::mutex> lock(session->mutex);
+            stats_ch = session->stats_channel;
+          }
+          if (stats_ch && stats_ch->isOpen()) {
+            const auto elapsed_ms = std::chrono::duration_cast<std::chrono::microseconds>(
+                                        std::chrono::steady_clock::now() - process_started)
+                                        .count() /
+                                    1000.0;
+            cuda_learning::ProcessingStatsFrame stats_frame;
+            stats_frame.set_session_id(session_id);
+            stats_frame.set_frame_id(request.frame_id());
+            stats_frame.set_capture_ts_unix_ms(CurrentUnixTimeMs());
+
+            auto* total_ms_metric = stats_frame.add_metrics();
+            total_ms_metric->set_key("pipeline.total.ms");
+            total_ms_metric->set_unit("ms");
+            total_ms_metric->mutable_value()->set_double_value(elapsed_ms);
+
+            auto* detections_metric = stats_frame.add_metrics();
+            detections_metric->set_key("detections.count");
+            detections_metric->set_unit("count");
+            detections_metric->mutable_value()->set_int64_value(response.detections_size());
+
+            std::string stats_payload;
+            if (stats_frame.SerializeToString(&stats_payload)) {
+              SendFramed(*stats_ch, stats_payload,
+                         session->outgoing_message_id.fetch_add(1, std::memory_order_relaxed) + 1U);
+            } else {
+              spdlog::error("[WebRTC:{}] Failed to serialize ProcessingStatsFrame", session_id);
+            }
+          }
+        }
 
         if (response.detections_size() > 0) {
           std::shared_ptr<rtc::DataChannel> det_ch;
@@ -1018,6 +1121,11 @@ bool WebRTCManager::CloseSession(const std::string& session_id, std::string* err
       spdlog::info("[WebRTC:{}] Data channel closed", session_id);
     }
 
+    if (session->stats_channel) {
+      session->stats_channel->close();
+      spdlog::info("[WebRTC:{}] Stats channel closed", session_id);
+    }
+
     if (session->peer_connection) {
       session->peer_connection->close();
       spdlog::info("[WebRTC:{}] Peer connection closed", session_id);
@@ -1172,6 +1280,9 @@ void WebRTCManager::CleanupInactiveSessions(int timeout_seconds) {
       try {
         if (session->data_channel) {
           session->data_channel->close();
+        }
+        if (session->stats_channel) {
+          session->stats_channel->close();
         }
         if (session->peer_connection) {
           session->peer_connection->close();

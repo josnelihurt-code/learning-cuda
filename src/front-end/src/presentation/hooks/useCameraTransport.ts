@@ -5,6 +5,7 @@ import type { IToastDisplay } from '@/infrastructure/transport/transport-types';
 import type { GridSource, GridSourceAction } from '@/presentation/utils/grid-source';
 import { GridSourceActionType } from '@/presentation/utils/grid-source';
 import { hasModelInferenceFilter } from '@/presentation/utils/grid-source';
+import { statsFrameToMetrics } from '@/presentation/utils/metric-point';
 import { webrtcService } from '@/infrastructure/connection/webrtc-service';
 import { logger } from '@/infrastructure/observability/otel-logger';
 import { ChunkReassembler } from '@/infrastructure/transport/data-channel-framing';
@@ -13,6 +14,7 @@ import {
   DetectionFrame,
   GenericFilterParameterSelection,
   GenericFilterSelection,
+  ProcessingStatsFrame,
   ProcessImageRequest,
 } from '@/gen/image_processor_service_pb';
 
@@ -70,7 +72,7 @@ export function useCameraTransport({
             sessionId,
             genericFilters: filtersToGenericSelections(filters),
             accelerator: toProtocolAccelerator(accelerator),
-            apiVersion: '1.0',
+            apiVersion: '1.1',
           })
         );
       } catch (error) {
@@ -161,6 +163,30 @@ export function useCameraTransport({
                   width: frame.imageWidth,
                   height: frame.imageHeight,
                 },
+              });
+            });
+          };
+        }
+
+        const statsChannel =
+          webrtcService.ensureStatsDataChannel(session.getId()) ??
+          webrtcService.getStatsDataChannel(session.getId());
+        if (statsChannel) {
+          const statsReassembler = new ChunkReassembler();
+          statsChannel.onmessage = (event: MessageEvent): void => {
+            const payload = event.data as ArrayBuffer | Blob;
+            const bufferPromise =
+              payload instanceof Blob ? payload.arrayBuffer() : Promise.resolve(payload as ArrayBuffer);
+            void bufferPromise.then((buffer) => {
+              const assembled = statsReassembler.pushChunk(buffer);
+              if (assembled === null) return;
+              const statsFrame = ProcessingStatsFrame.fromBinary(assembled);
+              const metrics = statsFrameToMetrics(statsFrame);
+              if (!Object.keys(metrics).length) return;
+
+              dispatch({
+                type: GridSourceActionType.SET_SOURCE_METRICS,
+                payload: { sourceId, metrics },
               });
             });
           };

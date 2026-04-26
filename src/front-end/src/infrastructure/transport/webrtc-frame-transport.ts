@@ -7,6 +7,7 @@ import {
   DetectionFrame,
   GenericFilterParameterSelection,
   GenericFilterSelection,
+  ProcessingStatsFrame,
   ProcessImageRequest,
   ProcessImageResponse,
   StartVideoPlaybackRequest,
@@ -149,12 +150,14 @@ export class WebRTCFrameTransportService implements IFrameTransportService {
   private sessionId: string | null = null;
   private frameResultCallback: FrameResultCallback | null = null;
   private detectionResultCallback: ((frame: DetectionFrame) => void) | null = null;
+  private statsResultCallback: ((frame: ProcessingStatsFrame) => void) | null = null;
   private frameIdCounter = 0n;
   private connectPromise: Promise<void> | null = null;
   private pendingResponses: Map<bigint, PendingResponse> = new Map();
   private connectionState: 'connected' | 'disconnected' | 'connecting' | 'error' = 'disconnected';
   private frameChannelReassembler = new ChunkReassembler();
   private detectionChannelReassembler = new ChunkReassembler();
+  private statsChannelReassembler = new ChunkReassembler();
   private lastRequest: string | null = null;
   private lastRequestTime: Date | null = null;
 
@@ -288,7 +291,7 @@ export class WebRTCFrameTransportService implements IFrameTransportService {
       modelParams,
       sessionId: this.sessionId,
       traceContext: buildTraceContext(),
-      apiVersion: '1.0',
+      apiVersion: '1.1',
       frameId,
     }).toBinary();
 
@@ -326,7 +329,7 @@ export class WebRTCFrameTransportService implements IFrameTransportService {
         genericFilters: toGenericFilterSelections(filters),
         modelParams,
         traceContext: buildTraceContext(),
-        apiVersion: '1.0',
+        apiVersion: '1.1',
       })))
       .then(() => {
         this.lastRequest = 'StartVideoPlayback';
@@ -346,7 +349,7 @@ export class WebRTCFrameTransportService implements IFrameTransportService {
     void this.client.stopVideoPlayback(new StopVideoPlaybackRequest({
       sessionId: this.sessionId,
       traceContext: buildTraceContext(),
-      apiVersion: '1.0',
+      apiVersion: '1.1',
     })).then(() => {
       this.lastRequest = 'StopVideoPlayback';
       this.lastRequestTime = new Date();
@@ -361,6 +364,10 @@ export class WebRTCFrameTransportService implements IFrameTransportService {
 
   onDetectionResult(callback: (frame: DetectionFrame) => void): void {
     this.detectionResultCallback = callback;
+  }
+
+  onStatsResult(callback: (frame: ProcessingStatsFrame) => void): void {
+    this.statsResultCallback = callback;
   }
 
   isConnected(): boolean {
@@ -397,8 +404,10 @@ export class WebRTCFrameTransportService implements IFrameTransportService {
       // the first send() races the SCTP handshake and Chrome tears the
       // channel down with OperationError: data-channel-failure.
       const dataChannel = await webrtcService.waitForTransportReady(session.getId());
+      webrtcService.ensureStatsDataChannel(session.getId());
       this.attachDataChannel(dataChannel);
       this.attachDetectionChannel(session.getId());
+      this.attachStatsChannel(session.getId());
       this.connectionState = 'connected';
       this.lastRequest = 'Data channel connected';
       this.lastRequestTime = new Date();
@@ -481,6 +490,26 @@ export class WebRTCFrameTransportService implements IFrameTransportService {
     };
   }
 
+  private attachStatsChannel(sessionId: string): void {
+    const dc = webrtcService.getStatsDataChannel(sessionId);
+    if (!dc) return;
+    this.statsChannelReassembler = new ChunkReassembler();
+    dc.onmessage = (event: MessageEvent) => {
+      const payload = event.data;
+      const bufferPromise = payload instanceof Blob ? payload.arrayBuffer() : Promise.resolve(payload as ArrayBuffer);
+      void bufferPromise.then((buffer) => {
+        const assembled = this.statsChannelReassembler.pushChunk(buffer);
+        if (assembled === null) {
+          return;
+        }
+        const frame = ProcessingStatsFrame.fromBinary(assembled);
+        this.statsResultCallback?.(frame);
+      }).catch((error) => {
+        this.handleError('Failed to decode processing stats frame', error);
+      });
+    };
+  }
+
   private async sendRequest(
     image: ImageData,
     filters: FilterData[],
@@ -532,7 +561,7 @@ export class WebRTCFrameTransportService implements IFrameTransportService {
       modelParams,
       sessionId: this.sessionId,
       traceContext: buildTraceContext(),
-      apiVersion: '1.0',
+      apiVersion: '1.1',
       frameId,
     }).toBinary();
 
