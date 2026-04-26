@@ -47,7 +47,7 @@ export function VideoGridHost(): React.ReactNode {
     [toast.error, toast.info, toast.success, toast.warning]
   );
 
-  const { fps, time, frames, cameraStatus, cameraStatusType, statsManager } = useProcessingStats();
+  const { statsManager } = useProcessingStats();
   const { sources, selectedSourceId, sourcesRef, selectedSourceIdRef, nextNumberRef, dispatch, setSelectedSource: setSelectedSourceId, removeSource } =
     useGridSources();
   const { createCameraSession, replaceCameraStream, sendCameraControlRequest } = useCameraTransport({
@@ -196,6 +196,19 @@ export function VideoGridHost(): React.ReactNode {
     return selected?.transport ?? sources.find((s) => s.transport)?.transport ?? null;
   }, [selectedSourceId, sources]);
 
+  const selectedSourceDetails = useMemo(() => {
+    const selected = selectedSourceId ? sources.find((source) => source.id === selectedSourceId) : null;
+    if (!selected) {
+      return null;
+    }
+    return {
+      type: selected.type,
+      fps: selected.fps,
+      width: selected.displayWidth,
+      height: selected.displayHeight,
+    };
+  }, [selectedSourceId, sources]);
+
   useEffect(() => {
     const stopAllSources = (): void => {
       sourcesRef.current.forEach((source) => {
@@ -325,11 +338,7 @@ export function VideoGridHost(): React.ReactNode {
         onSelectImage={onSelectImage}
       />
       <ReactStatsPanel
-        fps={fps}
-        time={time}
-        frames={frames}
-        cameraStatus={cameraStatus}
-        cameraStatusType={cameraStatusType}
+        selectedSource={selectedSourceDetails}
         transportService={activeTransportService}
       />
     </>

@@ -218,12 +218,27 @@ cleanup_on_signal() {
     rm -f "$DEV_PID_GRPC" "$DEV_PID_GO" "$DEV_PID_VITE"
 }
 
+get_local_ip() {
+    local local_ip
+
+    local_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+    if [ -z "$local_ip" ]; then
+        local_ip="$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="src") {print $(i+1); exit}}')"
+    fi
+    [ -z "$local_ip" ] && local_ip="localhost"
+
+    echo "$local_ip"
+}
+
 print_summary() {
+    local local_ip
+    local_ip="$(get_local_ip)"
+
     echo "================================================"
     echo "Dev stack:"
-    echo "  UI (Vite):   https://localhost:3000"
-    echo "  API (HTTPS): https://localhost:8443"
-    echo "  Accelerator: → localhost:60062 (outbound)"
+    echo "  UI (Vite):   https://${local_ip}:3000"
+    echo "  API (HTTPS): https://${local_ip}:8443"
+    echo "  Accelerator: → ${local_ip}:60062 (outbound)"
     echo "================================================"
     echo ""
     echo "  Accelerator PID: $GRPC_PID ($DEV_PID_GRPC)"

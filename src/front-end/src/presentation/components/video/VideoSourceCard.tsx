@@ -1,13 +1,14 @@
-import { type ReactNode, type ReactElement } from 'react';
+import { useMemo, useState, type ReactNode, type ReactElement } from 'react';
 import type { Detection } from '@/gen/image_processor_service_pb';
 import { colorForClassId } from '@/presentation/utils/detection-colors';
+import { SourceDetailsBadge, SOURCE_TYPES, type SourceType } from './SourceDetailsBadge';
 import styles from './VideoSourceCard.module.css';
 
 type VideoSourceCardProps = {
   sourceId: string;
   sourceNumber: number;
   sourceName: string;
-  sourceType: string;
+  sourceType: SourceType;
   imageSrc: string;
   isSelected: boolean;
   onSelect: (sourceId: string) => void;
@@ -21,25 +22,6 @@ type VideoSourceCardProps = {
   displayWidth?: number;
   displayHeight?: number;
 };
-
-function canShowFpsBadge(sourceType: string): boolean {
-  return sourceType === 'video' || sourceType === 'camera';
-}
-
-function formatFps(fps: number): string {
-  return `${fps.toFixed(1)} FPS`;
-}
-
-function formatResolution(width?: number, height?: number): string {
-  if ((width ?? 0) > 0 && (height ?? 0) > 0) {
-    return `${width}x${height}`;
-  }
-  return '--';
-}
-
-function formatBadgeLabel(fps: number, width?: number, height?: number): string {
-  return `${formatFps(fps)} | ${formatResolution(width, height)}`;
-}
 
 export function VideoSourceCard({
   sourceId,
@@ -59,6 +41,7 @@ export function VideoSourceCard({
   displayWidth,
   displayHeight,
 }: VideoSourceCardProps): ReactElement {
+  const [staticImageResolution, setStaticImageResolution] = useState<{ width: number; height: number } | null>(null);
   const cardClassName = isSelected ? `${styles.card} ${styles.selected}` : styles.card;
   const shouldRenderProcessedImage = Boolean(imageSrc);
   const hasDetections =
@@ -66,6 +49,24 @@ export function VideoSourceCard({
     detections.length > 0 &&
     (detectionImageWidth ?? 0) > 0 &&
     (detectionImageHeight ?? 0) > 0;
+  const sourceDetailsWidth = useMemo(() => {
+    if ((displayWidth ?? 0) > 0) {
+      return displayWidth;
+    }
+    if (sourceType === SOURCE_TYPES.STATIC) {
+      return staticImageResolution?.width;
+    }
+    return undefined;
+  }, [displayWidth, sourceType, staticImageResolution?.width]);
+  const sourceDetailsHeight = useMemo(() => {
+    if ((displayHeight ?? 0) > 0) {
+      return displayHeight;
+    }
+    if (sourceType === SOURCE_TYPES.STATIC) {
+      return staticImageResolution?.height;
+    }
+    return undefined;
+  }, [displayHeight, sourceType, staticImageResolution?.height]);
 
   return (
     <div className={styles.source}>
@@ -76,11 +77,15 @@ export function VideoSourceCard({
         data-source-id={sourceId}
       >
         <div className={styles.sourceNumber}>{sourceNumber}</div>
-        {canShowFpsBadge(sourceType) ? (
-          <div className={styles.fpsBadge} data-testid={`source-fps-${sourceNumber}`}>
-            {formatBadgeLabel(fps, displayWidth, displayHeight)}
-          </div>
-        ) : null}
+        <SourceDetailsBadge
+          sourceType={sourceType}
+          fps={fps}
+            width={sourceDetailsWidth}
+            height={sourceDetailsHeight}
+          className={styles.sourceDetails}
+          stopPropagationOnToggle={true}
+          testId={`source-fps-${sourceNumber}`}
+        />
         {sourceType === 'static' ? (
           <button
             className={styles.changeImageBtn}
@@ -107,7 +112,21 @@ export function VideoSourceCard({
         </button>
         <div className={styles.content}>
           {shouldRenderProcessedImage ? (
-            <img src={imageSrc} alt={sourceName} crossOrigin="anonymous" />
+            <img
+              src={imageSrc}
+              alt={sourceName}
+              crossOrigin="anonymous"
+              onLoad={(event) => {
+                if (sourceType !== SOURCE_TYPES.STATIC) {
+                  return;
+                }
+                const nextWidth = event.currentTarget.naturalWidth;
+                const nextHeight = event.currentTarget.naturalHeight;
+                if (nextWidth > 0 && nextHeight > 0) {
+                  setStaticImageResolution({ width: nextWidth, height: nextHeight });
+                }
+              }}
+            />
           ) : null}
           {children}
           {hasDetections ? (

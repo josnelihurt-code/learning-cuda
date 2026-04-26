@@ -1,14 +1,16 @@
 import { useEffect, useId, useReducer, type ReactElement } from 'react';
 import { grpcConnectionService } from '@/infrastructure/connection/grpc-connection-service';
 import { webrtcService } from '@/infrastructure/connection/webrtc-service';
+import { SourceDetailsBadge, SOURCE_TYPES, type SourceType } from '@/presentation/components/video/SourceDetailsBadge';
 import styles from './StatsPanel.module.css';
 
 type StatsPanelProps = {
-  fps: string;
-  time: string;
-  frames: number;
-  cameraStatus: string;
-  cameraStatusType: 'success' | 'error' | 'warning' | 'inactive';
+  selectedSource: {
+    type: SourceType;
+    fps?: number;
+    width?: number;
+    height?: number;
+  } | null;
   transportService?: {
     getConnectionStatus: () => {
       state: 'connected' | 'disconnected' | 'connecting' | 'error';
@@ -104,25 +106,8 @@ function indicatorClassForState(state: ConnectionState): string {
   }
 }
 
-function cameraClassForType(cameraStatusType: StatsPanelProps['cameraStatusType']): string {
-  switch (cameraStatusType) {
-    case 'success':
-      return styles.cameraSuccess;
-    case 'error':
-      return styles.cameraError;
-    case 'warning':
-      return styles.cameraWarning;
-    default:
-      return styles.cameraInactive;
-  }
-}
-
 export function StatsPanel({
-  fps,
-  time,
-  frames,
-  cameraStatus,
-  cameraStatusType,
+  selectedSource,
   transportService = null,
 }: StatsPanelProps): ReactElement {
   const panelRegionId = useId();
@@ -178,11 +163,17 @@ export function StatsPanel({
         className={styles.panel}
         onClick={() => dispatch({ type: StatsPanelActionType.COLLAPSE })}
       >
-        <div className={styles.left}>
-          <strong>FPS: {fps}</strong>
-          <strong>Time: {time}</strong>
-          <strong>Frames: {frames}</strong>
-          <strong className={cameraClassForType(cameraStatusType)}>{cameraStatus}</strong>
+        <div className={styles.sourceDetailsSlot}>
+          <SourceDetailsBadge
+            sourceType={selectedSource?.type ?? SOURCE_TYPES.OTHER}
+            fps={selectedSource?.fps ?? 0}
+            width={selectedSource?.width}
+            height={selectedSource?.height}
+            forceExpanded={true}
+            layoutMode="grid"
+            className={styles.sourceDetails}
+            testId="stats-panel-source-details"
+          />
         </div>
         <div className={styles.connectionsSection}>
           {state.connections.map((connection) => (

@@ -1,6 +1,7 @@
 import { type ReactElement } from 'react';
 import { CameraPreview } from './CameraPreview';
 import { VideoSourceCard } from './VideoSourceCard';
+import { SOURCE_TYPES, type SourceType } from './SourceDetailsBadge';
 import type { GridSourceView } from '@/presentation/utils/grid-source';
 import styles from './VideoGrid.module.css';
 
@@ -70,6 +71,17 @@ export function VideoGrid({
   onSourceFpsUpdate,
   onSourceResolutionUpdate,
 }: VideoGridProps): ReactElement {
+  const asSourceType = (value: string): SourceType => {
+    if (
+      value === SOURCE_TYPES.CAMERA ||
+      value === SOURCE_TYPES.VIDEO ||
+      value === SOURCE_TYPES.STATIC
+    ) {
+      return value;
+    }
+    return SOURCE_TYPES.OTHER;
+  };
+
   return (
     <div className={styles.shell}>
       <div
@@ -89,7 +101,7 @@ export function VideoGrid({
                 sourceId={source.id}
                 sourceNumber={source.number}
                 sourceName={source.name}
-                sourceType={source.type}
+                sourceType={asSourceType(source.type)}
                 imageSrc={source.imageSrc}
                 isSelected={selectedSourceId === source.id}
                 onSelect={onSelectSource}
@@ -102,7 +114,7 @@ export function VideoGrid({
                 displayWidth={source.displayWidth}
                 displayHeight={source.displayHeight}
               >
-                {source.type === 'camera' ? (
+                {source.type === SOURCE_TYPES.CAMERA ? (
                   <CameraPreview
                     width={cameraDimensions.width}
                     height={cameraDimensions.height}

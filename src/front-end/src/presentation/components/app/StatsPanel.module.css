@@ -18,11 +18,16 @@
   cursor: pointer;
 }
 
-.left {
+.sourceDetailsSlot {
   display: flex;
   align-items: center;
-  gap: 24px;
   flex-shrink: 0;
+}
+
+.sourceDetails {
+  cursor: default;
+  max-height: 28px;
+  overflow: hidden;
 }
 
 .connectionsSection {
@@ -113,22 +118,6 @@
   font-size: 8px;
   color: #b0b0b0;
   flex-shrink: 0;
-}
-
-.cameraSuccess {
-  color: #66ff66;
-}
-
-.cameraError {
-  color: #ff6666;
-}
-
-.cameraWarning {
-  color: #ffaa00;
-}
-
-.cameraInactive {
-  color: #b0b0b0;
 }
 
 .peek {

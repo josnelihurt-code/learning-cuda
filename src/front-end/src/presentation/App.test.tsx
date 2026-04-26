@@ -41,7 +41,7 @@ vi.mock('./components/video/VideoGridHost', () => ({
 
 describe('App', () => {
   beforeEach(() => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => { });
   });
 
   afterEach(() => {
@@ -55,10 +55,10 @@ describe('App', () => {
     expect(grid).toBeInTheDocument();
   });
 
-  it('should show React load marker text in version tooltip', () => {
+  it('should show version information in version tooltip', () => {
     renderWithProviders(<App />);
     fireEvent.click(screen.getByTitle('Version Information'));
-    expect(screen.getByText('React app loaded')).toBeInTheDocument();
+    expect(screen.getByText('Version Information')).toBeInTheDocument();
   });
 
   it('should render without console errors', () => {

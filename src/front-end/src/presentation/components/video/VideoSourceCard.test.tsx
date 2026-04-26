@@ -51,7 +51,7 @@ describe('VideoSourceCard', () => {
     expect(screen.queryByTestId('change-image-button')).not.toBeInTheDocument();
   });
 
-  it('shows fps badge for video source', () => {
+  it('shows expanded source details by default and toggles on click for video source', () => {
     render(
       <VideoSourceCard
         sourceId="video-1"
@@ -69,10 +69,18 @@ describe('VideoSourceCard', () => {
       />
     );
 
-    expect(screen.getByTestId('source-fps-2')).toHaveTextContent('23.5 FPS | 1280x720');
+    const sourceDetails = screen.getByTestId('source-fps-2');
+    expect(sourceDetails).toHaveAttribute('aria-expanded', 'true');
+    expect(sourceDetails).toHaveTextContent('fps:');
+    expect(sourceDetails).toHaveTextContent('23.5');
+    expect(sourceDetails).toHaveTextContent('1280x720');
+    expect(sourceDetails).toHaveTextContent('Video');
+
+    fireEvent.click(sourceDetails);
+    expect(sourceDetails).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('shows fps badge for camera source', () => {
+  it('shows source details with camera-specific labels', () => {
     render(
       <VideoSourceCard
         sourceId="camera-1"
@@ -90,7 +98,11 @@ describe('VideoSourceCard', () => {
       />
     );
 
-    expect(screen.getByTestId('source-fps-3')).toHaveTextContent('30.0 FPS | 640x480');
+    const sourceDetails = screen.getByTestId('source-fps-3');
+    expect(sourceDetails).toHaveTextContent('fps:');
+    expect(sourceDetails).toHaveTextContent('30.0');
+    expect(sourceDetails).toHaveTextContent('640x480');
+    expect(sourceDetails).toHaveTextContent('Webcam');
   });
 
   it('shows resolution fallback when unavailable', () => {
@@ -109,10 +121,13 @@ describe('VideoSourceCard', () => {
       />
     );
 
-    expect(screen.getByTestId('source-fps-5')).toHaveTextContent('12.0 FPS | --');
+    const sourceDetails = screen.getByTestId('source-fps-5');
+    expect(sourceDetails).toHaveTextContent('fps:');
+    expect(sourceDetails).toHaveTextContent('12.0');
+    expect(sourceDetails).toHaveTextContent('--');
   });
 
-  it('does not show fps badge for static source', () => {
+  it('shows source details for static source with static labels', () => {
     render(
       <VideoSourceCard
         sourceId="static-1"
@@ -128,6 +143,9 @@ describe('VideoSourceCard', () => {
       />
     );
 
-    expect(screen.queryByTestId('source-fps-4')).not.toBeInTheDocument();
+    const sourceDetails = screen.getByTestId('source-fps-4');
+    expect(sourceDetails).not.toHaveTextContent('fps:');
+    expect(sourceDetails).not.toHaveTextContent('30.0');
+    expect(sourceDetails).toHaveTextContent('Static');
   });
 });
