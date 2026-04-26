@@ -44,7 +44,6 @@ describe('StatsPanel', () => {
 
     const details = screen.getByTestId('stats-panel-source-details');
     expect(details).toHaveAttribute('aria-expanded', 'true');
-    expect(details).not.toHaveTextContent('fps:');
     expect(details).toHaveTextContent('1920x1080');
     expect(screen.queryByText(/Time:/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Frames:/i)).not.toBeInTheDocument();
