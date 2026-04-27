@@ -7,6 +7,37 @@ import "google/api/annotations.proto";
 
 option go_package = "github.com/jrb/cuda-learning/proto/gen";
 
+// ControlRequest is the envelope sent from the browser to the C++ accelerator
+// over the WebRTC "control" data channel. Each request carries a unique
+// request_id so the response can be correlated.
+message ControlRequest {
+  string request_id = 1 [json_name = "request_id"];
+  TraceContext trace_context = 2 [json_name = "trace_context"];
+
+  oneof payload {
+    ListFiltersRequest list_filters = 10 [json_name = "list_filters"];
+    GetVersionInfoRequest get_version = 11 [json_name = "get_version"];
+  }
+}
+
+// ControlResponse is the C++ accelerator's reply on the WebRTC "control" data
+// channel. The request_id mirrors the originating ControlRequest.
+message ControlResponse {
+  string request_id = 1 [json_name = "request_id"];
+  TraceContext trace_context = 2 [json_name = "trace_context"];
+
+  oneof payload {
+    ListFiltersResponse list_filters = 10 [json_name = "list_filters"];
+    GetVersionInfoResponse get_version = 11 [json_name = "get_version"];
+    ControlError error = 99 [json_name = "error"];
+  }
+}
+
+message ControlError {
+  string code = 1 [json_name = "code"];
+  string message = 2 [json_name = "message"];
+}
+
 enum GenericFilterParameterType {
   GENERIC_FILTER_PARAMETER_TYPE_UNSPECIFIED = 0;
   GENERIC_FILTER_PARAMETER_TYPE_SELECT = 1;
@@ -214,13 +245,11 @@ message GetVersionInfoResponse {
   string api_version = 15 [json_name = "api_version"];
 }
 
-service ImageProcessorService {
-  rpc ListFilters(ListFiltersRequest) returns (ListFiltersResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/filters"
-    };
-  }
-
+// VideoPlaybackService handles server-initiated playback of locally stored
+// videos as WebRTC video sources. The browser asks Go to start streaming a
+// previously uploaded video into an existing WebRTC session; Go reads frames
+// and pushes them through the accelerator pipeline.
+service VideoPlaybackService {
   rpc StartVideoPlayback(StartVideoPlaybackRequest) returns (StartVideoPlaybackResponse) {
     option (google.api.http) = {
       post: "/api/v1/process/video/start"
@@ -234,6 +263,4 @@ service ImageProcessorService {
       body: "*"
     };
   }
-
-  rpc GetVersionInfo(GetVersionInfoRequest) returns (GetVersionInfoResponse);
 }

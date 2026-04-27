@@ -14,7 +14,6 @@ syntax = "proto3";
 package cuda_learning;
 
 import "common.proto";
-import "image_processor_service.proto";
 import "webrtc_signal.proto";
 
 option go_package = "github.com/jrb/cuda-learning/proto/gen";
@@ -51,12 +50,6 @@ message AcceleratorMessage {
   oneof payload {
     Register register = 10;
     RegisterAck register_ack = 11;
-
-    ListFiltersRequest list_filters_request = 30;
-    ListFiltersResponse list_filters_response = 31;
-
-    GetVersionInfoRequest get_version_request = 40;
-    GetVersionInfoResponse get_version_response = 41;
 
     SignalingMessage signaling_message = 50;
 
