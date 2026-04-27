@@ -4,5 +4,8 @@ exports_files([
     "googleapis.BUILD",
     "protoc-gen-validate.patch",
     "onnxruntime.BUILD",
+    "opencl_sdk.BUILD",
+    "vulkan_headers.BUILD",
+    "vulkan_hpp.BUILD",
 ])
 

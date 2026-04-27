@@ -162,6 +162,30 @@ http_archive(
 )
 
 http_archive(
+    name = "opencl_sdk",
+    build_file = "//bazel/third_party:opencl_sdk.BUILD",
+    sha256 = "add91d0f9bf342d268b2146f2ac71ef3256da054fcf185702efc27d7014b525c",
+    strip_prefix = "OpenCL-SDK-v2025.07.23-Source/home/runner/work/OpenCL-SDK/OpenCL-SDK/install",
+    urls = ["https://github.com/KhronosGroup/OpenCL-SDK/releases/download/v2025.07.23/OpenCL-SDK-v2025.07.23-Source.tar.gz"],
+)
+
+http_archive(
+    name = "vulkan_headers",
+    build_file = "//bazel/third_party:vulkan_headers.BUILD",
+    sha256 = "d7b84712f8469657baa37a436d1a23efbf0a6354fc8835b6758ef036e15dcc14",
+    strip_prefix = "Vulkan-Headers-1.4.349",
+    urls = ["https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.4.349.tar.gz"],
+)
+
+http_archive(
+    name = "vulkan_hpp",
+    build_file = "//bazel/third_party:vulkan_hpp.BUILD",
+    sha256 = "53b5d6136a3b3103d3ab51170fa4d103b710d8aa221f006e300985a900744700",
+    strip_prefix = "Vulkan-Hpp-1.4.349",
+    urls = ["https://github.com/KhronosGroup/Vulkan-Hpp/archive/refs/tags/v1.4.349.tar.gz"],
+)
+
+http_archive(
     name = "com_github_sctplab_usrsctp",
     build_file_content = """
 cc_library(
