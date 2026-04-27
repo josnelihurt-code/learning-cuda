@@ -197,9 +197,7 @@ func (s *ControlServer) Connect(stream grpc.BidiStreamingServer[gen.ConnectReque
 			return status.Error(codes.FailedPrecondition, "re-register on existing stream")
 		case *gen.AcceleratorMessage_SignalingMessage:
 			sess.deliverSignaling(env)
-		case *gen.AcceleratorMessage_ListFiltersResponse,
-			*gen.AcceleratorMessage_GetVersionResponse,
-			*gen.AcceleratorMessage_Error:
+		case *gen.AcceleratorMessage_Error:
 			if !sess.pending.deliver(env.GetCommandId(), env) {
 				s.log.Warn().
 					Str("command_id", env.GetCommandId()).

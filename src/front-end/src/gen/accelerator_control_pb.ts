@@ -17,7 +17,6 @@
 import type { BinaryReadOptions, FieldList, JsonReadOptions, JsonValue, PartialMessage, PlainMessage } from "@bufbuild/protobuf";
 import { Message, proto3, protoInt64 } from "@bufbuild/protobuf";
 import { AcceleratorType, LibraryCapabilities, TraceContext } from "./common_pb.js";
-import { GetVersionInfoRequest, GetVersionInfoResponse, ListFiltersRequest, ListFiltersResponse } from "./image_processor_service_pb.js";
 import { SignalingMessage } from "./webrtc_signal_pb.js";
 
 /**
@@ -137,30 +136,6 @@ export class AcceleratorMessage extends Message<AcceleratorMessage> {
     case: "registerAck";
   } | {
     /**
-     * @generated from field: cuda_learning.ListFiltersRequest list_filters_request = 30;
-     */
-    value: ListFiltersRequest;
-    case: "listFiltersRequest";
-  } | {
-    /**
-     * @generated from field: cuda_learning.ListFiltersResponse list_filters_response = 31;
-     */
-    value: ListFiltersResponse;
-    case: "listFiltersResponse";
-  } | {
-    /**
-     * @generated from field: cuda_learning.GetVersionInfoRequest get_version_request = 40;
-     */
-    value: GetVersionInfoRequest;
-    case: "getVersionRequest";
-  } | {
-    /**
-     * @generated from field: cuda_learning.GetVersionInfoResponse get_version_response = 41;
-     */
-    value: GetVersionInfoResponse;
-    case: "getVersionResponse";
-  } | {
-    /**
      * @generated from field: cuda_learning.SignalingMessage signaling_message = 50;
      */
     value: SignalingMessage;
@@ -191,10 +166,6 @@ export class AcceleratorMessage extends Message<AcceleratorMessage> {
     { no: 2, name: "trace_context", kind: "message", T: TraceContext },
     { no: 10, name: "register", kind: "message", T: Register, oneof: "payload" },
     { no: 11, name: "register_ack", kind: "message", T: RegisterAck, oneof: "payload" },
-    { no: 30, name: "list_filters_request", kind: "message", T: ListFiltersRequest, oneof: "payload" },
-    { no: 31, name: "list_filters_response", kind: "message", T: ListFiltersResponse, oneof: "payload" },
-    { no: 40, name: "get_version_request", kind: "message", T: GetVersionInfoRequest, oneof: "payload" },
-    { no: 41, name: "get_version_response", kind: "message", T: GetVersionInfoResponse, oneof: "payload" },
     { no: 50, name: "signaling_message", kind: "message", T: SignalingMessage, oneof: "payload" },
     { no: 60, name: "keepalive", kind: "message", T: Keepalive, oneof: "payload" },
     { no: 70, name: "error", kind: "message", T: ErrorReport, oneof: "payload" },

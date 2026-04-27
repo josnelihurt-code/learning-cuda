@@ -52,15 +52,6 @@ std::string NewCommandId() {
   return buf;
 }
 
-cuda_learning::GenericFilterParameterType ConvertParamType(const std::string& type) {
-  if (type == "select") return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_SELECT;
-  if (type == "range")  return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_RANGE;
-  if (type == "number") return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_NUMBER;
-  if (type == "checkbox") return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_CHECKBOX;
-  if (type == "text")   return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_TEXT;
-  return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_UNSPECIFIED;
-}
-
 }  // namespace
 
 AcceleratorControlClient::AcceleratorControlClient(
@@ -220,12 +211,6 @@ bool AcceleratorControlClient::Send(cuda_learning::AcceleratorMessage msg) {
 void AcceleratorControlClient::Dispatch(const cuda_learning::AcceleratorMessage& msg) {
   const std::string& cmd_id = msg.command_id();
   switch (msg.payload_case()) {
-    case cuda_learning::AcceleratorMessage::kListFiltersRequest:
-      HandleListFiltersRequest(cmd_id, msg.list_filters_request());
-      break;
-    case cuda_learning::AcceleratorMessage::kGetVersionRequest:
-      HandleGetVersionRequest(cmd_id, msg.get_version_request());
-      break;
     case cuda_learning::AcceleratorMessage::kSignalingMessage:
       HandleSignalingMessage(cmd_id, msg.signaling_message());
       break;
@@ -236,38 +221,6 @@ void AcceleratorControlClient::Dispatch(const cuda_learning::AcceleratorMessage&
       spdlog::warn("[AcceleratorControl] Unknown payload type: {}",
                    static_cast<int>(msg.payload_case()));
       break;
-  }
-}
-
-void AcceleratorControlClient::HandleListFiltersRequest(
-    const std::string& command_id, const cuda_learning::ListFiltersRequest& req) {
-  cuda_learning::ListFiltersResponse resp;
-  PopulateListFiltersResponse(req, &resp);
-
-  cuda_learning::AcceleratorMessage out;
-  out.set_command_id(command_id);
-  *out.mutable_list_filters_response() = std::move(resp);
-  if (!Send(std::move(out))) {
-    spdlog::warn("[AcceleratorControl] Failed to send ListFiltersResponse cmd={}", command_id);
-  }
-}
-
-void AcceleratorControlClient::HandleGetVersionRequest(
-    const std::string& command_id, const cuda_learning::GetVersionInfoRequest& req) {
-  cuda_learning::GetVersionInfoResponse resp;
-  if (engine_) {
-    engine_->GetVersionInfo(&resp);
-  } else {
-    resp.set_code(6);
-    resp.set_message("engine unavailable");
-  }
-  resp.set_api_version(req.api_version());
-
-  cuda_learning::AcceleratorMessage out;
-  out.set_command_id(command_id);
-  *out.mutable_get_version_response() = std::move(resp);
-  if (!Send(std::move(out))) {
-    spdlog::warn("[AcceleratorControl] Failed to send GetVersionInfoResponse cmd={}", command_id);
   }
 }
 
@@ -430,49 +383,6 @@ cuda_learning::AcceleratorMessage AcceleratorControlClient::BuildRegisterMessage
   msg.set_command_id(NewCommandId());
   *msg.mutable_register_() = std::move(reg);
   return msg;
-}
-
-void AcceleratorControlClient::PopulateListFiltersResponse(
-    const cuda_learning::ListFiltersRequest& req,
-    cuda_learning::ListFiltersResponse* resp) const {
-  if (!resp || !engine_) {
-    if (resp) {
-      resp->set_api_version(req.api_version());
-    }
-    return;
-  }
-
-  resp->clear_filters();
-  resp->set_api_version(req.api_version());
-
-  cuda_learning::GetCapabilitiesResponse caps;
-  if (!engine_->GetCapabilities(&caps)) {
-    return;
-  }
-
-  for (const auto& filter : caps.capabilities().filters()) {
-    auto* gf = resp->add_filters();
-    gf->set_id(filter.id());
-    gf->set_name(filter.name());
-
-    for (const auto& param : filter.parameters()) {
-      auto* gp = gf->add_parameters();
-      gp->set_id(param.id());
-      gp->set_name(param.name());
-      gp->set_type(ConvertParamType(param.type()));
-      gp->set_default_value(param.default_value());
-      for (const auto& opt : param.options()) {
-        auto* go = gp->add_options();
-        go->set_value(opt);
-        go->set_label(opt);
-      }
-    }
-
-    for (const auto acc : filter.supported_accelerators()) {
-      gf->add_supported_accelerators(
-          static_cast<cuda_learning::AcceleratorType>(acc));
-    }
-  }
 }
 
 }  // namespace jrb::ports::grpc_service

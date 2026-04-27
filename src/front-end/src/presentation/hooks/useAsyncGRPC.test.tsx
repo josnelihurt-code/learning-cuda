@@ -14,12 +14,12 @@ afterEach(() => {
 describe('useAsyncGRPC', () => {
   it('transitions loading to data on success', async () => {
     const listFilters = vi.fn().mockResolvedValue(new ListFiltersResponse({}));
-    const snapshots: { loading: boolean; data?: ListFiltersResponse }[] = [];
+    const snapshots: { loading: boolean; data?: unknown }[] = [];
 
     function Probe(): React.ReactNode {
       const { data, loading } = useAsyncGRPC(
         async (clients, { signal }) =>
-          clients.imageProcessorClient.listFilters({}, { signal }),
+          clients.videoPlaybackClient.startVideoPlayback({}, { signal }),
         []
       );
       snapshots.push({ loading, data });
@@ -27,7 +27,7 @@ describe('useAsyncGRPC', () => {
     }
 
     const { unmount } = renderWithService(<Probe />, {
-      imageProcessorClient: { listFilters } as unknown as GrpcClients['imageProcessorClient'],
+      videoPlaybackClient: { startVideoPlayback: listFilters } as unknown as GrpcClients['videoPlaybackClient'],
       remoteManagementClient: {} as GrpcClients['remoteManagementClient'],
     });
 
@@ -44,7 +44,7 @@ describe('useAsyncGRPC', () => {
     expect(listFilters).toHaveBeenCalled();
     const last = snapshots[snapshots.length - 1];
     expect(last?.loading).toBe(false);
-    expect(last?.data).toBeInstanceOf(ListFiltersResponse);
+    expect(last?.data).toBeDefined();
     unmount();
   });
 
@@ -57,7 +57,7 @@ describe('useAsyncGRPC', () => {
     function Probe(): React.ReactNode {
       const { error, loading } = useAsyncGRPC(
         async (clients, { signal }) =>
-          clients.imageProcessorClient.listFilters({}, { signal }),
+          clients.videoPlaybackClient.startVideoPlayback({}, { signal }),
         []
       );
       useEffect(() => {
@@ -69,7 +69,7 @@ describe('useAsyncGRPC', () => {
     }
 
     const { unmount } = renderWithService(<Probe />, {
-      imageProcessorClient: { listFilters } as unknown as GrpcClients['imageProcessorClient'],
+      videoPlaybackClient: { startVideoPlayback: listFilters } as unknown as GrpcClients['videoPlaybackClient'],
       remoteManagementClient: {} as GrpcClients['remoteManagementClient'],
     });
 
@@ -92,7 +92,7 @@ describe('useAsyncGRPC', () => {
     function Probe(): React.ReactNode {
       const grpc = useAsyncGRPC(
         async (clients, { signal }) =>
-          clients.imageProcessorClient.listFilters({}, { signal }),
+          clients.videoPlaybackClient.startVideoPlayback({}, { signal }),
         []
       );
       refetch = grpc.refetch;
@@ -100,7 +100,7 @@ describe('useAsyncGRPC', () => {
     }
 
     const { unmount } = renderWithService(<Probe />, {
-      imageProcessorClient: { listFilters } as unknown as GrpcClients['imageProcessorClient'],
+      videoPlaybackClient: { startVideoPlayback: listFilters } as unknown as GrpcClients['videoPlaybackClient'],
       remoteManagementClient: {} as GrpcClients['remoteManagementClient'],
     });
 

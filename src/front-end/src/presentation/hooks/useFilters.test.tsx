@@ -8,18 +8,22 @@ import {
 import { useFilters } from '@/presentation/hooks/useFilters';
 import { renderWithService } from '@/presentation/test-utils/render-with-service';
 import type { GrpcClients } from '@/presentation/context/service-context';
+import { controlChannelService } from '@/infrastructure/transport/control-channel-service';
 
 afterEach(() => {
   document.body.replaceChildren();
+  vi.restoreAllMocks();
 });
 
 describe('useFilters', () => {
-  it('loads filters via listFilters, then refetch increases call count', async () => {
-    const listFilters = vi.fn().mockResolvedValue(
-      new ListFiltersResponse({
-        filters: [new GenericFilterDefinition({ id: 'blur', name: 'Blur' })],
-      })
-    );
+  it('loads filters via control channel, then refetch increases call count', async () => {
+    const listFiltersSpy = vi
+      .spyOn(controlChannelService, 'listFilters')
+      .mockResolvedValue(
+        new ListFiltersResponse({
+          filters: [new GenericFilterDefinition({ id: 'blur', name: 'Blur' })],
+        })
+      );
 
     const snapshots: {
       loading: boolean;
@@ -42,13 +46,13 @@ describe('useFilters', () => {
     }
 
     const { unmount } = renderWithService(<Probe />, {
-      imageProcessorClient: { listFilters } as unknown as GrpcClients['imageProcessorClient'],
+      videoPlaybackClient: {} as GrpcClients['videoPlaybackClient'],
       remoteManagementClient: {} as GrpcClients['remoteManagementClient'],
     });
 
     await act(async () => {
       await vi.waitFor(() => {
-        expect(listFilters).toHaveBeenCalled();
+        expect(listFiltersSpy).toHaveBeenCalled();
       });
     });
 
@@ -56,7 +60,7 @@ describe('useFilters', () => {
       await Promise.resolve();
     });
 
-    expect(listFilters).toHaveBeenCalledTimes(1);
+    expect(listFiltersSpy).toHaveBeenCalledTimes(1);
     const done = snapshots.filter((s) => !s.loading).pop();
     expect(done?.filtersLen).toBe(1);
     expect(done?.firstId).toBe('blur');
@@ -70,7 +74,7 @@ describe('useFilters', () => {
       await Promise.resolve();
     });
 
-    expect(listFilters).toHaveBeenCalledTimes(2);
+    expect(listFiltersSpy).toHaveBeenCalledTimes(2);
     unmount();
   });
 });

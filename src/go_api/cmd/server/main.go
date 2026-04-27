@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/jrb/cuda-learning/src/go_api/pkg/app"
-	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/container"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/processor"
@@ -46,14 +45,9 @@ func main() {
 		Registry: di.AcceleratorRegistry,
 	})
 
-	processorCapsUseCase := systemapp.NewProcessorCapabilitiesUseCase(
-		processor.NewGRPCRepository(acceleratorGateway),
-	)
-
 	server, err := app.New(ctx, app.Deps{
 		Config:                di.Config,
 		AcceleratorGateway:    acceleratorGateway,
-		ProcessorCapsUC:       processorCapsUseCase,
 		GetSystemInfoUC:       di.GetSystemInfoUseCase,
 		EvaluateFFBooleanUC:   di.EvaluateFeatureFlagBooleanUseCase,
 		EvaluateFFStringUC:    di.EvaluateFeatureFlagStringUseCase,

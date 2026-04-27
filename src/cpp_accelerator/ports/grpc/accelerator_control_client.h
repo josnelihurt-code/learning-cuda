@@ -67,10 +67,6 @@ class AcceleratorControlClient {
   void Dispatch(const cuda_learning::AcceleratorMessage& msg);
 
   // Handlers for each command type.
-  void HandleListFiltersRequest(const std::string& command_id,
-                                const cuda_learning::ListFiltersRequest& req);
-  void HandleGetVersionRequest(const std::string& command_id,
-                               const cuda_learning::GetVersionInfoRequest& req);
   void HandleSignalingMessage(const std::string& command_id,
                               const cuda_learning::SignalingMessage& msg);
 
@@ -79,10 +75,6 @@ class AcceleratorControlClient {
 
   // Builds the Register message from engine capabilities.
   cuda_learning::AcceleratorMessage BuildRegisterMessage() const;
-
-  // Populates list-filter response from engine capabilities (mirrors server impl).
-  void PopulateListFiltersResponse(const cuda_learning::ListFiltersRequest& req,
-                                   cuda_learning::ListFiltersResponse* resp) const;
 
   AcceleratorControlClientConfig config_;
   std::shared_ptr<ProcessorEngineProvider> engine_;

@@ -28,6 +28,9 @@ const HEARTBEAT_STALE_THRESHOLD_MS = 15_000;
 const HEARTBEAT_MAX_CONSECUTIVE_FAILURES = 3;
 const ICE_GATHERING_TIMEOUT_MS = 1_500;
 const STATS_DATA_CHANNEL_LABEL = 'cpp-processor-stats';
+const CONTROL_DATA_CHANNEL_LABEL = 'control';
+
+type ControlChannelListener = (sessionId: string, channel: RTCDataChannel | null) => void;
 
 export class WebRTCService implements IWebRTCService {
   private initialized = false;
@@ -37,6 +40,8 @@ export class WebRTCService implements IWebRTCService {
   private dataChannels: Map<string, RTCDataChannel> = new Map();
   private detectionChannels: Map<string, RTCDataChannel> = new Map();
   private statsChannels: Map<string, RTCDataChannel> = new Map();
+  private controlChannels: Map<string, RTCDataChannel> = new Map();
+  private controlChannelListeners: Set<ControlChannelListener> = new Set();
   private remoteStreamHandlers: Map<string, (stream: MediaStream) => void> = new Map();
   private remoteStreams: Map<string, MediaStream> = new Map();
   private pollControllers: Map<string, AbortController> = new Map();
@@ -317,6 +322,34 @@ export class WebRTCService implements IWebRTCService {
       this.dataChannels.set(sessionId, dataChannel);
       this.configureDataChannelHandlers(sessionId, dataChannel, peerConnection);
 
+      // The "control" data channel carries ControlRequest/ControlResponse
+      // envelopes used by the browser to ask the C++ accelerator for filter
+      // capabilities and version info. It is created alongside the primary
+      // process-image channel so a single SDP negotiation provisions both.
+      const controlChannel = this.createDataChannel(peerConnection, CONTROL_DATA_CHANNEL_LABEL);
+      if (controlChannel) {
+        controlChannel.binaryType = 'arraybuffer';
+        this.controlChannels.set(sessionId, controlChannel);
+        const notifyOpen = () => {
+          for (const listener of this.controlChannelListeners) {
+            try { listener(sessionId, controlChannel); } catch (e) { void e; }
+          }
+        };
+        const notifyClose = () => {
+          this.controlChannels.delete(sessionId);
+          for (const listener of this.controlChannelListeners) {
+            try { listener(sessionId, null); } catch (e) { void e; }
+          }
+        };
+        if (controlChannel.readyState === 'open') {
+          notifyOpen();
+        } else {
+          controlChannel.addEventListener('open', notifyOpen);
+        }
+        controlChannel.addEventListener('close', notifyClose);
+        controlChannel.addEventListener('error', notifyClose);
+      }
+
       // Opening multiple SCTP data channels concurrently in the same SDP
       // triggers a DCEP race with libdatachannel on the C++ side that causes
       // the SCTP stream to close within milliseconds of opening. Detections
@@ -546,6 +579,24 @@ export class WebRTCService implements IWebRTCService {
 
   getStatsDataChannel(sessionId: string): RTCDataChannel | null {
     return this.statsChannels.get(sessionId) ?? null;
+  }
+
+  getControlDataChannel(sessionId: string): RTCDataChannel | null {
+    return this.controlChannels.get(sessionId) ?? null;
+  }
+
+  getAnyOpenControlDataChannel(): RTCDataChannel | null {
+    for (const channel of this.controlChannels.values()) {
+      if (channel.readyState === 'open') {
+        return channel;
+      }
+    }
+    return null;
+  }
+
+  addControlChannelListener(listener: ControlChannelListener): () => void {
+    this.controlChannelListeners.add(listener);
+    return () => this.controlChannelListeners.delete(listener);
   }
 
   ensureStatsDataChannel(sessionId: string): RTCDataChannel | null {
@@ -1251,6 +1302,21 @@ export class WebRTCService implements IWebRTCService {
         });
       }
       this.statsChannels.delete(sessionId);
+    }
+
+    const controlChannel = this.controlChannels.get(sessionId);
+    if (controlChannel) {
+      try {
+        controlChannel.close();
+      } catch (error) {
+        logger.debug(`[WebRTC:${sessionId}] Error closing control channel`, {
+          'error.message': error instanceof Error ? error.message : String(error),
+        });
+      }
+      this.controlChannels.delete(sessionId);
+      for (const listener of this.controlChannelListeners) {
+        try { listener(sessionId, null); } catch (e) { void e; }
+      }
     }
 
     this.remoteStreams.delete(sessionId);

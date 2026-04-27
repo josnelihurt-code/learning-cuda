@@ -4,6 +4,7 @@
 #include <chrono>
 #include <cstring>
 #include <exception>
+#include <fstream>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -30,6 +31,86 @@ constexpr std::string_view kGoVideoSessionPrefix = "go-video-";
 constexpr uint32_t kProcessedVideoBitrate = 2'500'000;
 constexpr const char* kProcessedVideoTrackLabel = "processed-video";
 constexpr const char* kStatsChannelLabel = "cpp-processor-stats";
+constexpr const char* kControlChannelLabel = "control";
+
+cuda_learning::GenericFilterParameterType ConvertParamType(const std::string& type) {
+  if (type == "select")   return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_SELECT;
+  if (type == "range")    return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_RANGE;
+  if (type == "number")   return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_NUMBER;
+  if (type == "checkbox") return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_CHECKBOX;
+  if (type == "text")     return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_TEXT;
+  return cuda_learning::GENERIC_FILTER_PARAMETER_TYPE_UNSPECIFIED;
+}
+
+void PopulateGetVersionResponse(jrb::ports::shared_lib::ProcessorEngine* engine,
+                                cuda_learning::GetVersionInfoResponse* response) {
+  if (response == nullptr) return;
+  if (engine == nullptr) {
+    response->set_code(6);
+    response->set_message("engine unavailable");
+    return;
+  }
+  std::string server_version;
+  static const char* version_file_paths[] = {"src/cpp_accelerator/VERSION",
+                                             "../cpp_accelerator/VERSION",
+                                             "../../cpp_accelerator/VERSION", "./VERSION", nullptr};
+  for (int i = 0; version_file_paths[i] != nullptr; ++i) {
+    std::ifstream file(version_file_paths[i]);
+    if (file.is_open()) {
+      std::getline(file, server_version);
+      if (!server_version.empty()) break;
+    }
+  }
+  if (server_version.empty()) server_version = "unknown";
+  response->set_server_version(server_version);
+
+  cuda_learning::GetCapabilitiesResponse caps_response;
+  if (engine->GetCapabilities(&caps_response)) {
+    const auto& caps = caps_response.capabilities();
+    response->set_library_version(caps.library_version());
+    response->set_build_date(caps.build_date());
+    response->set_build_commit(caps.build_commit());
+  } else {
+    response->set_library_version("unknown");
+    response->set_build_date("unknown");
+    response->set_build_commit("unknown");
+  }
+  response->set_code(0);
+  response->set_message("OK");
+}
+
+void PopulateListFiltersResponse(jrb::ports::shared_lib::ProcessorEngine* engine,
+                                 const cuda_learning::ListFiltersRequest& req,
+                                 cuda_learning::ListFiltersResponse* resp) {
+  resp->set_api_version(req.api_version());
+  if (engine == nullptr) {
+    return;
+  }
+  cuda_learning::GetCapabilitiesResponse caps;
+  if (!engine->GetCapabilities(&caps)) {
+    return;
+  }
+  for (const auto& filter : caps.capabilities().filters()) {
+    auto* gf = resp->add_filters();
+    gf->set_id(filter.id());
+    gf->set_name(filter.name());
+    for (const auto& param : filter.parameters()) {
+      auto* gp = gf->add_parameters();
+      gp->set_id(param.id());
+      gp->set_name(param.name());
+      gp->set_type(ConvertParamType(param.type()));
+      gp->set_default_value(param.default_value());
+      for (const auto& opt : param.options()) {
+        auto* go = gp->add_options();
+        go->set_value(opt);
+        go->set_label(opt);
+      }
+    }
+    for (const auto acc : filter.supported_accelerators()) {
+      gf->add_supported_accelerators(static_cast<cuda_learning::AcceleratorType>(acc));
+    }
+  }
+}
 
 bool IsGoVideoSession(const std::string& value) {
   return value.rfind(kGoVideoSessionPrefix, 0) == 0;
@@ -659,6 +740,87 @@ bool WebRTCManager::CreateSession(const std::string& session_id, const std::stri
         return;
       }
 
+      if (label == kControlChannelLabel) {
+        {
+          std::lock_guard<std::mutex> lock(session->mutex);
+          session->control_channel = data_channel;
+        }
+        data_channel->onOpen([session_id]() {
+          spdlog::info("[WebRTC:{}] Control channel opened", session_id);
+        });
+        data_channel->onClosed([session_id, session]() {
+          spdlog::warn("[WebRTC:{}] Control channel closed", session_id);
+          std::lock_guard<std::mutex> cl(session->mutex);
+          session->control_channel = nullptr;
+        });
+        data_channel->onError([session_id](std::string err) {
+          spdlog::error("[WebRTC:{}] Control channel error: {}", session_id, err);
+        });
+        std::weak_ptr<rtc::DataChannel> weak_ctrl = data_channel;
+        data_channel->onMessage([weak_self, weak_ctrl, session_id, session](rtc::message_variant data) {
+          auto self = weak_self.lock();
+          auto dc = weak_ctrl.lock();
+          if (!self || !dc) return;
+          if (!std::holds_alternative<rtc::binary>(data)) {
+            spdlog::warn("[WebRTC:{}] Control channel: ignoring non-binary message", session_id);
+            return;
+          }
+          const auto& raw_chunk = std::get<rtc::binary>(data);
+          const auto raw_span = std::span<const std::byte>(raw_chunk.data(), raw_chunk.size());
+          auto maybe_payload = session->incoming_reassembler->PushChunk(raw_span);
+          if (!maybe_payload.has_value()) {
+            return;
+          }
+          const auto& assembled = maybe_payload.value();
+          cuda_learning::ControlRequest request;
+          if (!request.ParseFromArray(assembled.data(), static_cast<int>(assembled.size()))) {
+            spdlog::warn("[WebRTC:{}] Control: failed to parse ControlRequest ({} bytes)",
+                         session_id, assembled.size());
+            return;
+          }
+          cuda_learning::ControlResponse response;
+          response.set_request_id(request.request_id());
+          if (request.has_trace_context()) {
+            *response.mutable_trace_context() = request.trace_context();
+          }
+          switch (request.payload_case()) {
+            case cuda_learning::ControlRequest::kListFilters: {
+              cuda_learning::ListFiltersResponse list_resp;
+              PopulateListFiltersResponse(self->engine_.get(), request.list_filters(), &list_resp);
+              *response.mutable_list_filters() = std::move(list_resp);
+              break;
+            }
+            case cuda_learning::ControlRequest::kGetVersion: {
+              cuda_learning::GetVersionInfoResponse ver_resp;
+              PopulateGetVersionResponse(self->engine_.get(), &ver_resp);
+              ver_resp.set_api_version(request.get_version().api_version());
+              *response.mutable_get_version() = std::move(ver_resp);
+              break;
+            }
+            default: {
+              auto* err = response.mutable_error();
+              err->set_code("UNKNOWN_PAYLOAD");
+              err->set_message("control request payload not recognized");
+              spdlog::warn("[WebRTC:{}] Control: unknown payload case {}", session_id,
+                           static_cast<int>(request.payload_case()));
+              break;
+            }
+          }
+          std::string out;
+          if (!response.SerializeToString(&out)) {
+            spdlog::error("[WebRTC:{}] Control: failed to serialize ControlResponse", session_id);
+            return;
+          }
+          if (!dc->isOpen()) {
+            spdlog::warn("[WebRTC:{}] Control: cannot send response, channel closed", session_id);
+            return;
+          }
+          SendFramed(*dc, out,
+                     session->outgoing_message_id.fetch_add(1, std::memory_order_relaxed) + 1U);
+        });
+        return;
+      }
+
       if (label == kStatsChannelLabel) {
         data_channel->onOpen([session_id]() {
           spdlog::info("[WebRTC:{}] Stats channel opened", session_id);
@@ -1124,6 +1286,11 @@ bool WebRTCManager::CloseSession(const std::string& session_id, std::string* err
     if (session->stats_channel) {
       session->stats_channel->close();
       spdlog::info("[WebRTC:{}] Stats channel closed", session_id);
+    }
+
+    if (session->control_channel) {
+      session->control_channel->close();
+      spdlog::info("[WebRTC:{}] Control channel closed", session_id);
     }
 
     if (session->peer_connection) {

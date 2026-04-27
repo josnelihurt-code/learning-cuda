@@ -9,77 +9,31 @@ import (
 	"github.com/jrb/cuda-learning/proto/gen/genconnect"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/interfaces/adapters"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
-type ImageProcessorHandler struct {
+// VideoPlaybackHandler serves the VideoPlaybackService Connect RPCs. It owns
+// the start/stop lifecycle for streaming a previously uploaded video into a
+// running WebRTC session — the only image-processing concern still routed
+// through Go (filters and version queries now run over the WebRTC control
+// data channel directly between the browser and the C++ accelerator).
+type VideoPlaybackHandler struct {
 	startVideoPlaybackUC useCase[videoapp.StartVideoPlaybackUseCaseInput, videoapp.StartVideoPlaybackUseCaseOutput]
 	stopVideoPlaybackUC  useCase[videoapp.StopVideoPlaybackUseCaseInput, videoapp.StopVideoPlaybackUseCaseOutput]
-	capabilities         processorCapabilitiesUseCase
 	adapter              *adapters.ProtobufAdapter
-	filterCodec          *adapters.FilterCodec
-	grpcClient           interface {
-		GetVersionInfo(context.Context, *pb.GetVersionInfoRequest) (*pb.GetVersionInfoResponse, error)
-	}
 }
 
-func NewImageProcessorHandlerWithGRPC(
-	capabilitiesUC processorCapabilitiesUseCase,
+func NewVideoPlaybackHandler(
 	startVideoPlaybackUC useCase[videoapp.StartVideoPlaybackUseCaseInput, videoapp.StartVideoPlaybackUseCaseOutput],
 	stopVideoPlaybackUC useCase[videoapp.StopVideoPlaybackUseCaseInput, videoapp.StopVideoPlaybackUseCaseOutput],
-	grpcClient interface {
-		GetVersionInfo(context.Context, *pb.GetVersionInfoRequest) (*pb.GetVersionInfoResponse, error)
-	},
-) *ImageProcessorHandler {
-	return &ImageProcessorHandler{
+) *VideoPlaybackHandler {
+	return &VideoPlaybackHandler{
 		startVideoPlaybackUC: startVideoPlaybackUC,
 		stopVideoPlaybackUC:  stopVideoPlaybackUC,
 		adapter:              adapters.NewProtobufAdapter(),
-		filterCodec:          adapters.NewFilterCodec(),
-		capabilities:         capabilitiesUC,
-		grpcClient:           grpcClient,
 	}
 }
 
-func (h *ImageProcessorHandler) ListFilters(
-	ctx context.Context,
-	req *connect.Request[pb.ListFiltersRequest],
-) (*connect.Response[pb.ListFiltersResponse], error) {
-	span := trace.SpanFromContext(ctx)
-
-	useGRPC := h.grpcClient != nil
-	caps, origin, err := h.capabilities.Execute(ctx, useGRPC)
-	if err != nil {
-		span.RecordError(err)
-		return nil, connect.NewError(connect.CodeUnavailable, err)
-	}
-
-	genericFilters := make([]*pb.GenericFilterDefinition, 0, len(caps.Filters))
-	for _, def := range caps.Filters {
-		if def == nil {
-			continue
-		}
-		genericFilters = append(genericFilters, h.filterCodec.ToGenericFilterDefinition(def))
-	}
-
-	span.SetAttributes(
-		attribute.Int("filters.count", len(genericFilters)),
-	)
-
-	response := &pb.ListFiltersResponse{
-		Filters:      genericFilters,
-		ApiVersion:   caps.ApiVersion,
-		TraceContext: req.Msg.GetTraceContext(),
-	}
-
-	res := connect.NewResponse(response)
-	res.Header().Set("X-Processor-Backend", string(origin))
-
-	return res, nil
-}
-
-func (h *ImageProcessorHandler) StartVideoPlayback(
+func (h *VideoPlaybackHandler) StartVideoPlayback(
 	ctx context.Context,
 	req *connect.Request[pb.StartVideoPlaybackRequest],
 ) (*connect.Response[pb.StartVideoPlaybackResponse], error) {
@@ -115,7 +69,7 @@ func (h *ImageProcessorHandler) StartVideoPlayback(
 	return connect.NewResponse(resp), nil
 }
 
-func (h *ImageProcessorHandler) StopVideoPlayback(
+func (h *VideoPlaybackHandler) StopVideoPlayback(
 	ctx context.Context,
 	req *connect.Request[pb.StopVideoPlaybackRequest],
 ) (*connect.Response[pb.StopVideoPlaybackResponse], error) {
@@ -145,23 +99,6 @@ func (h *ImageProcessorHandler) StopVideoPlayback(
 	return connect.NewResponse(resp), nil
 }
 
-func (h *ImageProcessorHandler) GetVersionInfo(
-	ctx context.Context,
-	req *connect.Request[pb.GetVersionInfoRequest],
-) (*connect.Response[pb.GetVersionInfoResponse], error) {
-	grpcReq := &pb.GetVersionInfoRequest{
-		ApiVersion:   req.Msg.ApiVersion,
-		TraceContext: req.Msg.TraceContext,
-	}
-
-	resp, err := h.grpcClient.GetVersionInfo(ctx, grpcReq)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
-
-	return connect.NewResponse(resp), nil
-}
-
 func mapStreamVideoError(err error) connect.Code {
 	switch {
 	case errors.Is(err, videoapp.ErrVideoPlaybackMissingVideoID),
@@ -176,4 +113,4 @@ func mapStreamVideoError(err error) connect.Code {
 	}
 }
 
-var _ genconnect.ImageProcessorServiceHandler = (*ImageProcessorHandler)(nil)
+var _ genconnect.VideoPlaybackServiceHandler = (*VideoPlaybackHandler)(nil)

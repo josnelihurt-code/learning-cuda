@@ -1,41 +1,20 @@
-import { createPromiseClient, Interceptor } from '@connectrpc/connect';
-import { createConnectTransport } from '@connectrpc/connect-web';
-import { ImageProcessorService } from '@/gen/image_processor_service_connect';
 import { GetVersionInfoRequest } from '@/gen/image_processor_service_pb';
 import { TraceContext } from '@/gen/common_pb';
 import { telemetryService } from '@/infrastructure/observability/telemetry-service';
 import { logger } from '@/infrastructure/observability/otel-logger';
-
-const tracingInterceptor: Interceptor = (next) => async (req) => {
-  const traceHeaders = telemetryService.getTraceHeaders();
-  for (const [key, value] of Object.entries(traceHeaders)) {
-    req.header.set(key, value);
-  }
-  return await next(req);
-};
+import { controlChannelService } from '@/infrastructure/transport/control-channel-service';
 
 class GrpcVersionService {
-  private client;
-
-  constructor() {
-    const transport = createConnectTransport({
-      baseUrl: window.location.origin,
-      interceptors: [tracingInterceptor],
-      useHttpGet: true,
-    });
-    this.client = createPromiseClient(ImageProcessorService, transport);
-  }
-
   async getVersionInfo() {
     return telemetryService.withSpanAsync(
       'GrpcVersionService.getVersionInfo',
       {
-        'rpc.service': 'ImageProcessorService',
+        'rpc.service': 'ControlChannel',
         'rpc.method': 'GetVersionInfo',
       },
       async (span) => {
         try {
-          span?.addEvent('Creating GetVersionInfo request');
+          span?.addEvent('Sending GetVersion request over WebRTC control channel');
 
           const traceHeaders = telemetryService.getTraceHeaders();
           const traceContext = traceHeaders['traceparent']
@@ -47,13 +26,12 @@ class GrpcVersionService {
             traceContext,
           });
 
-          span?.addEvent('Sending Connect-RPC request');
-          const versionInfo = await this.client.getVersionInfo(request);
+          const versionInfo = await controlChannelService.getVersion(request);
 
           if (versionInfo.code !== 0) {
             span?.setAttribute('error', true);
             span?.setAttribute('error.message', versionInfo.message);
-            throw new Error(`gRPC error: ${versionInfo.message}`);
+            throw new Error(`Version error: ${versionInfo.message}`);
           }
 
           span?.setAttribute('version.server', versionInfo.serverVersion);
@@ -61,7 +39,7 @@ class GrpcVersionService {
           span?.setAttribute('version.build_date', versionInfo.buildDate);
           span?.setAttribute('version.build_commit', versionInfo.buildCommit);
 
-          logger.info('gRPC version info retrieved', {
+          logger.info('Accelerator version info retrieved', {
             'version.server': versionInfo.serverVersion,
             'version.library': versionInfo.libraryVersion,
             'version.build_date': versionInfo.buildDate,
@@ -71,7 +49,7 @@ class GrpcVersionService {
         } catch (error) {
           span?.setAttribute('error', true);
           span?.setAttribute('error.message', error instanceof Error ? error.message : String(error));
-          logger.error('Failed to get gRPC version info', {
+          logger.error('Failed to get accelerator version info', {
             'error.message': error instanceof Error ? error.message : String(error),
           });
           throw error;
@@ -82,4 +60,3 @@ class GrpcVersionService {
 }
 
 export const grpcVersionService = new GrpcVersionService();
-

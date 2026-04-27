@@ -52,6 +52,187 @@ proto3.util.setEnumType(GenericFilterParameterType, "cuda_learning.GenericFilter
 ]);
 
 /**
+ * ControlRequest is the envelope sent from the browser to the C++ accelerator
+ * over the WebRTC "control" data channel. Each request carries a unique
+ * request_id so the response can be correlated.
+ *
+ * @generated from message cuda_learning.ControlRequest
+ */
+export class ControlRequest extends Message<ControlRequest> {
+  /**
+   * @generated from field: string request_id = 1 [json_name = "request_id"];
+   */
+  requestId = "";
+
+  /**
+   * @generated from field: cuda_learning.TraceContext trace_context = 2 [json_name = "trace_context"];
+   */
+  traceContext?: TraceContext;
+
+  /**
+   * @generated from oneof cuda_learning.ControlRequest.payload
+   */
+  payload: {
+    /**
+     * @generated from field: cuda_learning.ListFiltersRequest list_filters = 10 [json_name = "list_filters"];
+     */
+    value: ListFiltersRequest;
+    case: "listFilters";
+  } | {
+    /**
+     * @generated from field: cuda_learning.GetVersionInfoRequest get_version = 11 [json_name = "get_version"];
+     */
+    value: GetVersionInfoRequest;
+    case: "getVersion";
+  } | { case: undefined; value?: undefined } = { case: undefined };
+
+  constructor(data?: PartialMessage<ControlRequest>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cuda_learning.ControlRequest";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "request_id", jsonName: "request_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "trace_context", jsonName: "trace_context", kind: "message", T: TraceContext },
+    { no: 10, name: "list_filters", jsonName: "list_filters", kind: "message", T: ListFiltersRequest, oneof: "payload" },
+    { no: 11, name: "get_version", jsonName: "get_version", kind: "message", T: GetVersionInfoRequest, oneof: "payload" },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ControlRequest {
+    return new ControlRequest().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ControlRequest {
+    return new ControlRequest().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ControlRequest {
+    return new ControlRequest().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ControlRequest | PlainMessage<ControlRequest> | undefined, b: ControlRequest | PlainMessage<ControlRequest> | undefined): boolean {
+    return proto3.util.equals(ControlRequest, a, b);
+  }
+}
+
+/**
+ * ControlResponse is the C++ accelerator's reply on the WebRTC "control" data
+ * channel. The request_id mirrors the originating ControlRequest.
+ *
+ * @generated from message cuda_learning.ControlResponse
+ */
+export class ControlResponse extends Message<ControlResponse> {
+  /**
+   * @generated from field: string request_id = 1 [json_name = "request_id"];
+   */
+  requestId = "";
+
+  /**
+   * @generated from field: cuda_learning.TraceContext trace_context = 2 [json_name = "trace_context"];
+   */
+  traceContext?: TraceContext;
+
+  /**
+   * @generated from oneof cuda_learning.ControlResponse.payload
+   */
+  payload: {
+    /**
+     * @generated from field: cuda_learning.ListFiltersResponse list_filters = 10 [json_name = "list_filters"];
+     */
+    value: ListFiltersResponse;
+    case: "listFilters";
+  } | {
+    /**
+     * @generated from field: cuda_learning.GetVersionInfoResponse get_version = 11 [json_name = "get_version"];
+     */
+    value: GetVersionInfoResponse;
+    case: "getVersion";
+  } | {
+    /**
+     * @generated from field: cuda_learning.ControlError error = 99;
+     */
+    value: ControlError;
+    case: "error";
+  } | { case: undefined; value?: undefined } = { case: undefined };
+
+  constructor(data?: PartialMessage<ControlResponse>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cuda_learning.ControlResponse";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "request_id", jsonName: "request_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "trace_context", jsonName: "trace_context", kind: "message", T: TraceContext },
+    { no: 10, name: "list_filters", jsonName: "list_filters", kind: "message", T: ListFiltersResponse, oneof: "payload" },
+    { no: 11, name: "get_version", jsonName: "get_version", kind: "message", T: GetVersionInfoResponse, oneof: "payload" },
+    { no: 99, name: "error", kind: "message", T: ControlError, oneof: "payload" },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ControlResponse {
+    return new ControlResponse().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ControlResponse {
+    return new ControlResponse().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ControlResponse {
+    return new ControlResponse().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ControlResponse | PlainMessage<ControlResponse> | undefined, b: ControlResponse | PlainMessage<ControlResponse> | undefined): boolean {
+    return proto3.util.equals(ControlResponse, a, b);
+  }
+}
+
+/**
+ * @generated from message cuda_learning.ControlError
+ */
+export class ControlError extends Message<ControlError> {
+  /**
+   * @generated from field: string code = 1;
+   */
+  code = "";
+
+  /**
+   * @generated from field: string message = 2;
+   */
+  message = "";
+
+  constructor(data?: PartialMessage<ControlError>) {
+    super();
+    proto3.util.initPartial(data, this);
+  }
+
+  static readonly runtime: typeof proto3 = proto3;
+  static readonly typeName = "cuda_learning.ControlError";
+  static readonly fields: FieldList = proto3.util.newFieldList(() => [
+    { no: 1, name: "code", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 2, name: "message", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+  ]);
+
+  static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): ControlError {
+    return new ControlError().fromBinary(bytes, options);
+  }
+
+  static fromJson(jsonValue: JsonValue, options?: Partial<JsonReadOptions>): ControlError {
+    return new ControlError().fromJson(jsonValue, options);
+  }
+
+  static fromJsonString(jsonString: string, options?: Partial<JsonReadOptions>): ControlError {
+    return new ControlError().fromJsonString(jsonString, options);
+  }
+
+  static equals(a: ControlError | PlainMessage<ControlError> | undefined, b: ControlError | PlainMessage<ControlError> | undefined): boolean {
+    return proto3.util.equals(ControlError, a, b);
+  }
+}
+
+/**
  * @generated from message cuda_learning.GenericFilterParameterOption
  */
 export class GenericFilterParameterOption extends Message<GenericFilterParameterOption> {

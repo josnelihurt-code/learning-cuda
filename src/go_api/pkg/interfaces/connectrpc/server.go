@@ -10,13 +10,13 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 )
 
-func RegisterRoutesWithHandler(mux *http.ServeMux, handler *ImageProcessorHandler, interceptors ...connect.Interceptor) {
+func RegisterVideoPlaybackService(mux *http.ServeMux, handler *VideoPlaybackHandler, interceptors ...connect.Interceptor) {
 	var opts []connect.HandlerOption
 	if len(interceptors) > 0 {
 		opts = append(opts, connect.WithInterceptors(interceptors...))
 	}
 
-	path, rpcHandler := genconnect.NewImageProcessorServiceHandler(handler, opts...)
+	path, rpcHandler := genconnect.NewVideoPlaybackServiceHandler(handler, opts...)
 	mux.Handle(path, rpcHandler)
 }
 

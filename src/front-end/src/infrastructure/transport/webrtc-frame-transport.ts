@@ -2,7 +2,7 @@ import { createPromiseClient, type PromiseClient } from '@connectrpc/connect';
 import { context, propagation } from '@opentelemetry/api';
 import type { IFrameTransportService } from '@/domain/interfaces/i-frame-transport-service';
 import { AcceleratorConfig, FilterData, GrayscaleAlgorithm, ImageData } from '@/domain/value-objects';
-import { ImageProcessorService } from '@/gen/image_processor_service_connect';
+import { VideoPlaybackService } from '@/gen/image_processor_service_connect';
 import {
   DetectionFrame,
   GenericFilterParameterSelection,
@@ -146,7 +146,7 @@ async function rasterizeImageData(
 }
 
 export class WebRTCFrameTransportService implements IFrameTransportService {
-  private readonly client: PromiseClient<typeof ImageProcessorService>;
+  private readonly client: PromiseClient<typeof VideoPlaybackService>;
   private sessionId: string | null = null;
   private frameResultCallback: FrameResultCallback | null = null;
   private detectionResultCallback: ((frame: DetectionFrame) => void) | null = null;
@@ -167,7 +167,7 @@ export class WebRTCFrameTransportService implements IFrameTransportService {
     private cameraManager: ICameraPreview,
     private toastManager: IToastDisplay
   ) {
-    this.client = createPromiseClient(ImageProcessorService, createGrpcConnectTransport());
+    this.client = createPromiseClient(VideoPlaybackService, createGrpcConnectTransport());
   }
 
   connect(): void {

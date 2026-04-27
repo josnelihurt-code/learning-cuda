@@ -3,26 +3,22 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import { GetVersionInfoRequest, GetVersionInfoResponse, ListFiltersRequest, ListFiltersResponse, StartVideoPlaybackRequest, StartVideoPlaybackResponse, StopVideoPlaybackRequest, StopVideoPlaybackResponse } from "./image_processor_service_pb.js";
+import { StartVideoPlaybackRequest, StartVideoPlaybackResponse, StopVideoPlaybackRequest, StopVideoPlaybackResponse } from "./image_processor_service_pb.js";
 import { MethodKind } from "@bufbuild/protobuf";
 
 /**
- * @generated from service cuda_learning.ImageProcessorService
+ * VideoPlaybackService handles server-initiated playback of locally stored
+ * videos as WebRTC video sources. The browser asks Go to start streaming a
+ * previously uploaded video into an existing WebRTC session; Go reads frames
+ * and pushes them through the accelerator pipeline.
+ *
+ * @generated from service cuda_learning.VideoPlaybackService
  */
-export const ImageProcessorService = {
-  typeName: "cuda_learning.ImageProcessorService",
+export const VideoPlaybackService = {
+  typeName: "cuda_learning.VideoPlaybackService",
   methods: {
     /**
-     * @generated from rpc cuda_learning.ImageProcessorService.ListFilters
-     */
-    listFilters: {
-      name: "ListFilters",
-      I: ListFiltersRequest,
-      O: ListFiltersResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * @generated from rpc cuda_learning.ImageProcessorService.StartVideoPlayback
+     * @generated from rpc cuda_learning.VideoPlaybackService.StartVideoPlayback
      */
     startVideoPlayback: {
       name: "StartVideoPlayback",
@@ -31,21 +27,12 @@ export const ImageProcessorService = {
       kind: MethodKind.Unary,
     },
     /**
-     * @generated from rpc cuda_learning.ImageProcessorService.StopVideoPlayback
+     * @generated from rpc cuda_learning.VideoPlaybackService.StopVideoPlayback
      */
     stopVideoPlayback: {
       name: "StopVideoPlayback",
       I: StopVideoPlaybackRequest,
       O: StopVideoPlaybackResponse,
-      kind: MethodKind.Unary,
-    },
-    /**
-     * @generated from rpc cuda_learning.ImageProcessorService.GetVersionInfo
-     */
-    getVersionInfo: {
-      name: "GetVersionInfo",
-      I: GetVersionInfoRequest,
-      O: GetVersionInfoResponse,
       kind: MethodKind.Unary,
     },
   }

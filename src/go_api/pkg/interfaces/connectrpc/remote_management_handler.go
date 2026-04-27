@@ -15,8 +15,9 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+
 type acceleratorGateway interface {
-	GetVersionInfo(context.Context, *pb.GetVersionInfoRequest) (*pb.GetVersionInfoResponse, error)
+	IsAvailable() bool
 }
 
 type deviceMonitor interface {
@@ -83,52 +84,18 @@ type healthCheckResult struct {
 func (h *RemoteManagementHandler) checkAcceleratorHealth(ctx context.Context) healthCheckResult {
 	span := trace.SpanFromContext(ctx)
 
-	if h.gateway == nil {
-		span.RecordError(fmt.Errorf("grpc client not available"))
+	if h.gateway == nil || !h.gateway.IsAvailable() {
+		span.SetAttributes(attribute.Bool("accelerator.healthy", false))
 		return healthCheckResult{
 			status:  pb.AcceleratorHealthStatus_ACCELERATOR_HEALTH_STATUS_UNHEALTHY,
-			message: "gRPC client not configured",
+			message: "no accelerator registered",
 		}
 	}
 
-	versionReq := &pb.GetVersionInfoRequest{}
-
-	versionResp, err := h.gateway.GetVersionInfo(ctx, versionReq)
-	if err != nil {
-		span.RecordError(err)
-		span.SetAttributes(
-			attribute.Bool("accelerator.healthy", false),
-		)
-
-		return healthCheckResult{
-			status:  pb.AcceleratorHealthStatus_ACCELERATOR_HEALTH_STATUS_UNHEALTHY,
-			message: fmt.Sprintf("Failed to check accelerator health: %v", err),
-		}
-	}
-
-	if versionResp.Code != 0 {
-		span.SetAttributes(
-			attribute.Bool("accelerator.healthy", false),
-			attribute.Int("accelerator.error_code", int(versionResp.Code)),
-		)
-
-		return healthCheckResult{
-			status:  pb.AcceleratorHealthStatus_ACCELERATOR_HEALTH_STATUS_UNHEALTHY,
-			message: fmt.Sprintf("Accelerator returned error code %d: %s", versionResp.Code, versionResp.Message),
-		}
-	}
-
-	span.SetAttributes(
-		attribute.Bool("accelerator.healthy", true),
-		attribute.String("accelerator.server_version", versionResp.ServerVersion),
-		attribute.String("accelerator.library_version", versionResp.LibraryVersion),
-	)
-
+	span.SetAttributes(attribute.Bool("accelerator.healthy", true))
 	return healthCheckResult{
-		status:         pb.AcceleratorHealthStatus_ACCELERATOR_HEALTH_STATUS_HEALTHY,
-		message:        "Accelerator is healthy",
-		serverVersion:  versionResp.ServerVersion,
-		libraryVersion: versionResp.LibraryVersion,
+		status:  pb.AcceleratorHealthStatus_ACCELERATOR_HEALTH_STATUS_HEALTHY,
+		message: "Accelerator is healthy",
 	}
 }
 

@@ -31,13 +31,13 @@ describe('ServiceContext / useServiceContext', () => {
   });
 
   it('returns clients when wrapped with renderWithService', () => {
-    const imageProcessorClient = {
+    const videoPlaybackClient = {
       listFilters: vi.fn(),
-    } as unknown as GrpcClients['imageProcessorClient'];
+    } as unknown as GrpcClients['videoPlaybackClient'];
     const remoteManagementClient = {} as GrpcClients['remoteManagementClient'];
 
     const { unmount } = renderWithService(<Consumer />, {
-      imageProcessorClient,
+      videoPlaybackClient,
       remoteManagementClient,
     });
 

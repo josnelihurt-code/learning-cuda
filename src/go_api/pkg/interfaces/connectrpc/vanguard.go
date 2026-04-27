@@ -16,14 +16,13 @@ import (
 
 // VanguardConfig groups all dependencies needed to setup Vanguard transcoder
 type VanguardConfig struct {
-	ImageProcessorHandler *ImageProcessorHandler
+	VideoPlaybackHandler  *VideoPlaybackHandler
 	FeatureFlagRepo       featureFlagRepository
 	ListInputsUC          useCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
 	GetSystemInfoUC       useCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
 	EvaluateFFBooleanUC   useCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
 	EvaluateFFStringUC    useCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
 	ConfigManager         *config.Manager
-	ProcessorCapsUC       processorCapabilitiesUseCase
 	ListAvailableImagesUC useCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput]
 	UploadImageUC         useCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput]
 	ListVideosUC          useCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput]
@@ -40,8 +39,8 @@ func SetupVanguardTranscoder(cfg *VanguardConfig) http.Handler {
 		opts = append(opts, connect.WithInterceptors(cfg.Interceptors...))
 	}
 
-	_, imageProcessorConnectHandler := genconnect.NewImageProcessorServiceHandler(
-		cfg.ImageProcessorHandler, opts...,
+	_, videoPlaybackConnectHandler := genconnect.NewVideoPlaybackServiceHandler(
+		cfg.VideoPlaybackHandler, opts...,
 	)
 
 	configHandler := NewConfigHandler(ConfigHandlerDeps{
@@ -51,7 +50,6 @@ func SetupVanguardTranscoder(cfg *VanguardConfig) http.Handler {
 		EvaluateFFBooleanUC: cfg.EvaluateFFBooleanUC,
 		EvaluateFFStringUC:  cfg.EvaluateFFStringUC,
 		ConfigManager:       cfg.ConfigManager,
-		ProcessorCapsUC:     cfg.ProcessorCapsUC,
 	})
 	_, configConnectHandler := genconnect.NewConfigServiceHandler(configHandler, opts...)
 
@@ -61,7 +59,7 @@ func SetupVanguardTranscoder(cfg *VanguardConfig) http.Handler {
 	_, fileConnectHandler := genconnect.NewFileServiceHandler(fileHandler, opts...)
 
 	services := []*vanguard.Service{
-		vanguard.NewService(genconnect.ImageProcessorServiceName, imageProcessorConnectHandler),
+		vanguard.NewService(genconnect.VideoPlaybackServiceName, videoPlaybackConnectHandler),
 		vanguard.NewService(genconnect.ConfigServiceName, configConnectHandler),
 		vanguard.NewService(genconnect.FileServiceName, fileConnectHandler),
 	}

@@ -28,7 +28,6 @@ type ConfigHandlerDeps struct {
 	EvaluateFFBooleanUC useCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
 	EvaluateFFStringUC  useCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
 	GetSystemInfoUC     useCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
-	ProcessorCapsUC     processorCapabilitiesUseCase
 	// Repositories
 	FeatureFlagRepo featureFlagRepository
 	// Managers
@@ -334,46 +333,15 @@ func (h *ConfigHandler) GetSystemInfo(
 	return connect.NewResponse(response), nil
 }
 
+// GetProcessorStatus is intentionally a no-op now: filter capabilities and
+// version information flow directly from the C++ accelerator to the browser
+// over the WebRTC "control" data channel. We keep the RPC so the existing
+// frontend client doesn't break, but it returns an empty payload.
 func (h *ConfigHandler) GetProcessorStatus(
 	ctx context.Context,
 	req *connect.Request[pb.GetProcessorStatusRequest],
 ) (*connect.Response[pb.GetProcessorStatusResponse], error) {
-	span := trace.SpanFromContext(ctx)
-
-	if h.ProcessorCapsUC == nil {
-		span.RecordError(fmt.Errorf("processor capabilities use case not available"))
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("processor not available"))
-	}
-
-	caps, origin, err := h.ProcessorCapsUC.Execute(ctx, true) // force gRPC
-	if err != nil {
-		span.RecordError(err)
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("failed to get processor capabilities: %w", err))
-	}
-
-	if caps == nil {
-		span.RecordError(fmt.Errorf("capabilities not available"))
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("processor capabilities not available"))
-	}
-
-	span.SetAttributes(
-		attribute.String("processor.api_version", caps.ApiVersion),
-		attribute.String("processor.backend_origin", string(origin)),
-		attribute.Int("processor.filter_count", len(caps.Filters)),
-	)
-
-	response := &pb.GetProcessorStatusResponse{
-		ApiVersion:     caps.ApiVersion,
-		Capabilities:   caps,
-		CurrentLibrary: caps.LibraryVersion,
-	}
-
-	logger.FromContext(ctx).Debug().
-		Int("filter_count", len(caps.Filters)).
-		Str("api_version", caps.ApiVersion).
-		Str("library_version", caps.LibraryVersion).
-		Str("origin", string(origin)).
-		Msg("GetProcessorStatus: returning capabilities")
-
-	return connect.NewResponse(response), nil
+	_ = ctx
+	_ = req
+	return connect.NewResponse(&pb.GetProcessorStatusResponse{}), nil
 }

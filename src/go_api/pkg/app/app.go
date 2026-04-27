@@ -35,8 +35,6 @@ type Deps struct {
 	// Configuration
 	Config *config.Manager
 
-	ProcessorCapsUC processorCapabilitiesProvider
-
 	GetSystemInfoUC       useCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
 	EvaluateFFBooleanUC   useCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
 	EvaluateFFStringUC    useCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
@@ -62,9 +60,6 @@ func New(ctx context.Context, deps Deps) (*App, error) {
 	}
 	if deps.AcceleratorGateway == nil {
 		return nil, errors.New("accelerator gateway is required")
-	}
-	if deps.ProcessorCapsUC == nil {
-		return nil, errors.New("processor capabilities use case is required")
 	}
 	if deps.GetSystemInfoUC == nil {
 		return nil, errors.New("get system info use case is required")
@@ -151,11 +146,9 @@ func (a *App) setupObservability(mux *http.ServeMux) {
 }
 
 func (a *App) setupConnectRPCServices(mux *http.ServeMux) {
-	rpcHandler := connectrpc.NewImageProcessorHandlerWithGRPC(
-		a.ProcessorCapsUC,
+	videoPlaybackHandler := connectrpc.NewVideoPlaybackHandler(
 		a.StartVideoPlaybackUC,
 		a.StopVideoPlaybackUC,
-		a.AcceleratorGateway,
 	)
 
 	connectrpc.RegisterConfigService(
@@ -167,7 +160,6 @@ func (a *App) setupConnectRPCServices(mux *http.ServeMux) {
 			EvaluateFFBooleanUC: a.EvaluateFFBooleanUC,
 			EvaluateFFStringUC:  a.EvaluateFFStringUC,
 			ConfigManager:       a.Config,
-			ProcessorCapsUC:     a.ProcessorCapsUC,
 		},
 		a.interceptors...,
 	)
@@ -187,7 +179,7 @@ func (a *App) setupConnectRPCServices(mux *http.ServeMux) {
 		a.interceptors...,
 	)
 
-	connectrpc.RegisterRoutesWithHandler(mux, rpcHandler, a.interceptors...)
+	connectrpc.RegisterVideoPlaybackService(mux, videoPlaybackHandler, a.interceptors...)
 
 	connectrpc.RegisterRemoteManagementService(
 		mux,
@@ -198,14 +190,13 @@ func (a *App) setupConnectRPCServices(mux *http.ServeMux) {
 	)
 
 	transcoder := connectrpc.SetupVanguardTranscoder(&connectrpc.VanguardConfig{
-		ImageProcessorHandler: rpcHandler,
+		VideoPlaybackHandler:  videoPlaybackHandler,
 		FeatureFlagRepo:       a.FeatureFlagRepo,
 		ListInputsUC:          a.ListInputsUC,
 		GetSystemInfoUC:       a.GetSystemInfoUC,
 		EvaluateFFBooleanUC:   a.EvaluateFFBooleanUC,
 		EvaluateFFStringUC:    a.EvaluateFFStringUC,
 		ConfigManager:         a.Config,
-		ProcessorCapsUC:       a.ProcessorCapsUC,
 		ListAvailableImagesUC: a.ListAvailableImagesUC,
 		UploadImageUC:         a.UploadImageUC,
 		ListVideosUC:          a.ListVideosUC,
