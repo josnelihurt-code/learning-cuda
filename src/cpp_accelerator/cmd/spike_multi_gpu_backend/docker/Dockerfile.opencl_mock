@@ -1,0 +1,27 @@
+# Minimal runtime image for the OpenCL *mock* spike (no OpenCL SDK, no CUDA).
+#
+# Prerequisite on the host (repository root):
+#   bazel build //src/cpp_accelerator/cmd/spike_multi_gpu_backend:spike_opencl_mock
+#   mkdir -p src/cpp_accelerator/cmd/spike_multi_gpu_backend/docker/artifacts
+#   cp -L bazel-bin/src/cpp_accelerator/cmd/spike_multi_gpu_backend/spike_opencl_mock \
+#        src/cpp_accelerator/cmd/spike_multi_gpu_backend/docker/artifacts/
+#
+# Build context must be this directory (docker/) so COPY artifacts/... resolves:
+#   docker build -f Dockerfile.opencl_mock -t cpp-spike-opencl-mock:local .
+
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/spike
+
+COPY artifacts/spike_opencl_mock ./bin/spike_opencl_mock
+
+RUN chmod +x ./bin/spike_opencl_mock
+
+ENTRYPOINT ["./bin/spike_opencl_mock"]

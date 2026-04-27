@@ -1,0 +1,79 @@
+# Multi-stage build for spike_cuda (same builder pattern as src/cpp_accelerator/Dockerfile.build).
+# Build context: repository root (cuda-learning/). Runtime: cuda-runtime base with NVIDIA stack.
+#
+# Example:
+#   docker build -f src/cpp_accelerator/cmd/spike_multi_gpu_backend/docker/Dockerfile.cuda \
+#     -t cpp-spike-cuda:local --build-arg TARGETARCH=amd64 .
+
+ARG BASE_REGISTRY=ghcr.io/josnelihurt-code/learning-cuda
+ARG TARGETARCH=amd64
+ARG PROTO_VERSION=4.0.0
+ARG COMMIT_HASH=unknown
+ARG CPP_DEPS_REGISTRY=ghcr.io/josnelihurt-code/learning-cuda
+ARG CPP_DEPS_VERSION=1.0.0
+ARG CUDA_RUNTIME_REGISTRY=ghcr.io/josnelihurt-code/learning-cuda
+ARG CUDA_RUNTIME_VERSION=1.0.0
+
+FROM ${CPP_DEPS_REGISTRY}/intermediate:cpp-dependencies-${CPP_DEPS_VERSION}-${TARGETARCH} AS bazel-deps
+
+FROM ${BASE_REGISTRY}/intermediate:proto-generated-${PROTO_VERSION}-${TARGETARCH} AS proto-generated-ref
+
+FROM bazel-deps AS cpp-builder
+
+ARG BAZEL_REMOTE_CACHE=""
+ARG BAZEL_REMOTE_UPLOAD_LOCAL_RESULTS="false"
+ARG COMMIT_HASH=unknown
+ARG TARGETARCH=amd64
+
+WORKDIR /build
+
+COPY src/cpp_accelerator/ ./src/cpp_accelerator/
+
+COPY --from=proto-generated-ref /workspace/proto/gen/ ./proto/gen/
+
+RUN echo "Detected TARGETARCH: $TARGETARCH" && \
+    NPROC=$(nproc) && \
+    MEM_GB=$(free -g | awk '/^Mem:/{print $2}') && \
+    echo "Available CPUs: $NPROC, RAM: ${MEM_GB}GB" && \
+    echo "$NPROC $MEM_GB" > /tmp/resources.txt
+
+RUN NPROC=$(cat /tmp/resources.txt | awk '{print $1}') && \
+    MEM_GB=$(cat /tmp/resources.txt | awk '{print $2}') && \
+    CACHE_FLAGS="" && \
+    COMMON_FLAGS="--show_timestamps --local_ram_resources=$(($MEM_GB * 1024 * 1024 * 7 / 10)) --local_cpu_resources=$(($NPROC - 1)) --experimental_repository_cache_hardlinks --disk_cache=/tmp/bazel-cache" && \
+    BUILD_TARGETS="//src/cpp_accelerator/cmd/spike_multi_gpu_backend:spike_cuda" && \
+    JOBS="$NPROC" && \
+    ARCH_FLAGS="--announce_rc --verbose_failures" && \
+    BUILD_START_MSG="Building spike_cuda" && \
+    BUILD_DONE_MSG="spike_cuda build completed" && \
+    if [ -n "${BAZEL_REMOTE_CACHE}" ]; then \
+        echo "Using remote Bazel cache at ${BAZEL_REMOTE_CACHE}"; \
+        CACHE_FLAGS="${CACHE_FLAGS} --remote_cache=${BAZEL_REMOTE_CACHE}"; \
+        if [ "${BAZEL_REMOTE_UPLOAD_LOCAL_RESULTS}" = "true" ]; then \
+            CACHE_FLAGS="${CACHE_FLAGS} --remote_upload_local_results"; \
+        fi; \
+    fi && \
+    if [ "$TARGETARCH" = "arm64" ]; then \
+        JOBS=$(($NPROC > 4 ? 4 : $NPROC)); \
+        BUILD_DONE_MSG="ARM64 spike_cuda build completed"; \
+        BUILD_START_MSG="Building spike_cuda ARM64 (CPUs: $NPROC, RAM: ${MEM_GB}GB)"; \
+    fi && \
+    echo "${BUILD_START_MSG}" && \
+    LIBRARY_GIT_HASH="${COMMIT_HASH}" bazel --batch build \
+      --jobs=${JOBS} \
+      ${COMMON_FLAGS} \
+      ${ARCH_FLAGS} \
+      ${CACHE_FLAGS} \
+      ${BUILD_TARGETS} && \
+    echo "${BUILD_DONE_MSG}"
+
+RUN mkdir -p /artifacts/bin && \
+    cp -L bazel-bin/src/cpp_accelerator/cmd/spike_multi_gpu_backend/spike_cuda /artifacts/bin/spike_cuda
+
+FROM ${CUDA_RUNTIME_REGISTRY}/base:cuda-runtime-${CUDA_RUNTIME_VERSION}-${TARGETARCH} AS spike-cuda
+
+WORKDIR /opt/spike
+
+COPY --from=cpp-builder /artifacts/bin/spike_cuda ./bin/spike_cuda
+
+ENTRYPOINT ["./bin/spike_cuda"]

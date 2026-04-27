@@ -1,0 +1,28 @@
+# Spike: two backends, two images. CUDA image builds in-container; mock image expects a host-built binary under docker/artifacts/.
+#
+# From repository root:
+#   ./scripts/dev/build-spike-docker.sh
+#
+# Or manually:
+#   docker compose -f src/cpp_accelerator/cmd/spike_multi_gpu_backend/docker-compose.spike.yml build spike-cuda
+#   (after populating docker/artifacts/) docker compose ... build spike-mock
+
+services:
+  spike-cuda:
+    build:
+      # Compose file lives in spike_multi_gpu_backend/; four parents = repo root.
+      context: ../../../..
+      dockerfile: src/cpp_accelerator/cmd/spike_multi_gpu_backend/docker/Dockerfile.cuda
+      args:
+        TARGETARCH: amd64
+    image: cpp-spike-cuda:local
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+
+  spike-mock:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.opencl_mock
+    image: cpp-spike-opencl-mock:local
