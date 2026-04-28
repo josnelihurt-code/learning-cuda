@@ -16,6 +16,7 @@ struct VectorAddResult {
   const char* error_message;
 };
 
-VectorAddResult vector_add(const float* A, const float* B, float* C, int n, const VulkanComputeContext* ctx);
+VectorAddResult vector_add(const float* A, const float* B, float* C, int n,
+                           const VulkanComputeContext* ctx);
 
 }  // namespace hw_vulkan

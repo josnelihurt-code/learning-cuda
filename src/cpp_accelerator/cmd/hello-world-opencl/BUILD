@@ -10,10 +10,18 @@ cc_library(
     name = "hello_world_opencl_lib",
     srcs = [
         "main.cpp",
+        "opencl_program.cpp",
+        "opencl_runtime.cpp",
+        "vector_add.cpp",
         ":vector_add_kernel_spv_embed",
         ":vector_add_kernel_cl_embed",
     ],
-    hdrs = [":vector_add_kernel_blob_h"],
+    hdrs = [
+        "opencl_program.h",
+        "opencl_runtime.h",
+        "vector_add.h",
+        ":vector_add_kernel_blob_h",
+    ],
     defines = ["CL_TARGET_OPENCL_VERSION=300"],
     visibility = ["//visibility:private"],
     deps = [

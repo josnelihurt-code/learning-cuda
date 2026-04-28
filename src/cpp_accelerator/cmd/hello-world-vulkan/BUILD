@@ -13,7 +13,7 @@ cc_library(
         ":vector_add_kernel_spv_embed",
     ],
     hdrs = [
-        "vector_add.hpp",
+        "vector_add.h",
         ":vector_add_kernel_blob_h",
     ],
     visibility = ["//visibility:private"],

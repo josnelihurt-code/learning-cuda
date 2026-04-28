@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 
-#include "src/cpp_accelerator/cmd/hello-world-vulkan/vector_add.hpp"
+#include "src/cpp_accelerator/cmd/hello-world-vulkan/vector_add.h"
 
 int main() {
   try {
