@@ -2,21 +2,34 @@
 
 #include <vulkan/vulkan.hpp>
 
+#include "src/cpp_accelerator/cmd/hello-world-vulkan/vulkan_program.h"
+#include "src/cpp_accelerator/cmd/hello-world-vulkan/vulkan_runtime.h"
+
 namespace hw_vulkan {
 
-struct VulkanComputeContext {
-  vk::Device device;
-  vk::PhysicalDevice physical_device;
-  uint32_t compute_queue_family_index;
-  vk::Queue queue;
-};
-
 struct VectorAddResult {
-  vk::Result result;
-  const char* error_message;
+  int error_code = 0;
+  const char* error_message = "ok";
 };
 
-VectorAddResult vector_add(const float* A, const float* B, float* C, int n,
-                           const VulkanComputeContext* ctx);
+class VulkanVectorAddProgram {
+ public:
+  VulkanVectorAddProgram();
+  ~VulkanVectorAddProgram();
+
+  bool Initialize();
+  VectorAddResult Execute(const float* a, const float* b, float* c, int n);
+  int LastErrorCode() const;
+  const char* LastErrorMessage() const;
+
+ private:
+  VectorAddResult MakeError(vk::Result code, const char* message);
+  bool SetLastError(vk::Result code, const char* message);
+
+  VulkanRuntime runtime_;
+  VulkanProgram program_;
+  int last_error_code_;
+  const char* last_error_message_;
+};
 
 }  // namespace hw_vulkan

@@ -7,12 +7,17 @@ spirv_shader_embed_cpp(
 )
 
 cc_library(
-    name = "hello_world_vulkan_vector_add",
+    name = "hello_world_vulkan_lib",
     srcs = [
+        "main.cpp",
+        "vulkan_runtime.cpp",
+        "vulkan_program.cpp",
         "vector_add.cpp",
         ":vector_add_kernel_spv_embed",
     ],
     hdrs = [
+        "vulkan_runtime.h",
+        "vulkan_program.h",
         "vector_add.h",
         ":vector_add_kernel_blob_h",
     ],
@@ -24,11 +29,7 @@ cc_library(
 
 cc_binary(
     name = "hello-world-vulkan",
-    srcs = ["main.cpp"],
     visibility = ["//visibility:public"],
-    deps = [
-        ":hello_world_vulkan_vector_add",
-        "@vulkan_hpp//:vulkan_hpp",
-    ],
+    deps = [":hello_world_vulkan_lib"],
     linkopts = ["-lvulkan"],
 )
