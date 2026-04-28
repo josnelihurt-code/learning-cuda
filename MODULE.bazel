@@ -56,6 +56,21 @@ archive_override(
 )
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+http_file(
+    name = "llvm_spirv_18_tool_deb",
+    downloaded_file_path = "llvm-spirv-18_amd64.deb",
+    sha256 = "4c8256b5325af9db0ea3c0548233e9a1aaa50f37aecbd1e4ab9c3f679df55639",
+    urls = ["http://archive.ubuntu.com/ubuntu/pool/universe/s/spirv-llvm-translator-18/llvm-spirv-18_18.1.8-1~ubuntu0.24.04.1_amd64.deb"],
+)
+
+http_file(
+    name = "libllvmspirvlib18_tool_deb",
+    downloaded_file_path = "libllvmspirvlib18.1_amd64.deb",
+    sha256 = "48c4c02cb3e3179a894b27545818048a79a4acc9a3cc0bbeea646c84493a86de",
+    urls = ["http://archive.ubuntu.com/ubuntu/pool/universe/s/spirv-llvm-translator-18/libllvmspirvlib18.1_18.1.8-1~ubuntu0.24.04.1_amd64.deb"],
+)
 
 http_archive(
     name = "com_google_absl",

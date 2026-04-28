@@ -1,178 +1,147 @@
 #include <CL/cl.h>
+
+#include <cmath>
+#include <cstring>
 #include <iostream>
 #include <vector>
-#include <stdexcept>
-#include <spdlog/spdlog.h>
 
-const char* kernelSource = R"(
-__kernel void vector_add(__global const float* A, __global const float* B, __global float* C, const int n) {
-    int i = get_global_id(0);
-    if (i < n) {
-        C[i] = A[i] + B[i];
-    }
-}
-)";
+#include "src/cpp_accelerator/cmd/hello-world-opencl/vector_add_kernel_blob.h"
 
-void checkCLError(cl_int err, const char* operation) {
-    if (err != CL_SUCCESS) {
-        spdlog::error("OpenCL error during {}: {}", operation, err);
-        throw std::runtime_error(std::string("OpenCL error: ") + operation);
-    }
+static void die_cl(cl_int err, const char* what) {
+  std::cerr << what << " failed, OpenCL error " << err << "\n";
+  std::exit(1);
 }
 
 int main() {
-    spdlog::info("OpenCL Hello World - Vector Addition");
+  cl_int err;
 
-    cl_int err;
+  cl_platform_id platform = nullptr;
+  err = clGetPlatformIDs(1, &platform, nullptr);
+  if (err != CL_SUCCESS || !platform) die_cl(err, "clGetPlatformIDs");
 
-    cl_uint numPlatforms;
-    err = clGetPlatformIDs(0, nullptr, &numPlatforms);
-    checkCLError(err, "clGetPlatformIDs (count)");
+  cl_device_id device = nullptr;
+  err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_DEFAULT, 1, &device, nullptr);
+  if (err != CL_SUCCESS || !device) die_cl(err, "clGetDeviceIDs");
 
-    if (numPlatforms == 0) {
-        spdlog::error("No OpenCL platforms found");
-        return 1;
-    }
+  cl_context ctx = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &err);
+  if (err != CL_SUCCESS || !ctx) die_cl(err, "clCreateContext");
 
-    spdlog::info("Found {} OpenCL platform(s)", numPlatforms);
+  cl_command_queue queue = clCreateCommandQueueWithProperties(ctx, device, nullptr, &err);
+  if (err != CL_SUCCESS || !queue) die_cl(err, "clCreateCommandQueueWithProperties");
 
-    std::vector<cl_platform_id> platforms(numPlatforms);
-    err = clGetPlatformIDs(numPlatforms, platforms.data(), nullptr);
-    checkCLError(err, "clGetPlatformIDs (get)");
+  cl_program program = nullptr;
+  bool from_il = false;
 
-    for (cl_uint i = 0; i < numPlatforms; ++i) {
-        char platformName[128];
-        err = clGetPlatformInfo(platforms[i], CL_PLATFORM_NAME, sizeof(platformName), platformName, nullptr);
-        checkCLError(err, "clGetPlatformInfo");
-        spdlog::info("Platform {}: {}", i, platformName);
-
-        cl_uint numDevices;
-        err = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices);
-        checkCLError(err, "clGetDeviceIDs (count)");
-
-        if (numDevices == 0) {
-            spdlog::warn("  No devices found on this platform");
-            continue;
-        }
-
-        spdlog::info("  Found {} device(s)", numDevices);
-
-        std::vector<cl_device_id> devices(numDevices);
-        err = clGetDeviceIDs(platforms[i], CL_DEVICE_TYPE_ALL, numDevices, devices.data(), nullptr);
-        checkCLError(err, "clGetDeviceIDs (get)");
-
-        for (cl_uint j = 0; j < numDevices; ++j) {
-            char deviceName[128];
-            err = clGetDeviceInfo(devices[j], CL_DEVICE_NAME, sizeof(deviceName), deviceName, nullptr);
-            checkCLError(err, "clGetDeviceInfo");
-            spdlog::info("  Device {}: {}", j, deviceName);
-        }
-    }
-
-    cl_uint numDevices;
-    err = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_ALL, 0, nullptr, &numDevices);
-    checkCLError(err, "clGetDeviceIDs (count)");
-
-    if (numDevices == 0) {
-        spdlog::error("No devices found on platform 0");
-        return 1;
-    }
-
-    std::vector<cl_device_id> devices(numDevices);
-    err = clGetDeviceIDs(platforms[0], CL_DEVICE_TYPE_ALL, numDevices, devices.data(), nullptr);
-    checkCLError(err, "clGetDeviceIDs (get)");
-
-    cl_context context = clCreateContext(nullptr, 1, &devices[0], nullptr, nullptr, &err);
-    checkCLError(err, "clCreateContext");
-    spdlog::info("Created OpenCL context");
-
-    const cl_command_queue_properties properties[] = {0};
-    cl_command_queue queue = clCreateCommandQueueWithProperties(context, devices[0], properties, &err);
-    checkCLError(err, "clCreateCommandQueueWithProperties");
-    spdlog::info("Created command queue");
-
-    const int n = 1024;
-    std::vector<float> h_A(n), h_B(n), h_C(n);
-
-    for (int i = 0; i < n; ++i) {
-        h_A[i] = static_cast<float>(i);
-        h_B[i] = static_cast<float>(i * 2);
-    }
-
-    cl_mem d_A = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, n * sizeof(float), h_A.data(), &err);
-    checkCLError(err, "clCreateBuffer (A)");
-
-    cl_mem d_B = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, n * sizeof(float), h_B.data(), &err);
-    checkCLError(err, "clCreateBuffer (B)");
-
-    cl_mem d_C = clCreateBuffer(context, CL_MEM_WRITE_ONLY, n * sizeof(float), nullptr, &err);
-    checkCLError(err, "clCreateBuffer (C)");
-    spdlog::info("Created device buffers");
-
-    size_t kernelSourceSize = strlen(kernelSource);
-    cl_program program = clCreateProgramWithSource(context, 1, &kernelSource, &kernelSourceSize, &err);
-    checkCLError(err, "clCreateProgramWithSource");
-
-    err = clBuildProgram(program, 1, &devices[0], nullptr, nullptr, nullptr);
-    if (err != CL_SUCCESS) {
-        size_t logSize;
-        clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, 0, nullptr, &logSize);
-        std::vector<char> buildLog(logSize);
-        clGetProgramBuildInfo(program, devices[0], CL_PROGRAM_BUILD_LOG, logSize, buildLog.data(), nullptr);
-        spdlog::error("Kernel build failed:\n{}", buildLog.data());
-        throw std::runtime_error("Kernel build failed");
-    }
-    spdlog::info("Built kernel program");
-
-    cl_kernel kernel = clCreateKernel(program, "vector_add", &err);
-    checkCLError(err, "clCreateKernel");
-
-    err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &d_A);
-    checkCLError(err, "clSetKernelArg (A)");
-    err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_B);
-    checkCLError(err, "clSetKernelArg (B)");
-    err = clSetKernelArg(kernel, 2, sizeof(cl_mem), &d_C);
-    checkCLError(err, "clSetKernelArg (C)");
-    err = clSetKernelArg(kernel, 3, sizeof(int), &n);
-    checkCLError(err, "clSetKernelArg (n)");
-
-    size_t globalWorkSize = n;
-    err = clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &globalWorkSize, nullptr, 0, nullptr, nullptr);
-    checkCLError(err, "clEnqueueNDRangeKernel");
-    spdlog::info("Enqueued kernel execution");
-
-    err = clEnqueueReadBuffer(queue, d_C, CL_TRUE, 0, n * sizeof(float), h_C.data(), 0, nullptr, nullptr);
-    checkCLError(err, "clEnqueueReadBuffer");
-    spdlog::info("Read results back to host");
-
-    err = clFinish(queue);
-    checkCLError(err, "clFinish");
-
-    bool correct = true;
-    for (int i = 0; i < n; ++i) {
-        float expected = h_A[i] + h_B[i];
-        if (std::abs(h_C[i] - expected) > 1e-5) {
-            spdlog::error("Mismatch at index {}: expected {}, got {}", i, expected, h_C[i]);
-            correct = false;
-            break;
-        }
-    }
-
-    if (correct) {
-        spdlog::info("Vector addition verification: PASSED");
+  const size_t il_size = vector_add_kernel_blob::spirv_size_bytes();
+  if (il_size > 0 && (il_size % 4) == 0) {
+    program = clCreateProgramWithIL(ctx, vector_add_kernel_blob::spirv(), il_size, &err);
+    if (err == CL_SUCCESS && program) {
+      from_il = true;
     } else {
-        spdlog::error("Vector addition verification: FAILED");
+      program = nullptr;
     }
+  }
 
-    clReleaseMemObject(d_C);
-    clReleaseMemObject(d_B);
-    clReleaseMemObject(d_A);
-    clReleaseKernel(kernel);
+  if (!program) {
+    const size_t src_len = vector_add_kernel_blob::cl_src_size_bytes();
+    if (src_len == 0) {
+      std::cerr << "Embedded OpenCL C source is empty\n";
+      clReleaseCommandQueue(queue);
+      clReleaseContext(ctx);
+      return 1;
+    }
+    const char* src_ptr = vector_add_kernel_blob::cl_src();
+    program = clCreateProgramWithSource(ctx, 1, &src_ptr, &src_len, &err);
+    if (err != CL_SUCCESS || !program) die_cl(err, "clCreateProgramWithSource");
+    from_il = false;
+  }
+
+  err = clBuildProgram(program, 1, &device, nullptr, nullptr, nullptr);
+  if (err != CL_SUCCESS) {
+    std::cerr << "clBuildProgram failed, error " << err << "\n";
     clReleaseProgram(program);
     clReleaseCommandQueue(queue);
-    clReleaseContext(context);
+    clReleaseContext(ctx);
+    return 1;
+  }
 
-    spdlog::info("OpenCL resources cleaned up successfully");
+  constexpr int n = 8;
+  std::vector<float> h_a(n), h_b(n), h_c(n);
+  for (int i = 0; i < n; ++i) {
+    h_a[i] = static_cast<float>(i);
+    h_b[i] = static_cast<float>(2 * i);
+  }
 
-    return correct ? 0 : 1;
+  cl_mem d_a = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, n * sizeof(float),
+                              h_a.data(), &err);
+  if (err != CL_SUCCESS) die_cl(err, "clCreateBuffer A");
+  cl_mem d_b = clCreateBuffer(ctx, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, n * sizeof(float),
+                              h_b.data(), &err);
+  if (err != CL_SUCCESS) {
+    clReleaseMemObject(d_a);
+    die_cl(err, "clCreateBuffer B");
+  }
+  cl_mem d_c = clCreateBuffer(ctx, CL_MEM_WRITE_ONLY, n * sizeof(float), nullptr, &err);
+  if (err != CL_SUCCESS) {
+    clReleaseMemObject(d_a);
+    clReleaseMemObject(d_b);
+    die_cl(err, "clCreateBuffer C");
+  }
+
+  cl_kernel k = clCreateKernel(program, "vector_add_kernel", &err);
+  if (err != CL_SUCCESS || !k) {
+    clReleaseMemObject(d_a);
+    clReleaseMemObject(d_b);
+    clReleaseMemObject(d_c);
+    clReleaseProgram(program);
+    die_cl(err, "clCreateKernel");
+  }
+
+  clSetKernelArg(k, 0, sizeof(cl_mem), &d_a);
+  clSetKernelArg(k, 1, sizeof(cl_mem), &d_b);
+  clSetKernelArg(k, 2, sizeof(cl_mem), &d_c);
+  clSetKernelArg(k, 3, sizeof(int), &n);
+
+  const size_t global = static_cast<size_t>(n);
+  err = clEnqueueNDRangeKernel(queue, k, 1, nullptr, &global, nullptr, 0, nullptr, nullptr);
+  if (err != CL_SUCCESS) {
+    clReleaseKernel(k);
+    clReleaseMemObject(d_a);
+    clReleaseMemObject(d_b);
+    clReleaseMemObject(d_c);
+    clReleaseProgram(program);
+    clReleaseCommandQueue(queue);
+    clReleaseContext(ctx);
+    die_cl(err, "clEnqueueNDRangeKernel");
+  }
+
+  err = clEnqueueReadBuffer(queue, d_c, CL_TRUE, 0, n * sizeof(float), h_c.data(), 0, nullptr,
+                            nullptr);
+  clFinish(queue);
+
+  clReleaseKernel(k);
+  clReleaseMemObject(d_a);
+  clReleaseMemObject(d_b);
+  clReleaseMemObject(d_c);
+  clReleaseProgram(program);
+  clReleaseCommandQueue(queue);
+  clReleaseContext(ctx);
+
+  if (err != CL_SUCCESS) die_cl(err, "clEnqueueReadBuffer");
+
+  for (int i = 0; i < n; ++i) {
+    const float want = h_a[i] + h_b[i];
+    if (std::abs(h_c[i] - want) > 1e-5f) {
+      std::cerr << "Mismatch at " << i << ": want " << want << " got " << h_c[i] << "\n";
+      return 1;
+    }
+  }
+
+  std::cout << "OpenCL hello world OK (n=" << n << ") — ";
+  if (from_il) {
+    std::cout << "embedded SPIR-V IL (clCreateProgramWithIL)\n";
+  } else {
+    std::cout << "embedded OpenCL C (clCreateProgramWithSource)\n";
+  }
+  return 0;
 }
