@@ -3,11 +3,14 @@ load("@rules_cuda//cuda:defs.bzl", "cuda_library")
 cuda_library(
     name = "kernels",
     srcs = [
-        "blur_kernel.cu",
+        "blur/non_separable.cu",
+        "blur/separable_basic.cu",
+        "blur/separable_tiled.cu",
         "grayscale_kernel.cu",
         "letterbox_kernel.cu",
     ],
     hdrs = [
+        "blur/device_utils.cuh",
         "blur_kernel.h",
         "grayscale_kernel.h",
         "letterbox_kernel.h",
