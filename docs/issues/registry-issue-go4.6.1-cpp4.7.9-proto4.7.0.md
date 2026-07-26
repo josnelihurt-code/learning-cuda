@@ -11,7 +11,8 @@
 | Jetson host | `jetson-nano-orin` |
 | Control device_id | `jetson-prod-01` |
 
-GitHub issue / PR links are filled in under [Revision notes](#revision-notes) after they are created.
+- GitHub issue: https://github.com/josnelihurt-code/learning-cuda/issues/745
+- Docs PR: https://github.com/josnelihurt-code/learning-cuda/pull/744
 
 ---
 
@@ -236,14 +237,13 @@ If Go-side changes are ever required, bump `src/go_api/VERSION` and follow [`.gi
 - **Hypothesis:** RX-stale cancel in `AcceleratorControlClient` leaves `RunOnce` wedged; Go drops registry session; UI offline until process restart. H264 mid-stream decode is a separate concurrent failure.
 - **Evidence:** Timeline above; Jetson silence after reconnect warning; Go `accelerator disconnected` then persistent `ListCameras: no accelerator session registered`.
 - **Deliverable this date:** This analysis file on branch `docs/registry-reconnect-hang-go4.6.1-cpp4.7.9` (docs PR + GitHub bug).
-- **GitHub:** _(fill after create)_ Issue: TBD — PR: TBD
+- **GitHub:** Issue [#745](https://github.com/josnelihurt-code/learning-cuda/issues/745) — Docs PR [#744](https://github.com/josnelihurt-code/learning-cuda/pull/744)
 - **Next agent checklist:**
-  1. Confirm issue/PR links below are filled.
-  2. Implement proposed fix on a `fix/` branch; bump `src/cpp_accelerator/VERSION`.
-  3. Add stage logs first if the hang site is still ambiguous.
-  4. Open fix PR linking this doc and closing the GitHub bug.
-  5. After merge, run deploy validation commands in section above; append a new dated revision note with results.
-  6. Optionally open a separate issue for H264 SPS/PPS late-join.
+  1. Implement proposed fix on a `fix/` branch; bump `src/cpp_accelerator/VERSION`.
+  2. Add stage logs first if the hang site is still ambiguous.
+  3. Open fix PR linking this doc and `Closes #745`.
+  4. After merge, run deploy validation commands in section above; append a new dated revision note with results.
+  5. Optionally open a separate issue for H264 SPS/PPS late-join.
 
 ---
 
