@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|--------|
 | Opened | 2026-07-26 |
-| Status | Fix committed on PR [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) — CI green, awaiting review/merge (see [Remaining steps](#remaining-steps)) |
+| Status | Deployed (cpp `4.7.10` / Go `4.6.2`); reconnect path confirmed in production on 2026-07-27 (see [Revision notes](#revision-notes)) |
 | Go API | observed `4.6.1` → fix bumps to `4.6.2` |
 | cpp-accelerator | observed `4.7.9` (`cpp-accelerator-4.7.9-proto4.7.0-arm64`) → fix bumps to `4.7.10` |
 | proto | `4.7.0` (unchanged) |
@@ -228,7 +228,7 @@ The fix is committed on PR [#746](https://github.com/josnelihurt-code/learning-c
 2. ✅ **Commit** on a `fix/` branch off `main` (`fix/accelerator-control-reconnect-hang`) — VERSION files bumped to cpp `4.7.10` / Go `4.6.2`; pre-commit version check passed. Done (commit `b9d274d`).
 3. **Add a C++ regression test** for the reconnect path: extract the stream behind an injectable interface, simulate a `Read` that never returns after cancel, and assert `Run()` reaches its reconnect sleep within a deadline. Without this the abort watchdog is the only thing standing between us and a repeat.
 4. ✅ **Open the PR** — [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) (`Closes #745`); CI green on 2026-07-26 (ARM PR build 2m17s, app image build 1m48s, web-frontend + yolo-model-gen pass). Awaiting review/merge.
-5. **After merge, validate the deploy** with the commands in that section — expect Jetson image `cpp-accelerator-4.7.10-…`, Go image `app:4.6.2-amd64`.
+5. ✅ **After merge, validate the deploy** — Jetson image `cpp-accelerator-4.7.10-proto4.7.0-arm64`; Cloud Go image `app:4.6.2-amd64` (`go_version: 4.6.2`). Both live on 2026-07-27.
 6. **Soak** for at least one full session cycle and grep the Jetson for the new markers:
    ```
    Cancelling control stream
@@ -338,6 +338,22 @@ If Go-side changes are ever required, bump `src/go_api/VERSION` and follow [`.gi
 - **Actions:** Committed the fix on `fix/accelerator-control-reconnect-hang` (off `origin/main`, commit `b9d274d`) — code-only, doc edits kept on this docs branch. Opened fix PR [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) (`Closes #745`). Pre-commit version check passed.
 - **CI:** All checks green on 2026-07-26 — ARM PR build 2m17s, Build app image (PRs only) 1m48s, web-frontend + yolo-model-gen pass, Detect changed paths pass. Deploy/push jobs correctly skipped (run only on merge to `main`).
 - **Status:** PR #746 awaiting review/merge; deploy + soak validation still pending (remaining steps 1, 3, 5, 6, 7).
+
+### 2026-07-27 — deployed; reconnect path confirmed in production
+
+- **Deploy:** PR #746 merged to `main`. ARM run `30233285264`: cpp-accelerator built/pushed + **Deploy production (Jetson Nano) succeeded**. x86 run `30233285452`: app image build initially failed on a transient Docker Hub `502 Bad Gateway` pulling `golang:1.24-alpine` (not a code issue); re-ran the failed job, build + **Deploy production to Cloud VM succeeded**.
+- **Versions live:** Jetson `cpp-accelerator-4.7.10-proto4.7.0-arm64`; Cloud `app:4.6.2-amd64` (`go_version: 4.6.2`).
+- **Reconnect confirmed (the decisive test):** the Cloud VM restart forced the Jetson's control stream to drop at `03:00:28Z`. The Jetson ran the full fixed teardown sequence and re-registered without a container restart:
+  ```
+  03:00:28  Teardown stage: read loop exited → keepalive joined → pump joined
+            → WritesDone → Finish → cleanup complete
+  03:00:28  Reconnecting in 1s...              ← previously the hang point (line was absent)
+  03:00:40  Failed to send Register (server still booting) — transient, did not hang
+  03:00:40  Reconnecting in 2s...              ← backoff + retry
+  03:00:42  Registered, session_id=39351a00-…
+  ```
+  Every new stage log fired; the reconnect loop was reached; a transient failure was absorbed by backoff; the device re-registered. Go confirmed `accelerator connected` v4.7.10 and keepalives every 15s; no `ListCameras: no accelerator session registered` recurred.
+- **Caveat:** this exercised the *server-side disconnect* path through the fixed teardown/reconnect code, not the original *app-level RX watchdog* trigger (`No inbound message for 45s`). Soak continues to catch that specific path if it occurs naturally (remaining step 6).
 
 ---
 
