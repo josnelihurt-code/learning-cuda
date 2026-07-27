@@ -45,6 +45,9 @@ struct SessionState {
       std::make_unique<ChunkReassembler>();
   std::atomic<uint32_t> outgoing_message_id{0};
   std::atomic<int> frame_count{0};
+  // Consecutive live-processing failures; used to rate-limit the error log so a
+  // permanently undecodable stream cannot flood the logging pipeline.
+  std::atomic<int> live_failure_count{0};
   cuda_learning::ProcessImageRequest live_filter_state;
   std::vector<rtc::Candidate> pending_candidates;
   std::queue<rtc::Candidate> local_candidates_queue;

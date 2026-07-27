@@ -90,6 +90,14 @@ private:
   void CancelStream();
   void TeardownLocalSessions();
 
+  // Last-resort escape. Armed on the first CancelStream() of a connection: if
+  // the connection has not been torn down (generation unchanged) after the
+  // grace period, the process is aborted so the supervisor restarts it. A
+  // cancelled-but-wedged stream means the accelerator is unregistered and
+  // unreachable anyway; a crash loop is recoverable, silent limbo is not.
+  // Disable with ACCELERATOR_DISABLE_TEARDOWN_WATCHDOG=1.
+  void ArmTeardownWatchdog();
+
   cuda_learning::AcceleratorMessage BuildRegisterMessage() const;
   cuda_learning::AcceleratorMessage BuildKeepaliveMessage() const;
 
@@ -100,7 +108,14 @@ private:
   std::atomic<bool> stop_requested_{false};
 
   // Per-connection state — reset on each reconnect.
+  //
+  // Two locks, deliberately: write_mutex_ is held across the blocking
+  // stream_->Write() to enforce gRPC's single-writer rule, so it can be held
+  // for an unbounded time when the peer stops draining. ctx_mutex_ guards only
+  // the context pointer and is never held across a blocking call, which is what
+  // lets CancelStream() reach TryCancel() while a writer is wedged.
   std::mutex write_mutex_;
+  std::mutex ctx_mutex_;
   grpc::ClientContext* ctx_{nullptr};
 
   using BidiStream =
@@ -109,6 +124,11 @@ private:
 
   std::atomic<bool> stream_failed_{false};
   std::atomic<int64_t> last_rx_ms_{0};
+
+  // Bumped once per RunOnce cycle; the teardown watchdog compares against it to
+  // tell "this connection finished" from "this connection is still wedged".
+  std::atomic<uint64_t> connection_generation_{0};
+  std::atomic<bool> teardown_watchdog_armed_{false};
 
   // Set of active WebRTC session IDs (for candidate pump).
   std::mutex session_ids_mutex_;

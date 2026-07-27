@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <random>
 #include <sstream>
@@ -103,10 +104,49 @@ void AcceleratorControlClient::Stop() {
 }
 
 void AcceleratorControlClient::CancelStream() {
-  std::lock_guard<std::mutex> lk(write_mutex_);
+  // Must not take write_mutex_: a Send() blocked in stream_->Write() holds it
+  // for as long as the peer refuses to drain, and TryCancel() is exactly the
+  // call that unblocks that write. Gating it on write_mutex_ deadlocks the
+  // watchdog, Stop() and cleanup(). TryCancel() is itself thread-safe.
+  std::lock_guard<std::mutex> lk(ctx_mutex_);
   if (ctx_ != nullptr) {
+    spdlog::info("{} Cancelling control stream", kLogPrefix);
     ctx_->TryCancel();
+    ArmTeardownWatchdog();
   }
+}
+
+void AcceleratorControlClient::ArmTeardownWatchdog() {
+  if (teardown_watchdog_armed_.exchange(true)) {
+    return;  // already armed for this connection
+  }
+
+  const char* disabled = std::getenv("ACCELERATOR_DISABLE_TEARDOWN_WATCHDOG");
+  if (disabled != nullptr && (std::string(disabled) == "1" || std::string(disabled) == "true")) {
+    spdlog::warn("{} Teardown watchdog disabled by environment", kLogPrefix);
+    return;
+  }
+
+  const uint64_t generation = connection_generation_.load();
+  const int grace_s = std::max(30, config_.keepalive_timeout_s * 2);
+
+  std::thread([this, generation, grace_s]() {
+    for (int i = 0; i < grace_s * 10; ++i) {
+      if (connection_generation_.load() != generation || stop_requested_.load()) {
+        return;  // teardown completed (or shutdown requested) — nothing to do
+      }
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    if (connection_generation_.load() != generation || stop_requested_.load()) {
+      return;
+    }
+    spdlog::critical(
+        "{} Control stream did not tear down {}s after cancel — aborting so the "
+        "supervisor restarts the accelerator (see teardown stage logs for the wedged call)",
+        kLogPrefix, grace_s);
+    spdlog::default_logger()->flush();
+    std::abort();
+  }).detach();
 }
 
 void AcceleratorControlClient::TouchLastRx() {
@@ -141,7 +181,15 @@ void AcceleratorControlClient::Run() {
 
 bool AcceleratorControlClient::RunOnce(int* reconnect_delay_s) {
   stream_failed_ = false;
+  teardown_watchdog_armed_ = false;
   TouchLastRx();
+
+  // Advancing the generation on every exit path is what tells an armed teardown
+  // watchdog that this cycle completed.
+  struct GenerationBump {
+    std::atomic<uint64_t>* generation;
+    ~GenerationBump() { generation->fetch_add(1); }
+  } generation_bump{&connection_generation_};
 
   // Build channel credentials.
   std::shared_ptr<grpc::ChannelCredentials> creds;
@@ -178,28 +226,28 @@ bool AcceleratorControlClient::RunOnce(int* reconnect_delay_s) {
 
   // Stash pointers so Send() can use them (cleared on exit).
   {
-    std::lock_guard<std::mutex> lk(write_mutex_);
+    std::lock_guard<std::mutex> lk(ctx_mutex_);
     ctx_ = &ctx;
+  }
+  {
+    std::lock_guard<std::mutex> lk(write_mutex_);
     stream_ = stream.get();
   }
 
   auto cleanup = [&]() {
+    CancelStream();
     TeardownLocalSessions();
-    std::lock_guard<std::mutex> lk(write_mutex_);
-    if (ctx_ != nullptr) {
-      ctx_->TryCancel();
+    {
+      std::lock_guard<std::mutex> lk(ctx_mutex_);
+      ctx_ = nullptr;
     }
-    ctx_ = nullptr;
+    std::lock_guard<std::mutex> lk(write_mutex_);
     stream_ = nullptr;
   };
 
   // Send Register.
   if (!Send(BuildRegisterMessage())) {
-    if (ctx_ != nullptr) {
-      spdlog::error("{} Failed to send Register — {}", kLogPrefix, ctx_->debug_error_string());
-    } else {
-      spdlog::error("{} Failed to send Register", kLogPrefix);
-    }
+    spdlog::error("{} Failed to send Register — {}", kLogPrefix, ctx.debug_error_string());
     cleanup();
     return stop_requested_;
   }
@@ -244,34 +292,40 @@ bool AcceleratorControlClient::RunOnce(int* reconnect_delay_s) {
   });
 
   // Dispatch loop.
+  //
+  // A successful Read proves the stream is alive, so the RX timer is touched
+  // before dispatching. Dispatch() runs handlers inline (CreateSession /
+  // CloseSession can take seconds), and the old code re-checked staleness on
+  // the freshly-read message — a slow handler then tore down a healthy stream
+  // on the very next read.
   ConnectResponse resp;
   while (!stop_requested_ && !stream_failed_.load() && stream->Read(&resp)) {
-    if (IsRxStale()) {
-      spdlog::warn("{} Inbound keepalive timeout ({}s) during read", kLogPrefix,
-                   config_.keepalive_timeout_s);
-      stream_failed_ = true;
-      CancelStream();
-      break;
-    }
     TouchLastRx();
     Dispatch(resp.message());
+    TouchLastRx();
   }
 
   if (stream_failed_.load() && !stop_requested_) {
     spdlog::warn("{} Stream failed — reconnecting", kLogPrefix);
   }
+  spdlog::info("{} Teardown stage: read loop exited", kLogPrefix);
 
   connection_stop = true;
   keepalive_thread.join();
+  spdlog::info("{} Teardown stage: keepalive thread joined", kLogPrefix);
   pump_thread.join();
+  spdlog::info("{} Teardown stage: pump thread joined", kLogPrefix);
 
   stream->WritesDone();
+  spdlog::info("{} Teardown stage: WritesDone returned", kLogPrefix);
   auto status = stream->Finish();
   if (!status.ok() && !stop_requested_) {
     spdlog::warn("{} Stream ended: {} {}", kLogPrefix, static_cast<int>(status.error_code()),
                  status.error_message());
   }
+  spdlog::info("{} Teardown stage: Finish returned", kLogPrefix);
   cleanup();
+  spdlog::info("{} Teardown stage: cleanup complete", kLogPrefix);
   return stop_requested_;
 }
 

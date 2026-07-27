@@ -2,6 +2,7 @@
 
 #include <cctype>
 #include <cstdarg>
+#include <cstddef>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -9,7 +10,7 @@
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/rotating_file_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 #pragma GCC diagnostic pop
@@ -31,6 +32,8 @@ constexpr const char* kLogFile = "/tmp/cppaccelerator.log";
 constexpr const char* kFilePattern =
     "{\"timestamp\":%E,\"level\":\"%l\",\"message\":\"%v\",\"source\":\"cpp\"}\n";
 constexpr const char* kConsolePattern = "[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v";
+constexpr std::size_t kLogMaxFileBytes = 64UL * 1024UL * 1024UL;
+constexpr std::size_t kLogMaxFiles = 3;
 
 spdlog::level::level_enum ParseLogLevel(const char* s) {
   if (s == nullptr || *s == '\0') {
@@ -51,7 +54,11 @@ spdlog::level::level_enum ParseLogLevel(const char* s) {
 }
 
 spdlog::sink_ptr MakeFileSink() {
-  auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(kLogFile, true);
+  // Rotating, not basic: the sink flushes on every record, so a per-frame error
+  // loop (e.g. a camera stream failing to decode) used to grow this file without
+  // bound until the device filled up and every logging thread stalled.
+  auto sink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(kLogFile, kLogMaxFileBytes,
+                                                                     kLogMaxFiles, true);
   sink->set_pattern(kFilePattern);
   return sink;
 }

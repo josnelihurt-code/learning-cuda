@@ -173,7 +173,7 @@ func (s *ControlServer) Connect(stream grpc.BidiStreamingServer[gen.ConnectReque
 	defer func() {
 		deviceID := sess.DeviceID
 		assignedSessionID := sess.AssignedSession
-		s.registry.Remove(deviceID)
+		s.registry.Remove(deviceID, sess)
 		sess.cancel()
 		sess.pending.cancelAll()
 		sess.closeAllSignaling()
