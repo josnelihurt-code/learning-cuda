@@ -1124,9 +1124,17 @@ void WebRTCManager::HandleVideoFrame(const std::string& session_id, SessionState
   const bool ok = state.live_video_processor->ProcessAccessUnit(
       frame, info, state.live_filter_state, &encoded_units, &detection_frame, &error_msg);
   if (!ok) {
-    spdlog::error("[WebRTC:{}] Live camera frame processing failed: {}", session_id, error_msg);
+    // Log the first few failures, then every 300th (~10s at 30fps). An
+    // undecodable stream fails on every single frame, and the logger flushes
+    // synchronously to file, stdout and OTLP on each record.
+    const int failures = ++state.live_failure_count;
+    if (failures <= 3 || failures % 300 == 0) {
+      spdlog::error("[WebRTC:{}] Live camera frame processing failed (x{}): {}", session_id,
+                    failures, error_msg);
+    }
     return;
   }
+  state.live_failure_count.store(0);
 
   if (frame_num <= 5) {
     spdlog::info("[WebRTC:{}] Frame #{} processed OK, {} encoded units", session_id, frame_num,
