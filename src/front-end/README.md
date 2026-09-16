@@ -125,11 +125,11 @@ graph TB
         end
     end
 
-    App --> AppServicesProv
+    App --> ToastProv
+    ToastProv --> AppServicesProv
     AppServicesProv --> DashboardStateProv
     DashboardStateProv --> ServiceProv
-    ServiceProv --> ToastProv
-    ToastProv --> Navbar
+    ServiceProv --> Navbar
 
     Navbar --> Sidebar
     Navbar --> MainContent
@@ -227,7 +227,7 @@ The main application entry point that orchestrates the entire UI:
 
 **`VideoGrid`** (`presentation/components/video/VideoGrid.tsx`):
 - Responsive grid layout for displaying video sources
-- Delegates rendering to `VideoGridHost` for each source
+- Renders `VideoSourceCard` elements for each source (itself rendered by `VideoGridHost`)
 - CSS-based grid styling (`video-grid.css`)
 
 **`VideoCanvas`** (`presentation/components/video/VideoCanvas.tsx`):
@@ -248,7 +248,7 @@ The main application entry point that orchestrates the entire UI:
 - Displays source preview with status indicators
 - CSS Modules styling (`VideoSourceCard.module.css`)
 
-**`grid-source.ts`** (`presentation/components/video/grid-source.ts`):
+**`grid-source.ts`** (`presentation/utils/grid-source.ts`):
 - TypeScript type definitions for grid sources
 - `GridSource` interface: id, number, name, type, connected, filters, detections, stats
 - `GridSourceActionType` enum for reducer actions (ADD, REMOVE, SELECT, UPDATE_STATE, etc.)
@@ -267,7 +267,7 @@ The main application entry point that orchestrates the entire UI:
 - Real-time processed frame display
 - CSS Modules styling (`CameraPreview.module.css`)
 
-**`detection-colors.ts`** (`presentation/components/video/detection-colors.ts`):
+**`detection-colors.ts`** (`presentation/utils/detection-colors.ts`):
 - Color palette mapping for detection bounding boxes
 - Maps detection class labels to distinct colors
 
@@ -324,7 +324,7 @@ The main application entry point that orchestrates the entire UI:
 
 **`FeatureFlagsModal`** (`presentation/components/app/FeatureFlagsModal.tsx`):
 - Modal dialog for feature flag management
-- Flipt integration for flag evaluation
+- OpenFeature SDK with `@openfeature/go-feature-flag-web-provider` for flag evaluation
 - CSS Modules styling (`FeatureFlagsModal.module.css`)
 
 **`GrpcStatusModal`** (`presentation/components/app/GrpcStatusModal.tsx`):
@@ -334,7 +334,6 @@ The main application entry point that orchestrates the entire UI:
 
 **`AppTour`** (`presentation/components/app/AppTour.tsx`):
 - Guided tour for first-time users
-- Shepherd.js integration
 - CSS Modules styling (`AppTour.module.css`)
 
 **`InformationBanner`** (`presentation/components/app/InformationBanner.tsx`):
@@ -394,8 +393,7 @@ Singleton-based DI container providing centralized service access:
 - Supports filter refresh epoch for processor updates
 
 **Root-level services** (`services/`):
-- `feature-flags-service.ts`: Flipt integration for feature flag evaluation
-- `processor-capabilities-service.ts`: Alternate location for processor capabilities
+- `feature-flags-service.ts`: Fetches feature flags from the backend over Connect-RPC (flag evaluation in the UI uses the OpenFeature SDK with `@openfeature/go-feature-flag-web-provider`)
 
 ### Infrastructure Services
 
@@ -592,7 +590,7 @@ The application uses React Context for global state management, providing a cent
 
 **`service-context.tsx`** (`ServiceProvider`):
 - **Purpose**: Legacy context for gRPC client injection (being phased out)
-- **Provides**: `imageProcessorClient` and `remoteManagementClient`
+- **Provides**: `remoteManagementClient`
 - **Usage**: Primarily for testing with `renderWithService` utility
 
 **`toast-context.tsx`** (`ToastProvider`):
@@ -650,11 +648,6 @@ Custom hooks encapsulate business logic and provide reusable stateful functional
 - Handles static filter application for images
 - Handles video filter synchronization for video sources
 - Tracks processing statistics and metrics
-
-**`useVideoFilterManager.ts`**:
-- Manages filter pipeline for video sources
-- Handles filter chain execution
-- Coordinates filter operations with video playback
 
 **`useProcessingStats.ts`**:
 - Tracks FPS and processing time metrics
@@ -784,8 +777,7 @@ From project root:
 ```
 
 **Access:**
-- **React Dashboard**: https://localhost:8443 (production mode, served by Go server)
-- **Vite Dev Server**: https://localhost:3000 (development mode with hot reload)
+- **React Dashboard**: https://localhost:3000 (Vite dev server with hot reload)
 
 The backend Go server runs on port 8443. During development, Vite proxies gRPC calls to the Go server while providing hot module replacement.
 
@@ -803,7 +795,7 @@ The `vite.config.ts` includes several custom plugins:
 
 1. **`gitVersionPlugin()`**: Injects git metadata (commit hash, branch, build time) as global constants
 2. **`prettyFrontendRoutesPlugin()`**: Pretty URL routing for SPA
-3. **`serveDataDirPlugin()`**: Serves `./data/**` at `/data/**` during development (nginx handles this in production)
+3. **`serveDataDirPlugin()`**: Serves the repo-root `data/` directory at `/data/**` during development (nginx handles this in production)
 4. **`@vitejs/plugin-react`**: React Fast Refresh and JSX support
 
 ### Build
@@ -819,7 +811,7 @@ The build process:
 3. Generates `manifest.json` for asset mapping
 4. Creates production-optimized bundle with esbuild minification
 
-Build output is embedded in the Go server binary as static assets. Production deployment uses Nginx to serve pre-built static files.
+Build output is written to `dist/`. Production deployment uses Nginx to serve the pre-built static files.
 
 ### Version Management
 
@@ -1098,7 +1090,6 @@ front-end/
 │   │   │   │   ├── InformationBanner.tsx
 │   │   │   │   ├── NavbarControls.tsx
 │   │   │   │   └── StatsPanel.tsx
-│   │   │   ├── camera/             # Camera components (empty)
 │   │   │   ├── files/              # File management
 │   │   │   │   └── FileList.tsx
 │   │   │   ├── filters/            # Filter UI
@@ -1124,9 +1115,7 @@ front-end/
 │   │   │       ├── VideoSelector.tsx
 │   │   │       ├── VideoSourceCard.tsx
 │   │   │       ├── VideoStreamer.tsx
-│   │   │       ├── VideoUpload.tsx
-│   │   │       ├── detection-colors.ts
-│   │   │       └── grid-source.ts
+│   │   │       └── VideoUpload.tsx
 │   │   ├── context/                # React context
 │   │   │   ├── dashboard-state-context.tsx
 │   │   │   ├── service-context.tsx
@@ -1135,7 +1124,6 @@ front-end/
 │   │   │   ├── useAsyncGRPC.ts
 │   │   │   ├── useCameraTransport.ts
 │   │   │   ├── useConfig.ts
-│   │   │   ├── useFactories.ts
 │   │   │   ├── useFilterApplication.ts
 │   │   │   ├── useFilters.ts
 │   │   │   ├── useFiles.ts
@@ -1146,7 +1134,6 @@ front-end/
 │   │   │   ├── useSourceFilterSync.ts
 │   │   │   ├── useSourceTransportFactory.ts
 │   │   │   ├── useToast.ts
-│   │   │   ├── useVideoFilterManager.ts
 │   │   │   └── useWebRTCStream.ts
 │   │   ├── providers/              # Service providers
 │   │   │   ├── app-services-provider.tsx
@@ -1154,10 +1141,11 @@ front-end/
 │   │   ├── test-utils/             # Test utilities
 │   │   │   └── render-with-service.tsx
 │   │   └── utils/                  # Utilities
+│   │       ├── detection-colors.ts
+│   │       ├── grid-source.ts
 │   │       └── image-utils.ts
 │   ├── services/                   # Root-level services
-│   │   ├── feature-flags-service.ts
-│   │   └── processor-capabilities-service.ts
+│   │   └── feature-flags-service.ts
 │   ├── gen/                        # Generated protobuf code
 │   │   ├── *_connect.ts           # Connect-RPC clients
 │   │   └── *_pb.ts                # Protobuf messages
@@ -1177,7 +1165,6 @@ front-end/
 ├── vitest.config.ts                # Vitest configuration
 ├── playwright.config.ts            # Playwright configuration
 ├── Dockerfile                      # Production build with Nginx
-├── Dockerfile.build                # Multi-stage build
 ├── VERSION                         # Version file
 ├── sync-version.mjs                # Version sync script
 └── package.json                    # Dependencies and scripts

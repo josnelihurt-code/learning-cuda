@@ -43,7 +43,7 @@ presentation/
 │   └── grpc-clients-provider.tsx   Creates gRPC promise clients, injects into ServiceContext
 │
 ├── context/                        Shared React contexts (value + hook exports)
-│   ├── service-context.tsx         GrpcClients context (imageProcessor + remoteManagement)
+│   ├── service-context.tsx         GrpcClients context (remoteManagement)
 │   ├── service-context.test.tsx
 │   ├── dashboard-state-context.tsx Global UI state: selected source, accelerator, filters, etc.
 │   ├── toast-context.tsx           Toast notification API (success/error/warning/info)
@@ -68,7 +68,6 @@ presentation/
 │   ├── useSourceTransportFactory.ts Builds a configured GridSource + transport from InputSource
 │   ├── useToast.ts                 Reads ToastContext; throws if used outside provider
 │   ├── useToast.test.tsx
-│   ├── useVideoFilterManager.ts    Higher-level filter manager for video sources
 │   └── useWebRTCStream.ts          WebRTC stream start/stop state machine
 │
 ├── utils/                          Pure TypeScript utilities with no React dependencies
@@ -183,7 +182,7 @@ graph TB
     A["ToastProvider\n(context/toast-context)\nProvides: ToastApi"]
     B["AppServicesProvider\n(providers/app-services-provider)\nProvides: { container, ready }"]
     C["DashboardStateProvider\n(context/dashboard-state-context)\nProvides: selected source, accelerator,\nresolution, activeFilters, epoch, etc.\nConsumes: AppServicesContext"]
-    D["GrpcClientsProvider\n(providers/grpc-clients-provider)\nProvides: GrpcClients (imageProcessor + remoteManagement)\nInjects into: ServiceContext"]
+    D["GrpcClientsProvider\n(providers/grpc-clients-provider)\nProvides: GrpcClients (remoteManagement)\nInjects into: ServiceContext"]
     E["App + all components"]
 
     A -->|wraps| B

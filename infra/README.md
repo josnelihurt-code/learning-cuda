@@ -7,10 +7,9 @@ This directory contains infrastructure deployment configurations for the CUDA Le
 ## Contents
 
 This directory contains:
-- Terraform configurations for cloud resources
-- Ansible playbooks for server configuration
-- Docker Compose configurations
-- Deployment scripts and utilities
+- Docker Compose configurations for personal deployment
+
+Terraform configurations and Ansible playbooks live under [`../scripts/deployment/`](../scripts/deployment/) instead.
 
 ## Related Deployment Documentation
 
@@ -21,6 +20,7 @@ For production deployment workflows and procedures, see the main deployment scri
   - `radxa/` - ARM64 runner deployment
   - `prox4/` - Proxmox/GitHub Actions runner provisioning
   - `cloud-vm/` - Cloud VM deployment for Go server
+  - `github-runner/` - Self-hosted GitHub Actions runner (Terraform)
 
 ## Quick Reference
 
