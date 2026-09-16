@@ -52,6 +52,44 @@ go test ./test/integration/tests/acceptance -run TestFeatures -v
 ./scripts/test/linters.sh --fix    # Auto-fix
 ```
 
+## Pull Requests: merge-me & Stacked PRs
+
+### merge-me label
+
+Labeling a PR `merge-me` is standing intent ("merge when green"), not a command.
+The `merge-me` workflow (`.github/workflows/merge-me.yml`, powered by the shared
+composite action `josnelihurt/code.examples.ci/merge-me`, pinned by SHA) re-evaluates
+on real events only — label added/removed, push, reopen, either Docker Monorepo CI
+workflow completing (x86 and ARM64), or manual dispatch. When both CI workflows are
+green it merges via GitHub's asynchronous merge endpoint; when checks are pending on
+an ordinary PR it arms GitHub's server-side auto-merge. Removing the label disarms
+any armed auto-merge. All merges are **squash**. The workflow name must stay
+`merge-me` (the action self-excludes its own checks by name).
+
+### Stacked PRs
+
+Multi-unit changes ship one branch/PR per unit, each based on the previous,
+managed with the `gh stack` extension (`github/gh-stack`; install with
+`gh extension install github/gh-stack`, invoked as `gh stack`):
+
+- **Fresh stack**: `gh stack init <bottom> … <top>` (or `gh stack init` to start
+  from the current branch), commit per layer, then `gh stack submit --auto --open`.
+- **Existing PRs**: `gh stack link <bottom-pr> … <top-pr>` chains them on GitHub
+  and retargets their bases — no local stack state needed.
+- **Stack PRs are created ready for review — never drafts.** The only exception is
+  a genuinely blocked unit, which starts as a draft and is flipped with `gh pr ready`
+  once the block clears.
+- **Merging a stack**: `gh stack merge [<pr>]` — atomic, all-or-nothing up to
+  that PR (squash). Manual bottom-up also works; GitHub auto-retargets the next
+  PR when the one below merges. The `merge-me` label works for ordinary PRs
+  (base `main`), but **not** for upper stack layers: the Docker CI workflows
+  only trigger on PRs targeting `main`, so layers with intermediate bases never
+  report checks and merge-me holds them forever. Fixing that would require
+  widening the CI `pull_request` triggers to non-main bases.
+- After a squash-merge lands a lower layer, run `gh stack sync` (cascading rebase)
+  before continuing work upstack — a stale branch over a squash-merged base shows
+  phantom conflicts. Never force-push mid-stack branches outside `gh stack sync`.
+
 ## Architecture
 
 ### Code Structure
