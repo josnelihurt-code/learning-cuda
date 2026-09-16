@@ -404,6 +404,8 @@ Add new tools by editing `config/config.yaml`, no code changes needed.
 
 Continuous integration for ARM64 and AMD64 builds runs via GitHub Actions. Detailed triggers, job flow, and runner expectations live in [`docs/ci-workflows.md`](docs/ci-workflows.md).
 
+Merges are automated by the `merge-me` label: labeling a PR `merge-me` asks the `merge-me` workflow to squash-merge it once both CI workflows (x86 and ARM64) are green — the label is standing intent ("merge when green"), and removing it cancels the intent.
+
 ## Testing & Code Quality
 
 Comprehensive testing and quality assurance across all layers:
