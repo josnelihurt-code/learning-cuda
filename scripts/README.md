@@ -56,7 +56,7 @@ flowchart LR
 ### `deployment/github-runner`
 - **Purpose**: provisions self-hosted GitHub Actions runners for ARM64 and AMD64 workloads using Terraform (Proxmox VMs) and Ansible (runtime configuration, runner registration).
 - **Pipeline**: `start.sh` verifies dependencies (`terraform`, `gh`, `ansible-playbook`, `jq`, `python3`), applies Terraform, renders per-runner Ansible variable files, executes `site.yml`, then polls the GitHub API until each runner reports `online`.
-- **Outputs**: self-hosted runners labeled for workflow selection (`jetson-nano`, architecture-specific tags) and preloaded with Docker, NVIDIA toolkit, and registry credentials required by CI.
+- **Outputs**: self-hosted runners labeled for workflow selection (`prox4`, `x86`, `josnelihurt-code`, per `terraform.tfvars`) and preloaded with Docker, NVIDIA toolkit, and registry credentials required by CI. The `jetson-nano` label belongs only to the separate jetson-nano runner; no workflow in this repo selects on it.
 - **Maintenance**: `stop.sh` tears down instances via Terraform destroy; secrets such as `proxmox-api.key` live under `.secrets/` and must exist before provisioning.
 
 ### `deployment/staging_local`
@@ -69,15 +69,15 @@ flowchart LR
 ### `deployment/prox4`
 - Ansible playbooks for Prox4 (Proxmox) hosts and GitHub Actions runner LXC/VM targets.
 - Files: `deployment/prox4/ansible/site.yml` (main playbook), `deployment/prox4/ansible/inventory.yml`, `deployment/prox4/ansible/ansible.cfg`
-- **Runner provisioning**: `site.yml` installs **Docker CE** from Docker’s official apt repository (`docker-ce`, `docker-buildx-plugin`, etc.), not the distro `docker.io` package. Monorepo workflows set **`DOCKER_BUILDKIT=0`** so `scripts/docker/build-local.sh` uses the **classic** builder; Buildx remains available for other uses.
+- **Runner provisioning**: `site.yml` installs **Docker CE** from Docker’s official apt repository (`docker-ce`, `docker-buildx-plugin`, etc.), not the distro `docker.io` package.
 - **Related**: Proxmox template download and Bazel remote cache host roles are also defined in `site.yml`; coordinate with `deployment/github-runner` Terraform when creating runner CTs.
 
 ### `deployment/cloud-vm`
 - Automates production deployment of the Go server to a cloud VM (x86_64) using Ansible playbooks. The Go server runs separately from the Jetson Nano deployment, which only hosts the gRPC server (C++ with CUDA) and infrastructure services.
 - **Pipeline**: `deploy.sh` orchestrates Ansible playbooks: `ansible/sync.yml` (sync configuration and secrets) and `ansible/start.yml` (pull images and start services). Also includes `deploy-runner.sh` for provisioning a self-hosted GitHub Actions runner (`learning-cuda-cloud-vm-1`, labels: `self-hosted,Linux,X64,prod,cloud-vm`).
-- **Automation**: Integrated into the x86 CI workflow (`docker-monorepo-build-x86.yml`) to automatically deploy after building and pushing images to GHCR.
+- **Automation**: not invoked by CI; the x86 CI workflow (`docker-monorepo-build-x86.yml`) deploys on its own after pushing images to GHCR, via inline SSH/rsync of `infra/services/compose/learning-cuda.yaml` followed by `docker compose` on the VM.
 - **Requirements**: SSH access to the cloud VM, Docker installed, user in docker group. Secrets configured in GitHub Actions: `CLOUD_VM_HOST`, `CLOUD_VM_USER`, `CLOUD_VM_SSH_KEY`.
-- **Configuration**: Uses `docker-compose.go-cloud.yml` (deployed to cloud VM via Ansible sync) to deploy only the Go server service, connecting to existing Traefik instance via `public-wan` Docker network.
+- **Configuration**: the live cloud VM stack runs from `infra/services/compose/learning-cuda.yaml` (Go server service only, attached to the existing Traefik instance via the `public-wan` Docker network). These cloud-vm scripts are stale — the Ansible `start.yml` still references a `docker-compose.go-cloud.yml` that no longer exists in the repo — and CI does not invoke them.
 
 ### `deployment/radxa`
 - Automates GitHub Actions runner provisioning on Radxa ARM64 hardware. `deploy-runner.sh` registers runner `learning-cuda-radxa-1` with labels `self-hosted,Linux,ARM64,radxa`. Supports both `RADXA_*` and `JETSON_*` environment variables for compatibility. `test.sh` validates SSH connectivity and Ansible availability. Includes Ansible playbooks for application deployment and Docker orchestration. See [`deployment/radxa/README.md`](radxa/README.md) for full documentation.
@@ -86,11 +86,11 @@ flowchart LR
 - `docker/build-local.sh`: builds the monorepo Docker image using the same Dockerfiles as CI, enabling preflight validation before opening pull requests.
 - `docker/push-tagged-images.sh`: pushes locally built images to GHCR and publishes `latest-${ARCH}` aliases for `app`, `cpp-accelerator`, and `web-frontend`. Requires `ripgrep`.
 - `docker/install-nvidia-toolkit.sh`: configures host NVIDIA drivers and container toolkit, matching the requirements enforced on self-hosted runners.
-- `docker/generate-certs.sh`: issues local TLS certs consumed by `scripts/dev/start.sh` and staging stacks.
+- `docker/generate-certs.sh`: issues local TLS certs consumed by `scripts/dev/start.sh` (Vite HTTPS and Go dev TLS).
 - `docker/validate-env.sh`: validates Docker environment prerequisites (SSL certs, Docker daemon, NVIDIA toolkit, GPU availability).
 
 ## Test Runners
-- `test/unit-tests.sh`: runs unit tests for Go, C++ (Bazel), and frontend (Vitest). Supports `--skip-golang` and `--skip-frontend` flags for selective execution.
+- `test/unit-tests.sh`: runs unit tests for Go and frontend (Vitest); the C++ (Bazel) step is a "Not implemented yet" placeholder. Supports `--skip-golang` and `--skip-frontend` flags for selective execution.
 - `test/coverage.sh`: runs all coverage tests across the full stack.
 - `test/linters.sh`: runs all linters. Supports `--fix` for auto-fixing lint issues.
 - `test/e2e.sh`: runs Playwright end-to-end tests. Supports `--chromium` for fast Chromium-only runs, or runs all browsers by default.

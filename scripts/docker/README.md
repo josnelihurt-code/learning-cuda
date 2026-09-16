@@ -49,8 +49,9 @@ web-frontend
 |----------|---------|-------------|
 | `REGISTRY` | `local` | Docker registry |
 | `BASE_IMAGE_PREFIX` | `josnelihurt-code/learning-cuda` | Image namespace |
-| `ARCH` | Host arch | Target architecture |
 | `BAZEL_REMOTE_CACHE` | Auto-detected | Bazel remote cache endpoint |
+
+Note: the `ARCH` environment variable is ignored — the script derives the default architecture from `uname -m`; use the `--arch` flag to override it.
 
 **Build Behavior**:
 - Stages build in dependency order
@@ -64,10 +65,10 @@ web-frontend
 ./scripts/docker/build-local.sh --stage app
 
 # Build all stages for amd64 and push to GHCR
-REGISTRY=ghcr.io ARCH=amd64 ./scripts/docker/build-local.sh
+REGISTRY=ghcr.io ./scripts/docker/build-local.sh --arch amd64
 
 # Build specific stages for ARM64
-ARCH=arm64 ./scripts/docker/build-local.sh \
+./scripts/docker/build-local.sh --arch arm64 \
   --stage cuda-runtime \
   --stage cpp-builder \
   --stage cpp-accelerator
@@ -76,7 +77,7 @@ ARCH=arm64 ./scripts/docker/build-local.sh \
 **Version File Reading**:
 Each stage reads a `VERSION` file to tag images:
 ```bash
-src/cpp_accelerator/VERSION          → cpp-accelerator:1.2.3-amd64
+src/cpp_accelerator/VERSION          → cpp-accelerator:cpp-accelerator-1.2.3-proto0.9.0-amd64
 src/go_api/VERSION                   → app:1.2.3-amd64
 src/front-end/VERSION                → web-frontend:fe-1.2.3-...
 src/cpp_accelerator/docker-cuda-runtime/VERSION  → cuda-runtime:1.2.3-amd64
@@ -168,21 +169,20 @@ For images without a `latest-amd64` tag, the script:
 
 ### `generate-certs.sh`
 
-**Purpose**: Generate mTLS certificates for gRPC communication.
+**Purpose**: Generate a self-signed localhost TLS certificate for local HTTPS development (runs `openssl` inside a `podman` container).
 
 **Usage**:
 ```bash
 ./scripts/docker/generate-certs.sh
 ```
 
-**Outputs**:
-- `server.pem` - Server certificate
-- `server-key.pem` - Server private key
-- `client.pem` - Client certificate
-- `client-key.pem` - Client private key
-- `ca.pem` - Certificate authority certificate
+**Outputs** (written to `.secrets/`):
+- `localhost+2.pem` - Self-signed certificate (SANs: `localhost`, `127.0.0.1`, `::1`)
+- `localhost+2-key.pem` - Private key
 
-**Use Case**: Local development and testing of mTLS-secured gRPC services.
+**Use Case**: Local HTTPS for `scripts/dev/start.sh` (Vite dev server and Go dev TLS).
+
+**Note**: This is not mTLS material. gRPC mTLS certificates (CA/server/client) are minted by `scripts/dev/mint-accelerator-ca.sh` and `scripts/dev/mint-accelerator-cert.sh`.
 
 ---
 
@@ -215,10 +215,11 @@ For images without a `latest-amd64` tag, the script:
 ```
 
 **Checks**:
-- Required environment variables
-- Configuration file existence
+- SSL certificate files (`.secrets/localhost+2.pem` and its key)
+- Docker installation
 - Docker daemon availability
-- Network connectivity
+- NVIDIA Container Toolkit (`docker run --gpus all` smoke test)
+- GPU availability (`nvidia-smi`)
 
 **Use Case**: Pre-deployment validation in CI/CD pipelines.
 
