@@ -9,12 +9,12 @@
 >
 > **See**: [GitHub Issues](https://github.com/josnelihurt-code/learning-cuda/issues) for active project management.
 
-Research and POC tasks for improving video transport from current WebSocket + base64 PNG to more efficient methods.
+Research and POC tasks for improving video transport, originally written when the transport was WebSocket + base64 PNG. The WebSocket transport has since been removed entirely; the current transport is WebRTC (`WebRTCSignalingService` in `proto/webrtc_signal.proto`).
 
-## Current Implementation Analysis
+## Implementation Analysis (historical)
 
-**Status**: Working but inefficient
-- Transport: WebSocket with base64-encoded PNG
+**Status at the time of writing**: Working but inefficient
+- Transport: WebSocket with base64-encoded PNG (former implementation, since removed — current transport is WebRTC via `WebRTCSignalingService` in `proto/webrtc_signal.proto`)
 - Overhead: ~33% from base64 encoding + PNG compression CPU cost
 - Latency: Acceptable for learning, not production-ready
 - Bandwidth: ~2-5 MB/s for 720p @ 30 FPS
@@ -33,7 +33,7 @@ Research and POC tasks for improving video transport from current WebSocket + ba
 
 #### Completed
 - [x] #156 Added ImageProcessorService to proto with ProcessImage and StreamProcessVideo RPCs
-- [x] #157 Implemented Connect-RPC server in `webserver/pkg/interfaces/connectrpc/`
+- [x] #157 Implemented Connect-RPC server in `src/go_api/pkg/interfaces/connectrpc/`
 - [x] #158 Refactored main.go to clean App structure
 - [x] #159 Setup buf for code generation with Docker
 - [x] #160 Added HTTP annotations for REST-friendly endpoints
@@ -50,7 +50,7 @@ Research and POC tasks for improving video transport from current WebSocket + ba
 #### Pending
 - [ ] #507 Integrate video decoding library (gmf/ffmpeg) for actual frame extraction
 - [ ] #507 Generate preview images from first video frame
-- [ ] #507 Implement StreamProcessVideo bidirectional streaming (currently returns Unimplemented)
+- ~~#507 Implement StreamProcessVideo bidirectional streaming (currently returns Unimplemented)~~ (obsolete — the `StreamProcessVideo` RPC no longer exists in any proto; superseded by `SignalingStream` in `proto/webrtc_signal.proto:111`)
 - [ ] #507 Complete video playback loop with frame-by-frame filter application
 - [ ] #507 Benchmark latency vs current WebSocket
 - [ ] #507 Add grpc-web support for browser compatibility
@@ -59,7 +59,7 @@ Research and POC tasks for improving video transport from current WebSocket + ba
 
 ### POC 2: Binary Transport (Quick Win) - Next Optimization
 
-**Status**: Current implementation uses PNG base64 (working but inefficient)
+**Status**: Historical — the former implementation used PNG base64 over WebSocket (working but inefficient); the current transport is WebRTC
 
 **Why**: Eliminate base64 overhead and PNG encoding/decoding
 
@@ -79,7 +79,7 @@ RPC → C++/CUDA → raw RGB → WebSocket binary → Browser
 #### Tasks
 - [ ] #508 Modify WebSocket to accept binary frames instead of JSON
 - [ ] #508 Frontend: use canvas.getImageData().data (Uint8ClampedArray)
-- [ ] #508 Backend: remove PNG decode step in websocket_handler.go
+- [ ] #508 Backend: remove PNG decode step
 - [ ] #508 Remove PNG encode step (return raw bytes)
 - [ ] #508 Frontend: create ImageData and putImageData directly
 - [ ] #508 Benchmark performance improvement
