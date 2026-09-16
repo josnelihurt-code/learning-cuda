@@ -7,8 +7,7 @@ This document describes the testing strategy and how to execute the different te
 The project uses a multi-layered testing approach:
 
 1. **Unit Tests** - Fast, isolated tests for individual components
-2. **BDD Tests** - Behavior-driven acceptance tests using Gherkin
-3. **E2E Tests** - End-to-end browser tests using Playwright
+2. **E2E Tests** - End-to-end browser tests using Playwright
 
 Each layer validates different aspects of the system and can be run independently or together.
 
@@ -95,98 +94,6 @@ go test -race ./src/go_api/pkg/...
 - `--skip-cpp` - Skip C++ tests
 - `--help` - Show usage
 
-### BDD Tests (Behavior-Driven Development)
-
-Acceptance tests using Gherkin feature files and Godog.
-
-**Location:** `test/integration/tests/acceptance/`
-
-**Technology:** Godog (Go) + Gherkin
-
-**What they test:**
-- API endpoints (Connect-RPC)
-- Feature flag management
-- Image processing workflows
-- WebSocket processing
-- Input source management
-- Processor capabilities
-- Tools configuration
-
-**Feature Files:**
-- `image_processing.feature` - Image processing via ConnectRPC
-- `websocket_processing.feature` - Real-time WebSocket processing
-- `feature_flags.feature` - Feature flag operations
-- `input_sources.feature` - Input source management
-- `processor_capabilities.feature` - Filter discovery
-- `tools_configuration.feature` - Dynamic tools
-- `available_images.feature` - Image selection
-
-#### Prerequisites
-
-**1. Services Running:**
-
-Required services must be running:
-- Flipt (feature flags) at `http://localhost:8081`
-- Go service at `https://localhost:8443`
-
-Start services:
-```bash
-./scripts/dev/start.sh
-```
-
-**2. Proto Files Generated:**
-
-If you've modified proto files:
-```bash
-./test/integration/tests/acceptance/scripts/setup.sh
-```
-
-Or manually:
-```bash
-docker run --rm -v $(pwd):/workspace -u $(id -u):$(id -g) cuda-learning-bufgen:latest generate
-```
-
-#### Run BDD Tests
-
-**From project root:**
-```bash
-go test ./test/integration/tests/acceptance -run TestFeatures -v
-```
-
-**With Docker:**
-```bash
-./scripts/test/integration.sh backend
-```
-
-#### Generate Reports
-
-**Cucumber JSON:**
-```bash
-go test ./test/integration/tests/acceptance -run TestFeatures -v \
-  -godog.format=cucumber \
-  -godog.output=cucumber-report.json
-```
-
-**JUnit XML:**
-```bash
-go test ./test/integration/tests/acceptance -run TestFeatures -v \
-  -godog.format=junit > junit-report.xml
-```
-
-**Multiple formats:**
-```bash
-go test ./test/integration/tests/acceptance -run TestFeatures -v \
-  -godog.format=pretty,cucumber:cucumber-report.json,junit:junit-report.xml
-```
-
-**View HTML report:**
-```bash
-docker compose -f docker-compose.dev.yml --profile testing up -d cucumber-report
-# Visit: http://localhost:5050
-```
-
-**See also:** [BDD Tests README](../test/integration/tests/acceptance/README.md) for detailed documentation.
-
 ### E2E Tests (End-to-End)
 
 Browser-based tests using Playwright.
@@ -216,7 +123,8 @@ Browser-based tests using Playwright.
 - Resolution control
 - Source removal
 - UI validation
-- WebSocket management
+- Stream management
+- Stream configuration
 - Image selection
 
 #### Prerequisites
@@ -324,9 +232,9 @@ Automated validation runs before commits and pushes.
 ### Pre-commit Hook
 
 **What it runs:**
-- Unit tests (Go, Frontend, C++)
-- Linters (ESLint, golangci-lint, clang-tidy)
-- Frontend build validation
+- Unit tests for changed components only (Go, Frontend, C++)
+- Linters for changed components (ESLint, golangci-lint, clang-tidy)
+- Language linting for all staged files
 
 **Install:**
 ```bash
@@ -342,9 +250,10 @@ git commit --no-verify
 
 ### Pre-push Hook
 
-**What it runs:**
-- Full validation with all browsers
-- E2E tests across Chromium, Firefox, WebKit
+**What it runs (no tests, no browsers — builds only):**
+- `bazel build --config=cuda //src/cpp_accelerator/cmd/accelerator_control_client:accelerator_control_client` (C++)
+- `make build` in `src/go_api/` (Go server)
+- `npm run build` in `src/front-end/` (frontend)
 
 **Skip when needed:**
 ```bash
@@ -411,7 +320,7 @@ docker-compose -f docker-compose.dev.yml --profile coverage up coverage-report-v
 
 **Report locations:**
 - Frontend: `test/coverage/frontend/index.html`
-- Golang: `test/coverage/golang/index.html`
+- Golang: `test/coverage/golang/traditional.html`, `test/coverage/golang/treemap.html`, and `test/coverage/golang/coverage-summary.txt`
 - C++: `test/coverage/cpp/html/index.html`
 
 ## Test Organization
@@ -419,12 +328,6 @@ docker-compose -f docker-compose.dev.yml --profile coverage up coverage-report-v
 ### Directory Structure
 
 ```
-test/integration/tests/acceptance/
-├── features/              # Gherkin feature files
-├── steps/                # Step definitions
-├── testdata/             # Test data and checksums
-└── scripts/              # Setup and utilities
-
 src/front-end/
 ├── src/                  # Source code
 └── tests/                # E2E and unit tests
@@ -440,7 +343,9 @@ src/cpp_accelerator/
 
 ### Services Not Running
 
-**Error:** `Flipt is not accessible at http://localhost:8081`
+**Error:** Go service not accessible at `https://localhost:8443`
+
+Feature flags are file-based via goff (`config/flags.goff.yaml`, referenced from `config/config.yaml`); no Flipt service exists.
 
 **Solution:**
 ```bash
@@ -463,18 +368,8 @@ E2E tests use `InsecureSkipVerify: true` for development. If you see certificate
 ./scripts/tools/generate-video.sh
 ```
 
-### Proto Files Not Generated
-
-**Error:** Missing proto types in tests
-
-**Solution:**
-```bash
-./test/integration/tests/acceptance/scripts/setup.sh
-```
-
 ## Additional Resources
 
-- [BDD Tests README](../test/integration/tests/acceptance/README.md) - Detailed BDD documentation
 - [README Testing Section](../README.md#testing-code-quality) - Quick reference
 - [Git Hooks](../README.md#git-hooks) - Pre-commit and pre-push hooks
 

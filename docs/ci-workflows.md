@@ -1,35 +1,38 @@
 # Continuous Integration Workflows
 
 ## Overview
-- Two GitHub Actions workflows (`docker-monorepo-build-arm.yml`, `docker-monorepo-build-x86.yml`) guard image builds for Jetson-class ARM64 and standard AMD64 targets.
-- Both workflows run on selective path triggers for pushes and pull requests against `main`, with optional manual dispatch.
-- Each run resolves component versions, checks whether container manifests already exist in GitHub Container Registry (GHCR), and only rebuilds what is missing.
-- Jobs execute on self-hosted runners with GPU access: `jetson-nano` label for ARM64 and on-premises x86 machines for AMD64.
+- Three GitHub Actions workflows: `docker-monorepo-build-arm.yml` and `docker-monorepo-build-x86.yml` guard image builds for Jetson-class ARM64 and standard AMD64 targets, and `merge-me.yml` automates label-driven squash merges.
+- Both Docker workflows trigger on every push and pull request against `main` (no `paths:` filter on the triggers), with optional manual dispatch; a `detect-changes` job (dorny/paths-filter) filters paths in-run.
+- Rebuild decisions come from the path-change flags emitted by `detect-changes`; component versions are only read to compute image tags (no GHCR manifest inspection).
+- Jobs execute on self-hosted runners: the ARM64 build jobs require the `self-hosted / Linux / ARM64` labels (build jobs add `dev`), and the x86 jobs run on `self-hosted / Linux / X64` machines.
+- **merge-me**: label-driven squash-merge automation — labeling a PR asks the workflow to merge it once checks are green; removing the label disarms it. It is triggered by `pull_request` label events and by either Docker workflow completing (`workflow_run`), so the second CI workflow's completion lands the merge.
 
 ## Trigger Matrix
-- `push` to `main` touching Dockerfiles, Bazel modules, protocol buffers, accelerator sources, runtime, integration, or workflow definitions.
-- `pull_request` targeting `main` with the same filtered paths, enabling preview builds without publishing images.
-- `workflow_dispatch` for manual rebuilds, useful after registry cleanup or runner maintenance.
+- `push` to `main` (unfiltered); the `detect-changes` job decides in-run whether Dockerfiles, Bazel modules, protocol buffers, accelerator sources, runtime, integration, or workflow definitions changed.
+- `pull_request` targeting `main` (unfiltered), enabling preview builds without publishing images.
+- `workflow_dispatch` for manual rebuilds (forces a full rebuild), useful after registry cleanup or runner maintenance.
 
 ## Job Sequence
-| Stage | Jobs | Key Responsibilities |
-| --- | --- | --- |
-| Preparation | `prepare` | Read version files, log configuration, authenticate to GHCR (non-PR), decide which images require rebuilds via manifest inspection, compute composite `app_tag`. |
-| Base Images | `build_proto_tools`, `build_go_builder`, `build_bazel_base`, `build_runtime_base`, `build_integration_base` | Rebuild base images only for architectures flagged by the prepare stage; apply architecture-specific Docker arguments; push versioned and `latest` tags outside PRs. |
-| Intermediate Artifacts | `build_proto`, `build_cpp`, `build_golang` | Consume base images, produce architecture-specific artifacts (generated protobufs, compiled CUDA libraries, built Go binaries), capture digests for downstream verification. |
-| Application Image | `build_app` | Validates intermediate digests, assembles the full application image, and publishes both versioned and rolling tags when running on `push`. |
+| Workflow | Jobs |
+| --- | --- |
+| x86 (`docker-monorepo-build-x86.yml`) | `detect-changes`, `build_app`, `build_web_frontend`, `push_app`, `push_web_frontend`, `build_yolo_model`, `push_yolo_model`, `deploy_prod` |
+| ARM (`docker-monorepo-build-arm.yml`) | `detect-changes`, `arm_pr`, `build_and_push`, `arm_skip_notice`, `deploy_prod` |
+
+- `detect-changes` outputs (x86): `app`, `web_frontend`, `yolo_model`, `app_version_changed`, `web_frontend_version_changed`, `deployable`.
+- `detect-changes` outputs (ARM): `cpp_touched`, `build_proto`, `build_bazel_base`, `build_cpp_deps`, `build_cuda_runtime`, `cpp_version_changed`.
+- There is no `prepare` job; GHCR login happens inside the build/push jobs via `docker/login-action`.
 
 ## Build Decision Logic
-- `prepare` inspects GHCR manifests (`docker manifest inspect`) for every base, intermediate, and final image.
-- Outputs such as `proto_build_arm64` or `app_build_amd64` gate downstream jobs; jobs skip early when the output is `false`.
-- The final image tag combines component versions (`{go}-proto{proto}-cpp{cpp}-go{go}`), ensuring cache invalidation whenever any layer changes.
+- `detect-changes` filters paths in-run (dorny/paths-filter); no GHCR manifest inspection happens anywhere.
+- Outputs such as `app` (x86) or `build_cpp_deps` (ARM) gate downstream jobs; jobs skip early when the output is `false`.
+- Versioned tags are computed from VERSION files: `app:${golang_version}-${ARCH}`, `cpp-accelerator-${cpp_version}-proto${proto_version}-${ARCH}`, and the deployed frontend ref `web-frontend:fe-${fe_version}-proto${proto_version}-amd64`.
 
 ## Flow Diagram
 ```mermaid
 flowchart TB
-    Trigger["Push/PR to main (filtered paths)"] --> Prepare["Prepare versions"]
-    Prepare -->|needs build| Base[base image jobs]
-    Prepare -->|skip| CacheHit[reuse existing images]
+    Trigger["Push/PR to main"] --> Detect["detect-changes"]
+    Detect -->|changed| Base[build jobs]
+    Detect -->|unchanged| Skip["skip unchanged images"]
     Base --> Intermediate["Proto/CPP/Go builds"]
     Intermediate --> App["Assemble application"]
     App --> Publish{"Push tags?"}
@@ -51,10 +54,9 @@ flowchart TB
 
 ## Related Automation
 - Staging deployments `scripts/deployment/staging_local/` consume the published AMD64 images.
-- Production deployments on Jetson hardware rely on the latest ARM64 `app` tag produced by the ARM workflow.
-- **Cloud VM Deployment**: The x86 workflow (`docker-monorepo-build-x86.yml`) includes an automated `deploy_prod` job that runs after `build_and_push` on pushes to `main`. This job:
-  - Installs Ansible if not present
-  - Configures SSH authentication using `CLOUD_VM_SSH_KEY` secret
-  - Executes deployment scripts (`scripts/deployment/cloud-vm/deploy.sh`) to deploy the Go server to the production cloud VM
-  - Uses the latest AMD64 image tag from GHCR
-  - Requires GitHub secrets: `CLOUD_VM_HOST`, `CLOUD_VM_USER`, `CLOUD_VM_SSH_KEY` (see `.secrets/production.env.example` for configuration details)
+- Production deployments on Jetson hardware use the versioned ARM64 `cpp-accelerator` tag produced by the ARM workflow.
+- **Cloud VM Deployment**: The x86 workflow (`docker-monorepo-build-x86.yml`) includes an automated `deploy_prod` job that runs after `push_app`, `push_web_frontend`, and `push_yolo_model` on pushes to `main` (or manual dispatch) when a VERSION file changed. This job:
+  - Configures SSH authentication using the `CLOUD_VM_SSH_KEY` secret (no Ansible involved)
+  - Syncs `infra/services/compose/learning-cuda.yaml`, production config, data files, and mTLS certificates to the VM via inline SSH/rsync
+  - Computes versioned image tags in-workflow (`app:${go_version}-amd64` and `web-frontend:fe-${fe_version}-proto${proto_version}-amd64`, not `latest`) and recreates the `cuda-go-server` / `cuda-web-frontend` services with `docker compose`
+  - Requires GitHub secrets: `CLOUD_VM_HOST`, `CLOUD_VM_USER`, `CLOUD_VM_SSH_KEY`, `ACCELERATOR_SERVER_CERT`, `ACCELERATOR_SERVER_KEY`, `ACCELERATOR_CA_CERT`

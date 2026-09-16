@@ -34,13 +34,18 @@ The ARM64 workflow builds and deploys the `cpp-accelerator` image to Jetson Nano
 
 **Path Filters**:
 ```yaml
-arm_proto:         proto/**, buf.yaml, buf.lock
+arm_proto:         proto/**, proto/docker-build-base/**, buf.yaml, buf.lock,
+                   buf.gen.yaml, buf.gen.backend.yaml
 arm_bazel_base:    src/cpp_accelerator/docker-build-base/**
-arm_cpp_deps:      bazel/**, third_party/**, MODULE.bazel, WORKSPACE.bazel
+arm_cpp_deps:      src/cpp_accelerator/docker-cpp-dependencies/**, bazel/**, third_party/**,
+                   MODULE.bazel, MODULE.bazel.lock, WORKSPACE.bazel, .bazelrc, .bazelversion
 arm_cuda_runtime:  src/cpp_accelerator/docker-cuda-runtime/**
 arm_cpp_version:   src/cpp_accelerator/VERSION
-arm_cpp_app:       src/cpp_accelerator/**/*.cpp, **/*.h, **/*.cu, **/BUILD
+arm_cpp_app:       src/cpp_accelerator/**/*.cpp, **/*.h, **/*.cu, **/*.cuh, **/BUILD,
+                   **/Dockerfile*, **/docker-compose.yml, **/VERSION,
+                   yolo-model-gen/{Dockerfile,VERSION}, scripts/models/export_yolo_to_onnx.py
 ```
+All `arm_cpp_app` globs are scoped under `src/cpp_accelerator/` (the workflow spells them out as `src/cpp_accelerator/**/*.h`, `src/cpp_accelerator/**/Dockerfile*`, etc.).
 
 **Decision Logic**:
 - `bazel-base` changes force `cpp-dependencies` rebuild
@@ -66,7 +71,7 @@ BUILD_CUDA_RUNTIME=0|1
 **Script**: `scripts/ci/arm-build.sh`
 
 **Stages Built** (in order):
-1. `proto-tools` (if `BUILD_PROTO=1`)
+1. `proto-tools` → `proto` (if `BUILD_PROTO=1`, both built together)
 2. `bazel-base` → `cpp-dependencies` (if `BUILD_BAZEL_BASE=1` or `BUILD_CPP_DEPS=1`)
 3. `cuda-runtime` (if `BUILD_CUDA_RUNTIME=1`)
 4. `cpp-builder` (always - compiles C++ from workspace HEAD)
@@ -101,7 +106,17 @@ BUILD_CUDA_RUNTIME=0|1
 
 ---
 
-### 4. `deploy_prod`
+### 4. `arm_skip_notice`
+
+**Purpose**: Print a skip notice when no cpp-accelerator paths changed.
+
+**Conditions**: `cpp_touched != 'true'`
+
+**Behavior**: Single echo step ("No paths relevant to cpp-accelerator changed; skipping ARM build.") so PRs and pushes without C++ changes report why no ARM build ran.
+
+---
+
+### 5. `deploy_prod`
 
 **Purpose**: Deploy `cpp-accelerator` to Jetson Nano Orin.
 
@@ -141,7 +156,7 @@ BUILD_CUDA_RUNTIME=0|1
 ```
 nvidia/cuda:12.5.1-runtime-ubuntu24.04
     │
-    ├─→ cuda-runtime (3.0.0) ──────────────────────────────┐
+    ├─→ cuda-runtime (3.0.5) ──────────────────────────────┐
     │       │                                              │
     │       └─→ cpp-accelerator ───→ :latest-arm64        │
     │                                                      │
@@ -179,8 +194,8 @@ BASE_IMAGE_PREFIX=josnelihurt-code/learning-cuda
 4. Push mode: push only rebuilt images
 
 **Version Bump Detection**:
-- Reads `src/cpp_accelerator/docker-*/VERSION` files
-- Compares with GHCR to determine if push is needed
+- Reads `src/cpp_accelerator/docker-*/VERSION` files only to compute image tags
+- Push decisions come from the workflow's `BUILD_*` change flags (no GHCR comparison)
 
 ---
 
