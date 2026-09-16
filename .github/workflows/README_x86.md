@@ -207,23 +207,23 @@ ARCH=amd64
 9. Pull new images via `docker compose`
 10. Restart `cuda-go-server` and `cuda-web-frontend`
 
-**Environment Variables** (from GitHub Secrets/Variables):
+**Environment Variables** (from GitHub Secrets or hardcoded workflow env):
 | Variable | Source | Description |
 |----------|--------|-------------|
 | `CLOUD_VM_HOST` | Secret | Cloud VM hostname/IP |
 | `CLOUD_VM_USER` | Secret | SSH user |
 | `CLOUD_VM_SSH_KEY` | Secret | SSH private key |
-| `CLOUD_VM_SSH_PORT` | Variable | SSH port (default 22) |
-| `COMPOSE_DIRECTORY` | Variable | Compose files location |
-| `COMPOSE_WORKDIR` | Variable | Docker compose working directory |
+| `CLOUD_VM_SSH_PORT` | Workflow env | SSH port (hardcoded default `22`) |
+| `COMPOSE_DIRECTORY` | Workflow env | Compose files location (hardcoded default) |
+| `COMPOSE_WORKDIR` | Workflow env | Docker compose working directory (hardcoded default) |
 | `ACCELERATOR_SERVER_CERT` | Secret | mTLS server certificate |
 | `ACCELERATOR_SERVER_KEY` | Secret | mTLS server key |
 | `ACCELERATOR_CA_CERT` | Secret | mTLS CA certificate |
 
-**Images Used**:
+**Images Used** (versioned tags computed at runtime from VERSION files):
 ```bash
-APP_IMAGE=ghcr.io/josnelihurt-code/learning-cuda/app:latest-amd64
-CUDA_WEB_FRONTEND_IMAGE=ghcr.io/josnelihurt-code/learning-cuda/web-frontend:latest-amd64
+APP_IMAGE=ghcr.io/josnelihurt-code/learning-cuda/app:${go_version}-amd64
+CUDA_WEB_FRONTEND_IMAGE=ghcr.io/josnelihurt-code/learning-cuda/web-frontend:fe-${fe_version}-proto${proto_version}-amd64
 ```
 
 ---
@@ -232,30 +232,34 @@ CUDA_WEB_FRONTEND_IMAGE=ghcr.io/josnelihurt-code/learning-cuda/web-frontend:late
 
 ### App (Go API)
 ```
-ubuntu:24.04
+golang:${GO_VERSION}-alpine
     │
-    ├─→ go-builder ──────────────────┐
-    │                                 │
-proto-tools ──────────────────────────┤
-    │                                 │
-    └─→ proto ───→ golang ───→ app ───┴──→ :latest-amd64
+    ├─→ proto-tools ──→ proto ────┐
+    │                              │
+    └─→ go-builder ───→ golang ────┤
+                                   │
+alpine:${ALPINE_VERSION}           │
+    │                              │
+    └─→ runtime-base ───→ app ─────┴──→ :latest-amd64
 ```
 
 ### Web Frontend
 ```
-proto-tools ───→ proto ───→ web-frontend ───→ :latest-amd64
+golang:${GO_VERSION}-alpine
+    │
+    └─→ proto-tools ───→ proto ───→ web-frontend ───→ :latest-amd64
 ```
 
 ### YOLO Model
 ```
-ubuntu:24.04
+python:${PYTHON_VERSION}-slim
     │
     └─→ yolo-tools ───→ yolo-model ───→ :latest-amd64
 ```
 
 ### Runtime Base (shared)
 ```
-ubuntu:24.04 ───→ runtime-base ───→ :latest-amd64
+alpine:${ALPINE_VERSION} ───→ runtime-base ───→ :latest-amd64
 ```
 
 ---
