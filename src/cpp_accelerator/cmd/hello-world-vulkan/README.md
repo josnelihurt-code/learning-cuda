@@ -174,7 +174,7 @@ ecosystem.
 ## How This Program Works (Step by Step)
 
 This program adds two float vectors `A` and `B` to produce `C`, where
-`C[i] = A[i] + B[i]`. It uses three source files:
+`C[i] = A[i] + B[i]`. It uses five source files:
 
 | File | Role |
 |------|------|
@@ -198,8 +198,10 @@ Then it searches for a queue family that supports compute:
 ```cpp
 for (uint32_t j = 0; j < queue_families.size(); ++j) {
     if (queue_families[j].queueFlags & vk::QueueFlagBits::eCompute) {
-        compute_queue_family_index_ = j;
-        physical_device_ = physical_devices[i];
+        if (compute_queue_family_index_ == 0xFFFFFFFF) {   // first match wins
+            compute_queue_family_index_ = j;
+            physical_device_ = physical_devices[i];
+        }
     }
 }
 ```
@@ -426,7 +428,7 @@ Vulkan hello world OK (SPIR-V embedded in binary, n=1024)
 
 ## What this example does
 
-- `main.cpp` creates instance/device/queue and validates output.
+- `vulkan_runtime.cpp` creates instance/device/queue; `main.cpp` drives the program and validates output.
 - `vector_add.cpp` builds a compute pipeline and dispatches work.
 - `vector_add_kernel.comp` is GLSL compute shader source.
 - Build embeds SPIR-V bytes into the binary; no runtime `.spv` file read.

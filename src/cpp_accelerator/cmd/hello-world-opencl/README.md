@@ -139,7 +139,7 @@ cuDNN, TensorRT, etc.).
 ## How This Program Works (Step by Step)
 
 This program adds two float vectors `A` and `B` to produce `C`, where
-`C[i] = A[i] + B[i]`. It uses three source files:
+`C[i] = A[i] + B[i]`. It uses five source files:
 
 | File | Role |
 |------|------|
@@ -318,7 +318,7 @@ in `BUILD` expands to:
 - `:vector_add_kernel_cl_embed` -> generated C++ bytes for `.cl` source
 - `:vector_add_kernel_blob_h` -> generated header API
 
-`main.cpp` includes:
+`vector_add.cpp` includes:
 
 ```cpp
 #include "src/cpp_accelerator/cmd/hello-world-opencl/vector_add_kernel_blob.h"

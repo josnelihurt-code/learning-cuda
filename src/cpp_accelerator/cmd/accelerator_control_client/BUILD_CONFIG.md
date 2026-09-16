@@ -6,7 +6,7 @@ This document explains how the `accelerator_control_client` binary selects which
 
 ## Available Build Configurations
 
-The binary supports four accelerator backends and one camera feature flag. **CPU is always compiled in**; the others are opt-in:
+The binary supports four accelerator backends and two camera feature flags. **CPU is always compiled in**; the others are opt-in:
 
 | Config flag | `--config=` shorthand | Backends included |
 |---|---|---|
@@ -121,10 +121,11 @@ The system is built from three layers that chain together: **flags** → **`sele
 Five `bool_flag` declarations create build-time toggles, each defaulting to `false`:
 
 ```python
-bool_flag(name = "cuda",        build_setting_default = False)
-bool_flag(name = "opencl",      build_setting_default = False)
-bool_flag(name = "vulkan",      build_setting_default = False)
-bool_flag(name = "v4l2_camera", build_setting_default = False)
+bool_flag(name = "cuda",              build_setting_default = False)
+bool_flag(name = "opencl",            build_setting_default = False)
+bool_flag(name = "vulkan",            build_setting_default = False)
+bool_flag(name = "v4l2_camera",       build_setting_default = False)
+bool_flag(name = "nvidia_argus_camera", build_setting_default = False)
 ```
 
 `.bazelrc` wraps them in named configs for convenience:
@@ -139,6 +140,12 @@ build:full         --config=cuda --config=opencl --config=vulkan
 # Requires: sudo apt install libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
 #               libgstreamer-plugins-ugly1.0-dev gstreamer1.0-plugins-good
 build:v4l2-camera  --//bazel/flags:v4l2_camera=true
+
+# NVIDIA Argus camera support (Jetson Nano Orin with nvarguscamerasrc + GStreamer)
+build:nvidia-argus-camera --//bazel/flags:nvidia_argus_camera=true
+
+# Enable all supported camera backends
+build:cameras --//bazel/flags:v4l2_camera=true --//bazel/flags:nvidia_argus_camera=true
 ```
 
 `config_setting` rules convert each flag into a matchable label:
@@ -148,6 +155,7 @@ config_setting(name = "cuda_enabled",        flag_values = {":cuda": "true"})
 config_setting(name = "opencl_enabled",      flag_values = {":opencl": "true"})
 config_setting(name = "vulkan_enabled",      flag_values = {":vulkan": "true"})
 config_setting(name = "v4l2_camera_enabled", flag_values = {":v4l2_camera": "true"})
+config_setting(name = "nvidia_argus_camera_enabled", flag_values = {":nvidia_argus_camera": "true"})
 ```
 
 ### Layer 2: `select()` in `composition/BUILD`
@@ -416,11 +424,11 @@ No existing source files are modified — only `BUILD` files and new `.cpp` file
 | `composition/platform/platform_support.h` | Shared interface (3 functions) |
 | `composition/platform/platform_support_*.cpp` | One per backend combination |
 | `composition/platform/<backend>/<backend>_platform.h/cpp` | Per-backend `RegisterFactories()` |
-| `third_party/gstreamer/BUILD` | System GStreamer `cc_library` (headers + link flags) |
-| `adapters/camera/BUILD` | `select()` blocks choosing camera source per platform |
+| `third_party/gstreamer/BUILD` | System GStreamer `cc_library` (link flags only; include paths come from `copts` in camera targets) |
+| `adapters/camera/BUILD` | `select()` blocks choosing camera detector/source impls and backend libs per camera flag |
 | `adapters/camera/backends/BUILD` | Conditional `srcs` + GStreamer dep per camera flag |
-| `adapters/camera/gst_camera_source_stub.cpp` | No-op camera source (x86 default) |
-| `adapters/camera/gst_camera_source_v4l2.cpp` | V4L2 + GStreamer source (`--config=v4l2-camera`) |
+| `adapters/camera/gst_camera_source_impl_*_stub.cpp` | Registration stubs for non-camera builds (`stub_backend.cpp` is the no-op backend) |
+| `adapters/camera/backends/v4l2_backend.cpp` | V4L2 + GStreamer backend (`--config=v4l2-camera`) |
 | `adapters/camera/backends/nvidia_argus_backend.cpp` | Jetson Argus backend (`--config=nvidia-argus-camera`) |
 | `application/engine/processor_engine.cpp` | Calls `RegisterPlatformAccelerators()` in constructor |
 | `application/engine/filter_factory_registry.h` | `Register()` / `GetFactory()` map |
