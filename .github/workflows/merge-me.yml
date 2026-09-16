@@ -1,0 +1,101 @@
+name: merge-me
+
+# merge-me is standing intent, not a command: labeling a PR asks this workflow to
+# merge it once it is green, and to keep re-evaluating until then. Every evaluation
+# corresponds to a real event — the label, a push, a reopen, one of the Docker
+# Monorepo CI workflows completing — nothing runs on a timer (the design history
+# lives in josnelihurt/code.examples.ci and code.examples.net.quotes#7). Removing
+# the label disarms any armed auto-merge: unlabeled evaluations run the action's
+# disarm mode.
+#
+# The evaluation itself lives in the shared toolkit — the wrapper here keeps only
+# the triggers and wiring. The workflow name must stay "merge-me": the script
+# excludes its own workflow from check verdicts by that name.
+#
+# Unlike the single-ci example repos, this repository has two CI workflows
+# (x86 and ARM64): when the first one completes the other is usually still
+# pending, so that evaluation holds (or arms auto-merge) and the second
+# workflow's completion re-evaluates and lands the merge.
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened, unlabeled]
+  workflow_run:
+    workflows: [Docker Monorepo Build (x86), Docker Monorepo Build (ARM64)]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "PR number to evaluate (blank = every open labeled PR)"
+        required: false
+
+# Ephemeral per-run token: no stored credentials, and it cannot bypass branch
+# protection — if that is ever added, revisit with a merge queue.
+permissions:
+  contents: write
+  pull-requests: write
+
+# One evaluation per PR (a newer event cancels the previous bounded wait); manual
+# runs without a PR input collapse onto themselves.
+concurrency:
+  group: merge-me-${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.event.pull_request.number || github.event.inputs.pr || 'manual' }}
+  cancel-in-progress: true
+
+jobs:
+  merge:
+    if: github.event_name == 'pull_request'
+    name: evaluate (label / push / reopen / unlabel)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      # Pinned by SHA with the tag in the trailing comment, like every other action.
+      # No checkout needed: the action is self-contained.
+      - uses: josnelihurt/code.examples.ci/merge-me@135d13c5c828eaa81b2cb1b8c752ad0e3bb17caf # v1.1
+        with:
+          pr: ${{ github.event.pull_request.number }}
+          disarm: ${{ github.event.action == 'unlabeled' }}
+
+  on-ci-completion:
+    # The moment mergeability can change is the moment CI finishes. workflow_run
+    # events only fire for workflows on the default branch. Only successful
+    # pull_request runs re-evaluate — a failed CI run leaves the PR red and held,
+    # which the action would report anyway. Both CI workflows trigger this: the
+    # first completion typically holds (sibling still pending), the second merges.
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.event == 'pull_request' && github.event.workflow_run.conclusion == 'success'
+    name: evaluate (CI completed)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Resolve the PR whose CI just completed
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          pr="$(gh pr list --repo "${GITHUB_REPOSITORY}" --head "${HEAD_BRANCH}" --state open --json number --jq '.[0].number' || true)"
+          if [[ -z "${pr}" ]]; then
+            echo "no open PR for head branch ${HEAD_BRANCH} — nothing to do"
+            echo 'pr=' >> "$GITHUB_OUTPUT"
+          else
+            echo "pr=${pr}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # The checks already finished (this run was triggered by their completion),
+      # so evaluate instantly instead of arming another wait.
+      - uses: josnelihurt/code.examples.ci/merge-me@135d13c5c828eaa81b2cb1b8c752ad0e3bb17caf # v1.1
+        if: steps.resolve.outputs.pr != ''
+        with:
+          pr: ${{ steps.resolve.outputs.pr }}
+          wait-minutes: '0'
+
+  on-demand:
+    # The escape hatch: if an event-path run failed transiently, a human (write
+    # access required to dispatch) replays the evaluation by hand.
+    if: github.event_name == 'workflow_dispatch'
+    name: evaluate (manual)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: josnelihurt/code.examples.ci/merge-me@135d13c5c828eaa81b2cb1b8c752ad0e3bb17caf # v1.1
+        with:
+          pr: ${{ github.event.inputs.pr }}
+          all: ${{ github.event.inputs.pr == '' }}
