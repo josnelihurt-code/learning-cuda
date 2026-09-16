@@ -112,6 +112,8 @@ type streamVideoUseCase interface {
 
 ### After: Generic Pattern
 
+> **Note:** The streaming use case shown below (`StartVideoPlaybackUseCase` / `VideoSessionManager`) was removed in v4.6.0 when video playback support was dropped. The snippet is kept as an illustrative example of the pattern only.
+
 ```go
 // Application layer: clean domain types
 type StartVideoPlaybackUseCaseInput struct {

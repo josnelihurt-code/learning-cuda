@@ -16,11 +16,10 @@ From project root:
 
 This will:
 1. Build the server and frontend
-2. Start services (Goff feature flags, Jaeger, etc.)
-3. Enable hot reload for frontend (Vite dev server)
-4. Start the Go server with hot reload support
+2. Start the C++ accelerator client, the Go API, and the Vite dev server (feature flags are read in-process from a local Goff YAML file)
+3. Enable hot reload for the frontend (Vite dev server)
 
-**Access:** https://localhost:8443
+**Access:** https://localhost:3000 (Vite dev server) — the Go API is at https://localhost:8443
 
 ### Manual Build
 
@@ -48,7 +47,7 @@ Or with config file (from project root):
 
 ### Development Mode
 
-Run server with hot reload:
+Run the server directly (`go run`):
 ```bash
 cd src/go_api
 make dev
@@ -56,7 +55,7 @@ make dev
 
 ## Production Mode
 
-For production (embedded files, single binary):
+For production:
 
 ```bash
 cd src/go_api
@@ -64,7 +63,7 @@ make build
 ./bin/server -config=../../config/config.production.yaml
 ```
 
-The frontend is built with Vite and embedded as static assets. Templates and static files are served from the binary.
+The frontend is built with Vite and served by Nginx.
 
 ## Architecture
 
@@ -84,26 +83,21 @@ graph TB
     subgraph "Go Interfaces Layer"
         ConnectRPC[Connect-RPC Handlers]
         WebRTC[WebRTC Handlers]
-        AuxHTTP[Aux HTTP: health, logs, trace, data proxy]
+        AuxHTTP[Aux HTTP: health, logs, trace]
         Vanguard[Vanguard Transcoder]
     end
     
     subgraph "Go Application Layer"
-        ProcessImageUC[ProcessImageUseCase]
-        CapabilitiesUC[ProcessorCapabilitiesUseCase]
         ConfigUC[Config Use Cases]
         FileUC[File Use Cases]
     end
     
     subgraph "Go Domain Layer"
-        ImageProcessor[ImageProcessor Interface]
         Image[Image Domain Model]
-        Video[Video Domain Model]
         FeatureFlag[FeatureFlag Domain]
     end
     
     subgraph "Go Infrastructure Layer"
-        GRPCProcessor[GRPCProcessor]
         AcceleratorGateway[AcceleratorGateway<br/>Routing Facade]
         ControlServer[ControlServer<br/>mTLS gRPC Server]
         Registry[Registry<br/>Session Manager]
@@ -122,20 +116,15 @@ graph TB
     API --> ConnectRPC
     API --> Vanguard
     
-    ConnectRPC --> ProcessImageUC
     ConnectRPC --> ConfigUC
     ConnectRPC --> FileUC
-    WebRTC --> ProcessImageUC
-    Vanguard --> ProcessImageUC
+    ConnectRPC --> AcceleratorGateway
+    WebRTC --> AcceleratorGateway
+    Vanguard --> ConnectRPC
     
-    ProcessImageUC --> ImageProcessor
-    CapabilitiesUC --> ImageProcessor
     ConfigUC --> FeatureFlag
     FileUC --> Image
-    FileUC --> Video
     
-    ImageProcessor --> GRPCProcessor
-    GRPCProcessor --> AcceleratorGateway
     AcceleratorGateway --> Registry
     Registry --> ControlServer
     
@@ -148,45 +137,39 @@ graph TB
 ### Directory Structure
 
 ```
-webserver/
+src/go_api/
 ├── cmd/server/          # Main entry point (main.go)
 ├── pkg/
 │   ├── application/     # Use cases (business logic)
 │   │   ├── flags/       # Feature flag use cases
 │   │   ├── media/       # Media use cases (image, video)
 │   │   └── platform/    # Platform use cases (system)
-│   ├── domain/          # Domain models and interfaces
-│   │   ├── image.go
-│   │   ├── processor.go
-│   │   ├── video.go
-│   │   ├── video_player.go
-│   │   ├── feature_flag.go
-│   │   ├── system_info.go
+│   ├── domain/          # Domain models
 │   │   ├── device_status.go
-│   │   ├── processing_options.go
-│   │   └── interfaces/
+│   │   ├── feature_flag.go
+│   │   ├── image.go
+│   │   ├── image_repository.go
+│   │   ├── system_info.go
+│   │   └── video_repository.go
 │   ├── infrastructure/  # External integrations
 │   │   ├── processor/   # C++/CUDA integration
-│   │   │   ├── grpc_processor.go
 │   │   │   ├── accelerator_gateway.go
+│   │   │   ├── camera_repository.go
 │   │   │   ├── control_server.go
 │   │   │   ├── registry.go
 │   │   │   ├── session.go
-│   │   │   ├── signaling_adapter.go
-│   │   │   └── grpc_repository.go
+│   │   │   └── signaling_adapter.go
 │   │   ├── featureflags/ # Goff integration (YAML-based)
 │   │   ├── filesystem/  # File repositories
+│   │   ├── mqtt/        # MQTT device monitoring
 │   │   ├── video/       # Video repositories
-│   │   ├── webrtc/      # WebRTC peer management
-│   │   ├── http/        # HTTP utilities
-│   │   ├── image/       # Image codec
 │   │   ├── logger/      # Structured logging
 │   │   ├── config/      # Config repository
 │   │   ├── version/     # Version info
 │   │   └── build/       # Build info
 │   ├── interfaces/      # HTTP/Connect-RPC handlers
 │   │   ├── connectrpc/  # Connect-RPC handlers
-│   │   │   ├── handler.go
+│   │   │   ├── server.go
 │   │   │   ├── config_handler.go
 │   │   │   ├── file_handler.go
 │   │   │   ├── webrtc_handler.go
@@ -204,14 +187,14 @@ webserver/
 │   └── telemetry/       # OpenTelemetry integration
 ```
 
-Frontend source: `../front-end/` (Vite in development, embedded static assets in production).
+Frontend source: `../front-end/` (Vite in development, Nginx-served static assets in production).
 
 ## Key Components
 
 ### Interfaces Layer
 
 **Connect-RPC Handlers** (`pkg/interfaces/connectrpc/`):
-- `handler.go`: Main image processor handler implementing Connect-RPC service interface
+- `server.go`: Connect-RPC service registration (Config, File, WebRTCSignaling, RemoteManagement)
 - `config_handler.go`: Configuration and system info handler
 - `file_handler.go`: File upload and listing handler
 - `webrtc_handler.go`: WebRTC signaling handler
@@ -224,7 +207,7 @@ Frontend source: `../front-end/` (Vite in development, embedded static assets in
 - `logs_proxy.go`: Loki logs proxy
 - `trace_proxy.go`: Jaeger trace proxy
 
-Static `/data/` assets are served by the Go server in both development and production.
+Static `/data/` assets are served by the Vite dev server (`serveDataDirPlugin`) in development and by Nginx in production.
 
 ### Application Layer
 
@@ -242,13 +225,10 @@ Static `/data/` assets are served by the Go server in both development and produ
   - `ListVideosUseCase`: Lists available videos
   - `UploadVideoUseCase`: Handles video uploads
   - `ListInputsUseCase`: Lists available input sources
-  - `StartVideoPlaybackUseCase`: Starts video playback with filters
-  - `StopVideoPlaybackUseCase`: Stops video playback sessions
 
 **Platform** (`pkg/application/platform/`):
 - `system/`: System-level use cases
   - `GetSystemInfoUseCase`: Retrieves system information and build details
-  - `ProcessorCapabilitiesUseCase`: Queries available filters and accelerators
 
 All use cases follow the same pattern: they receive domain models, orchestrate business logic, and return domain models or errors.
 
@@ -256,25 +236,17 @@ All use cases follow the same pattern: they receive domain models, orchestrate b
 
 **Domain Models** (`pkg/domain/`):
 - `Image`: Core image domain model with data, dimensions, format
-- `Processor`: ImageProcessor interface defining processing contract
 - `Video`: Video domain model and repository interface
-- `VideoPlayer`: Video player interface for playback management
 - `FeatureFlag`: Feature flag domain model
 - `SystemInfo`: System information and build details
 - `DeviceStatus`: Device monitoring status
-- `ProcessingOptions`: Image/video processing configuration options
-
-**Repository Interfaces** (`pkg/domain/interfaces/`):
-- Define contracts for data access without implementation details
-- Enable dependency inversion (domain depends on abstractions, not implementations)
 
 ### Infrastructure Layer
 
 **Processor Integration** (`pkg/infrastructure/processor/`):
-- `GRPCProcessor`: Domain-to-proto translation layer, converts domain types to protobuf enums and delegates to AcceleratorGateway
-- `AcceleratorGateway`: Application-layer routing facade that sends commands to accelerators via the registry
-  - `callAccelerator`: Generic pattern for sending commands and awaiting responses by command_id
-  - `ProcessImage`, `ListFilters`, `GetVersionInfo`, `SignalingStream`: Command-specific methods
+- `AcceleratorGateway`: Application-layer routing facade that reaches accelerators via the registry
+  - `IsAvailable`: Reports whether at least one accelerator is currently registered (used by health checks)
+  - `SignalingStream`: Routes WebRTC signaling through the registered accelerator's control stream
 - `ControlServer`: mTLS gRPC server hosting AcceleratorControlService
   - Accepts inbound connections from C++ accelerator clients
   - Handles Register messages and creates AcceleratorSession instances
@@ -288,7 +260,7 @@ All use cases follow the same pattern: they receive domain models, orchestrate b
   - `SubscribeSignaling`/`UnsubscribeSignaling`/`deliverSignaling`: WebRTC signaling fanout
   - Inner `pendingMap` maps command_id to response channels
 - `signaling_adapter.go`: Adapts accelerator bidi stream to WebRTC signaling service interface
-- `grpc_repository.go`: Repository layer, delegates GetCapabilities to AcceleratorGateway.ListFilters
+- `camera_repository.go`: `RegistryCameraRepository` reads the camera list from the first registered accelerator session
 
 **Feature Flags** (`pkg/infrastructure/featureflags/`):
 - Goff client integration for feature flag management (YAML-based)
@@ -304,22 +276,6 @@ All use cases follow the same pattern: they receive domain models, orchestrate b
 - FFmpeg integration for video processing
 - Preview generation for video files
 
-**WebRTC Infrastructure** (`pkg/infrastructure/webrtc/`):
-- **GoPeer** (`go_peer.go`): WebRTC peer connection management
-  - Implements `StreamVideoPeer` interface for real-time video streaming
-  - Manages WebRTC data channels for frame transport
-  - Handles ICE candidate exchange and connection state
-  - Integrates with C++ WebRTC manager via signaling service
-  - Processes video frames through H.264 codec for streaming
-
-- **WebRTC Signaling Flow**:
-  - Go API receives WebRTC signaling requests via Connect-RPC
-  - `webrtc_handler.go` establishes WebRTC sessions
-  - `webrtc_session_manager.go` manages session lifecycle
-  - Signaling messages are tunneled through the AcceleratorControlService bidi stream
-  - `signaling_adapter.go` adapts the bidi stream to the WebRTC signaling service interface
-  - Video frames are streamed via WebRTC data channels using H.264 codec
-
 ### Dependency Injection
 
 **Container** (`pkg/container/`):
@@ -330,15 +286,15 @@ All use cases follow the same pattern: they receive domain models, orchestrate b
 **App** (`pkg/app/`):
 - Application setup and HTTP server configuration
 - Registers all handlers and middleware
-- Configures routing (Connect-RPC, REST via Vanguard, WebRTC signaling, static files)
+- Configures routing (Connect-RPC, REST via Vanguard, WebRTC signaling)
 
 ## Features
 
 - **CUDA Acceleration**: GPU-powered image processing via gRPC remote service
 - **Connect-RPC**: Type-safe RPC with HTTP/JSON and gRPC support
 - **Vanguard**: RESTful API transcoding using google.api.http annotations
-- **Protocol Buffers**: Multiple proto services (config_service, file_service, image_processor_service, webrtc_signal)
-- **Hot Reload**: Frontend development with Vite, Go hot reload for templates
+- **Protocol Buffers**: Multiple proto services (config_service, file_service, remote_management_service, webrtc_signal) plus the `accelerator_control` Connect bidi stream
+- **Hot Reload**: Frontend development with Vite
 - **Clean Architecture**: Domain → Application → Infrastructure → Interfaces layers
 - **WebRTC**: Real-time video/image streaming with WebRTC signaling
 - **OpenTelemetry**: Distributed tracing integration
@@ -375,85 +331,56 @@ sequenceDiagram
 
 ### Processing Flows
 
-#### gRPC Processing Flow (Reverse Topology)
+#### Accelerator Control Flow (Reverse Topology)
 
 ```mermaid
 sequenceDiagram
-    participant Client as Client
-    participant Handler as Connect-RPC Handler
-    participant UseCase as ProcessImageUseCase
-    participant Processor as ImageProcessor
-    participant GRPCProc as GRPCProcessor
-    participant Gateway as AcceleratorGateway
-    participant Registry as Registry
-    participant Session as AcceleratorSession
     participant CppClient as C++ Accelerator Client
+    participant ControlSrv as ControlServer
+    participant Session as AcceleratorSession
+    participant Registry as Registry
+    participant Gateway as AcceleratorGateway
+    participant Handler as Connect-RPC Handler
     
-    Client->>Handler: ProcessImage(request)
-    Handler->>Handler: Convert protobuf to domain
-    Handler->>UseCase: Execute(ctx, image, filters, accelerator)
+    CppClient->>ControlSrv: Connect() mTLS bidi stream
+    ControlSrv->>ControlSrv: Expect Register as first message
+    ControlSrv->>Session: Create AcceleratorSession
+    ControlSrv->>Registry: Add(device_id, session)
     
-    UseCase->>Processor: ProcessImage(ctx, image, filters, accelerator)
-    Processor->>GRPCProc: ProcessImage(ctx, image, filters, accelerator)
-    
-    GRPCProc->>GRPCProc: Convert domain to protobuf
-    GRPCProc->>Gateway: ProcessImage(ctx, request)
-    
-    Gateway->>Registry: First() or Get(device_id)
+    Handler->>Gateway: SignalingStream(ctx)
+    Gateway->>Registry: First()
     Registry-->>Gateway: AcceleratorSession
-    
-    Gateway->>Gateway: Generate command_id (UUID v7)
-    Gateway->>Session: Send(ProcessImageRequest with command_id)
-    Session->>CppClient: Write to bidi stream
-    CppClient-->>Session: Processing...
-    Session-->>Gateway: Await(ctx, command_id)
-    CppClient->>Session: ProcessImageResponse with command_id
-    Session-->>Gateway: Response via pendingMap
-    
-    Gateway-->>GRPCProc: ProcessImageResponse
-    GRPCProc->>GRPCProc: Convert protobuf to domain.Image
-    GRPCProc-->>Processor: domain.Image
-    Processor-->>UseCase: domain.Image
-    UseCase-->>Handler: domain.Image
-    Handler->>Handler: Convert domain to protobuf
-    Handler-->>Client: ProcessImageResponse
+    Gateway->>Session: signaling adapter (SubscribeSignaling fanout)
+    Session->>CppClient: Write signaling message to bidi stream
+    CppClient-->>Session: Signaling response
+    Session-->>Gateway: deliverSignaling
+    Gateway-->>Handler: Signaling stream
 ```
 
 ### Endpoint Sequence Diagrams
 
 #### ListFilters
 
+`ListFilters` does not travel through a backend RPC: the browser sends it over the per-session "control" WebRTC data channel directly to the C++ accelerator. The Go API only participates in signaling setup.
+
 ```mermaid
 sequenceDiagram
-    participant Client as Client
-    participant Handler as ImageProcessorHandler
-    participant CapabilitiesUC as ProcessorCapabilitiesUseCase
-    participant Processor as ImageProcessor
+    participant Client as Browser
+    participant Handler as WebRTCSignaling Handler
     participant Gateway as AcceleratorGateway
-    participant Registry as Registry
     participant Session as AcceleratorSession
     participant CppClient as C++ Accelerator Client
     
-    Client->>Handler: ListFilters(request)
-    Handler->>CapabilitiesUC: GetCapabilities(ctx)
-    CapabilitiesUC->>Processor: GetCapabilities()
+    Client->>Handler: SDP offer / ICE candidates (webrtc_signal)
+    Handler->>Gateway: SignalingStream(ctx)
+    Gateway->>Session: Signaling adapter over accelerator bidi stream
+    Session->>CppClient: Forward signaling message
+    CppClient-->>Client: SDP answer / ICE candidates
     
-    Processor->>Gateway: ListFilters(ctx)
-    Gateway->>Registry: First() or Get(device_id)
-    Registry-->>Gateway: AcceleratorSession
+    Note over Client,CppClient: WebRTC peer connection established
     
-    Gateway->>Gateway: Generate command_id (UUID v7)
-    Gateway->>Session: Send(ListFiltersRequest with command_id)
-    Session->>CppClient: Write to bidi stream
-    Session-->>Gateway: Await(ctx, command_id)
-    CppClient->>Session: ListFiltersResponse with command_id
-    Session-->>Gateway: Response via pendingMap
-    
-    Gateway-->>Processor: Filter definitions
-    Processor-->>CapabilitiesUC: Filter definitions
-    CapabilitiesUC-->>Handler: Filter definitions
-    Handler->>Handler: Build ListFiltersResponse
-    Handler-->>Client: ListFiltersResponse
+    Client->>CppClient: ControlRequest{list_filters} via control data channel
+    CppClient-->>Client: ControlResponse{list_filters} with filter definitions
 ```
 
 #### EvaluateFeatureFlag
@@ -483,19 +410,16 @@ sequenceDiagram
     participant Client as Client
     participant Handler as ConfigHandler
     participant SystemInfoUC as GetSystemInfoUseCase
-    participant CapabilitiesUC as ProcessorCapabilitiesUseCase
-    participant GRPCServer as gRPC Server
     participant BuildRepo as BuildInfoRepository
+    participant VersionRepo as Version Repository
     
     Client->>Handler: GetSystemInfo(request)
     Handler->>SystemInfoUC: Execute(ctx)
-    SystemInfoUC->>BuildRepo: GetBuildInfo()
+    SystemInfoUC->>BuildRepo: GetBranch() / GetBuildTime() / GetCommitHash()
     BuildRepo-->>SystemInfoUC: BuildInfo
     
-    SystemInfoUC->>CapabilitiesUC: GetCapabilities(ctx)
-    CapabilitiesUC->>GRPCServer: gRPC GetVersionInfo()
-    GRPCServer-->>CapabilitiesUC: VersionInfoResponse
-    CapabilitiesUC-->>SystemInfoUC: Version
+    SystemInfoUC->>VersionRepo: GetGoVersion() / GetProtoVersion()
+    VersionRepo-->>SystemInfoUC: Version info
     
     SystemInfoUC-->>Handler: SystemInfo
     Handler-->>Client: GetSystemInfoResponse
@@ -603,12 +527,13 @@ The project uses multiple proto service definitions:
 
 - `proto/config_service.proto` - Configuration and system info (with REST annotations)
 - `proto/file_service.proto` - File upload and listing (with REST annotations)
-- `proto/image_processor_service.proto` - Image processing operations (with REST annotations)
-- `proto/webrtc_signal.proto` - WebRTC signaling service
-- `proto/remote_management_service.proto` - Remote device management
+- `proto/image_processor_service.proto` - ControlRequest/ControlResponse messages carried over the WebRTC control channel (no service definition)
+- `proto/webrtc_signal.proto` - WebRTC signaling service (with REST annotations)
+- `proto/remote_management_service.proto` - Remote device management (with REST annotations)
 - `proto/common.proto` - Shared message types
+- `proto/accelerator_control.proto` - AcceleratorControlService mTLS bidi stream (C++ clients dial in)
 
-All services include `google.api.http` annotations for RESTful routing via Vanguard transcoder.
+Only `config_service`, `file_service`, `remote_management_service`, and `webrtc_signal` define services with `google.api.http` annotations for RESTful routing via the Vanguard transcoder.
 
 Generate code:
 ```bash
@@ -634,7 +559,7 @@ npm run dev  # Vite dev server (full stack: ../scripts/dev/start.sh)
 ```
 
 **Production:**
-In production, the frontend is built with Vite and embedded as static assets in the Go binary. No separate Nginx server is needed.
+In production, the frontend is built with Vite and served by Nginx.
 
 ```bash
 cd ../front-end && npm run build
@@ -642,5 +567,5 @@ cd ../front-end && npm run build
 
 ## See Also
 
-- [Main README](../README.md) - Project overview and setup
-- [Testing Documentation](../docs/testing-and-coverage.md) - Test execution guide
+- [Main README](../../README.md) - Project overview and setup
+- [Testing Documentation](../../docs/testing-and-coverage.md) - Test execution guide
