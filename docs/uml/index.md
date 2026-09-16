@@ -27,7 +27,7 @@ classDiagram
         +height : int
         +width : int
     }
-    click C_0017434949923708116087 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/image_buffer.h#L5" "ImageBuffer"
+    click C_0017434949923708116087 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/image_buffer.h#L5" "ImageBuffer"
     class C_0015401270107979851344["domain::interfaces::ImageBufferMut"]
     class C_0015401270107979851344 {
         +ImageBufferMut() void
@@ -38,13 +38,13 @@ classDiagram
         +height : int
         +width : int
     }
-    click C_0015401270107979851344 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/image_buffer.h#L19" "ImageBufferMut"
+    click C_0015401270107979851344 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/image_buffer.h#L19" "ImageBufferMut"
     class C_0015541302109033251352["domain::interfaces::FilterContext"]
     class C_0015541302109033251352 {
         +FilterContext() void
         +memory_pool : void *
     }
-    click C_0015541302109033251352 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/image_buffer.h#L33" "FilterContext"
+    click C_0015541302109033251352 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/image_buffer.h#L33" "FilterContext"
     class C_0012087078762394733288["domain::interfaces::FilterType"]
     class C_0012087078762394733288 {
         <<enumeration>>
@@ -52,7 +52,7 @@ classDiagram
         BLUR
         MODEL_INFERENCE
     }
-    click C_0012087078762394733288 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/filters/i_filter.h#L7" "FilterType"
+    click C_0012087078762394733288 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/filters/i_filter.h#L7" "FilterType"
     class C_0003739923354998470227["domain::interfaces::IFilter"]
     class C_0003739923354998470227 {
         <<abstract>>
@@ -61,7 +61,7 @@ classDiagram
         +GetType() [const] FilterType*
         +IsInPlace() [const] bool*
     }
-    click C_0003739923354998470227 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/filters/i_filter.h#L9" "IFilter"
+    click C_0003739923354998470227 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/filters/i_filter.h#L9" "IFilter"
     class C_0015277472674566990321["domain::interfaces::GrayscaleAlgorithm"]
     class C_0015277472674566990321 {
         <<enumeration>>
@@ -71,14 +71,16 @@ classDiagram
         Lightness
         Luminosity
     }
-    click C_0015277472674566990321 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/grayscale_algorithm.h#L5" "GrayscaleAlgorithm"
+    click C_0015277472674566990321 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/grayscale_algorithm.h#L5" "GrayscaleAlgorithm"
     class C_0005681023905559676699["domain::interfaces::IImageSink"]
     class C_0005681023905559676699 {
         <<abstract>>
         +~IImageSink() [default,constexpr] void
+        +readAsPng() bool*
         +write() bool*
+        +writeBmp() bool*
     }
-    click C_0005681023905559676699 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/image_sink.h#L6" "IImageSink"
+    click C_0005681023905559676699 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/image_sink.h#L9" "IImageSink"
     class C_0017615268068180433495["domain::interfaces::IImageSource"]
     class C_0017615268068180433495 {
         <<abstract>>
@@ -89,14 +91,14 @@ classDiagram
         +is_valid() [const] bool*
         +width() [const] int*
     }
-    click C_0017615268068180433495 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/image_source.h#L5" "IImageSource"
+    click C_0017615268068180433495 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/image_source.h#L5" "IImageSource"
     class C_0007163517930959479208["domain::interfaces::IPixelGetter"]
     class C_0007163517930959479208 {
         <<abstract>>
         +~IPixelGetter() [default,constexpr] void
         +GetPixelValue() [const] float*
     }
-    click C_0007163517930959479208 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/i_pixel_getter.h#L7" "IPixelGetter"
+    click C_0007163517930959479208 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/i_pixel_getter.h#L7" "IPixelGetter"
     C_0015541302109033251352 o-- C_0017434949923708116087 : +input
     C_0015541302109033251352 o-- C_0015401270107979851344 : +output
     C_0003739923354998470227 ..> C_0015541302109033251352 : 
@@ -119,6 +121,170 @@ title: Application Layer — Engine, Pipeline & Factory
 ---
 classDiagram
     %%{ init: { 'theme': 'default' } }%%
+    class C_0000312649249213161317["application::engine::ParameterOption"]
+    class C_0000312649249213161317 {
+        +label : std::string
+        +value : std::string
+    }
+    click C_0000312649249213161317 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/engine/filter_descriptor.h#L14" "ParameterOption"
+    class C_0017490261337196605209["application::engine::ParameterDescriptor"]
+    class C_0017490261337196605209 {
+        +default_value : std::string
+        +id : std::string
+        +metadata : std::vector&lt;std::pair&lt;std::string,std::string&gt;&gt;
+        +name : std::string
+        +type : std::string
+    }
+    click C_0017490261337196605209 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/engine/filter_descriptor.h#L19" "ParameterDescriptor"
+    class C_0009854450154367001894["application::engine::FilterDescriptor"]
+    class C_0009854450154367001894 {
+        +id : std::string
+        +name : std::string
+    }
+    click C_0009854450154367001894 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/engine/filter_descriptor.h#L31" "FilterDescriptor"
+    class C_0004940706201316938304["application::engine::BlurBorderMode"]
+    class C_0004940706201316938304 {
+        <<enumeration>>
+        CLAMP
+        REFLECT
+        WRAP
+    }
+    click C_0004940706201316938304 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/engine/filter_descriptor.h#L39" "BlurBorderMode"
+    class C_0010456859913395709752["application::engine::FilterCreationParams"]
+    class C_0010456859913395709752 {
+        +blur_kernel_size : int
+        +blur_separable : bool
+        +blur_sigma : float
+        +grayscale_algorithm : domain::interfaces::GrayscaleAlgorithm
+    }
+    click C_0010456859913395709752 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/engine/filter_descriptor.h#L41" "FilterCreationParams"
+    class C_0007714661780862875416["application::engine::IFilterFactory"]
+    class C_0007714661780862875416 {
+        <<abstract>>
+        +~IFilterFactory() [default,constexpr] void
+        +CreateFilter() [const] std::unique_ptr&lt;domain::interfaces::IFilter&gt;*
+        +GetAcceleratorType() [const] cuda_learning::AcceleratorType*
+        +GetFilterDescriptors() [const] std::vector&lt;FilterDescriptor&gt;*
+    }
+    click C_0007714661780862875416 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/engine/i_filter_factory.h#L12" "IFilterFactory"
+    class C_0015619714921675753062["application::engine::FilterFactoryRegistry"]
+    class C_0015619714921675753062 {
+        +FilterFactoryRegistry() [default] void
+        +GetFactory() [const] IFilterFactory *
+        +GetRegisteredTypes() [const] std::vector&lt;cuda_learning::AcceleratorType&gt;
+        +Register() void
+    }
+    click C_0015619714921675753062 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/engine/filter_factory_registry.h#L12" "FilterFactoryRegistry"
+    class C_0007738862880015919609["application::engine::ProcessorEngine"]
+    class C_0007738862880015919609 {
+        +ProcessorEngine() void
+        +~ProcessorEngine() [default] void
+        -ApplyFilters() bool
+        +GetCapabilities() bool
+        +Initialize() bool
+        +ProcessImage() bool
+        -ProtoToAlgorithm() [const] domain::interfaces::GrayscaleAlgorithm
+        -component_name_ : std::string
+    }
+    click C_0007738862880015919609 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/engine/processor_engine.h#L19" "ProcessorEngine"
+    class C_0015602305914161361639["application::server_info::IServerInfoProvider"]
+    class C_0015602305914161361639 {
+        <<abstract>>
+        +~IServerInfoProvider() [default,constexpr] void
+        +PopulateListFiltersResponse() void*
+        +PopulateVersionResponse() void*
+    }
+    click C_0015602305914161361639 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/server_info/i_server_info_provider.h#L7" "IServerInfoProvider"
+    class C_0008700317743365755899["application::server_info::ServerInfoProvider"]
+    class C_0008700317743365755899 {
+        +ServerInfoProvider() void
+        +PopulateListFiltersResponse() void
+        +PopulateVersionResponse() void
+    }
+    click C_0008700317743365755899 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/server_info/server_info_provider.h#L11" "ServerInfoProvider"
+    class C_0007319100096607283626["application::bird_watch::BirdWatcherConfig"]
+    class C_0007319100096607283626 {
+        +alert_frames : int
+        +camera_sensor_id : int
+        +capture_fps : int
+        +capture_height : int
+        +capture_width : int
+        +captures_dir : std::string
+        +confidence_threshold : float
+        +enabled : bool
+        +idle_interval_s : int
+        +max_per_minute : int
+        +min_save_interval_s : int
+    }
+    click C_0007319100096607283626 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/bird_watch/bird_watcher.h#L41" "BirdWatcherConfig"
+    class C_0001837063213178722493["application::bird_watch::BirdWatcher"]
+    class C_0001837063213178722493 {
+        +BirdWatcher() void
+        +BirdWatcher() void
+        +~BirdWatcher() void
+        +operator=() BirdWatcher &
+        -ConnectGpuPath() void
+        -DestroyDecoder() void
+        -DetectBird() bool
+        -DisconnectGpuPath() void
+        -FeedDecoderAndExtractRgb() bool
+        -InitDecoder() void
+        +IsSubscribed() [const] bool
+        -MaybeSave() void
+        -OnH264Frame() void
+        -OnRgbaFrame() void
+        -ProcessQueuedFrame() void
+        -ProcessRgbaFrame() void
+        -RateGateAllowsSave() bool
+        -RgbFromDecodedFrame() bool
+        -SaveCapture() void
+        -ShouldRunInferenceNow() bool
+        +Start() void
+        +Stop() void
+        -WorkerLoop() void
+        -camera_hub_ : std::shared_ptr&lt;adapters::camera::CameraHub&gt;
+        -capture_times_ : std::deque&lt;std::chrono::steady_clock::time_point&gt;
+        -consecutive_bird_frames_ : int
+        -consecutive_no_bird_frames_ : int
+        -cuda_memory_pool_ : std::unique_ptr&lt;adapters::compute::cuda::CudaMemoryPool&gt;
+        -decode_packet_ : AVPacket *
+        -decode_to_rgb_context_ : SwsContext *
+        -decoded_frame_ : AVFrame *
+        -decoder_context_ : AVCodecContext *
+        -first_decode_logged_ : bool
+        -frame_height_ : int
+        -frame_queue_ : std::queue&lt;std::pair&lt;rtc::binary,rtc::FrameInfo&gt;&gt;
+        -frame_width_ : int
+        -gpu_processor_ : adapters::camera::GpuFrameProcessor *
+        -had_capture_ : bool
+        -image_sink_ : domain::interfaces::IImageSink *
+        -input_pixel_format_ : int
+        -kMaxQueueSize : const size_t
+        -last_capture_time_ : std::chrono::steady_clock::time_point
+        -last_idle_check_ : std::chrono::steady_clock::time_point
+        -queue_cv_ : std::condition_variable
+        -queue_mutex_ : std::mutex
+        -rgb_input_frame_ : AVFrame *
+        -rgba_queue_ : std::queue&lt;RgbaItem&gt;
+        -running_ : std::atomic&lt;bool&gt;
+        -subscription_ : adapters::camera::CameraHub::Subscription
+        -worker_thread_ : std::thread
+    }
+    click C_0001837063213178722493 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/bird_watch/bird_watcher.h#L55" "BirdWatcher"
+    class C_0015755493073441548574["application::bird_watch::BirdWatcher::State"]
+    class C_0015755493073441548574 {
+        <<enumeration>>
+        Idle
+        Alert
+    }
+    click C_0015755493073441548574 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/bird_watch/bird_watcher.h#L96" "BirdWatcher::State"
+    class C_0000320739637502306786["application::bird_watch::BirdWatcher::RgbaItem"]
+    class C_0000320739637502306786 {
+        +height : int
+        +rgba : std::vector&lt;uint8_t&gt;
+        +width : int
+    }
+    click C_0000320739637502306786 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/bird_watch/bird_watcher.h#L117" "BirdWatcher::RgbaItem"
     class C_0015512473658201822893["application::pipeline::BufferPool"]
     class C_0015512473658201822893 {
         +BufferPool() void
@@ -132,7 +298,7 @@ classDiagram
         -in_use_buffers_ : std::vector&lt;std::unique_ptr&lt;std::vector&lt;unsigned char&gt;&gt;&gt;
         -total_created_ : size_t
     }
-    click C_0015512473658201822893 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/pipeline/buffer_pool.h#L9" "BufferPool"
+    click C_0015512473658201822893 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/pipeline/buffer_pool.h#L9" "BufferPool"
     class C_0017562294191260416076["application::pipeline::FilterPipeline"]
     class C_0017562294191260416076 {
         +FilterPipeline() void
@@ -143,80 +309,14 @@ classDiagram
         +GetFilterCount() [const] size_t
         -filters_ : std::vector&lt;std::unique_ptr&lt;domain::interfaces::IFilter&gt;&gt;
     }
-    click C_0017562294191260416076 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/pipeline/filter_pipeline.h#L12" "FilterPipeline"
-    class C_0000312649249213161317["application::engine::ParameterOption"]
-    class C_0000312649249213161317 {
-        +label : std::string
-        +value : std::string
-    }
-    click C_0000312649249213161317 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/engine/filter_descriptor.h#L14" "ParameterOption"
-    class C_0017490261337196605209["application::engine::ParameterDescriptor"]
-    class C_0017490261337196605209 {
-        +default_value : std::string
-        +id : std::string
-        +metadata : std::vector&lt;std::pair&lt;std::string,std::string&gt;&gt;
-        +name : std::string
-        +type : std::string
-    }
-    click C_0017490261337196605209 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/engine/filter_descriptor.h#L19" "ParameterDescriptor"
-    class C_0009854450154367001894["application::engine::FilterDescriptor"]
-    class C_0009854450154367001894 {
-        +id : std::string
-        +name : std::string
-    }
-    click C_0009854450154367001894 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/engine/filter_descriptor.h#L31" "FilterDescriptor"
-    class C_0004940706201316938304["application::engine::BlurBorderMode"]
-    class C_0004940706201316938304 {
-        <<enumeration>>
-        CLAMP
-        REFLECT
-        WRAP
-    }
-    click C_0004940706201316938304 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/engine/filter_descriptor.h#L39" "BlurBorderMode"
-    class C_0010456859913395709752["application::engine::FilterCreationParams"]
-    class C_0010456859913395709752 {
-        +blur_kernel_size : int
-        +blur_separable : bool
-        +blur_sigma : float
-        +grayscale_algorithm : domain::interfaces::GrayscaleAlgorithm
-    }
-    click C_0010456859913395709752 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/engine/filter_descriptor.h#L41" "FilterCreationParams"
-    class C_0007714661780862875416["application::engine::IFilterFactory"]
-    class C_0007714661780862875416 {
-        <<abstract>>
-        +~IFilterFactory() [default,constexpr] void
-        +CreateFilter() [const] std::unique_ptr&lt;domain::interfaces::IFilter&gt;*
-        +GetAcceleratorType() [const] cuda_learning::AcceleratorType*
-        +GetFilterDescriptors() [const] std::vector&lt;FilterDescriptor&gt;*
-    }
-    click C_0007714661780862875416 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/engine/i_filter_factory.h#L12" "IFilterFactory"
-    class C_0015619714921675753062["application::engine::FilterFactoryRegistry"]
-    class C_0015619714921675753062 {
-        +FilterFactoryRegistry() [default] void
-        +GetFactory() [const] IFilterFactory *
-        +GetRegisteredTypes() [const] std::vector&lt;cuda_learning::AcceleratorType&gt;
-        +Register() void
-    }
-    click C_0015619714921675753062 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/engine/filter_factory_registry.h#L12" "FilterFactoryRegistry"
-    class C_0007738862880015919609["application::engine::ProcessorEngine"]
-    class C_0007738862880015919609 {
-        +ProcessorEngine() void
-        +~ProcessorEngine() [default] void
-        -ApplyFilters() bool
-        +GetCapabilities() bool
-        +Initialize() bool
-        +ProcessImage() bool
-        -ProtoToAlgorithm() [const] domain::interfaces::GrayscaleAlgorithm
-        -component_name_ : std::string
-    }
-    click C_0007738862880015919609 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/engine/processor_engine.h#L19" "ProcessorEngine"
+    click C_0017562294191260416076 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/pipeline/filter_pipeline.h#L12" "FilterPipeline"
     class C_0005201676310609317876["application::commands::ICommand"]
     class C_0005201676310609317876 {
         <<abstract>>
         +~ICommand() [default,constexpr] void
         +execute() core::Result&lt;void&gt;*
     }
-    click C_0005201676310609317876 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/commands/command_interface.h#L7" "ICommand"
+    click C_0005201676310609317876 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/commands/command_interface.h#L7" "ICommand"
     class C_0014765565642052148771["application::commands::CommandFactory"]
     class C_0014765565642052148771 {
         +CommandFactory() void
@@ -224,23 +324,7 @@ classDiagram
         +is_registered() [const] bool
         -register_commands() void
     }
-    click C_0014765565642052148771 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/commands/command_factory.h#L11" "CommandFactory"
-    class C_0015602305914161361639["application::server_info::IServerInfoProvider"]
-    class C_0015602305914161361639 {
-        <<abstract>>
-        +~IServerInfoProvider() [default,constexpr] void
-        +PopulateListFiltersResponse() void*
-        +PopulateVersionResponse() void*
-    }
-    click C_0015602305914161361639 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/server_info/i_server_info_provider.h#L7" "IServerInfoProvider"
-    class C_0008700317743365755899["application::server_info::ServerInfoProvider"]
-    class C_0008700317743365755899 {
-        +ServerInfoProvider() void
-        +PopulateListFiltersResponse() void
-        +PopulateVersionResponse() void
-    }
-    click C_0008700317743365755899 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/application/server_info/server_info_provider.h#L11" "ServerInfoProvider"
-    C_0017562294191260416076 o-- C_0015512473658201822893 : -buffer_pool_
+    click C_0014765565642052148771 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/application/commands/command_factory.h#L11" "CommandFactory"
     C_0017490261337196605209 o-- C_0000312649249213161317 : +options
     C_0009854450154367001894 o-- C_0017490261337196605209 : +parameters
     C_0010456859913395709752 o-- C_0004940706201316938304 : +blur_border_mode
@@ -248,10 +332,16 @@ classDiagram
     C_0007714661780862875416 ..> C_0010456859913395709752 : 
     C_0015619714921675753062 o-- C_0007714661780862875416 : -factories_
     C_0007738862880015919609 o-- C_0015619714921675753062 : -factory_registry_
-    C_0014765565642052148771 ..> C_0005201676310609317876 : 
-    C_0014765565642052148771 ..> C_0005201676310609317876 : -creators_
     C_0008700317743365755899 --> C_0007738862880015919609 : -engine_
     C_0015602305914161361639 <|-- C_0008700317743365755899 : 
+    C_0001837063213178722493 o-- C_0007319100096607283626 : -config_
+    C_0001837063213178722493 --> C_0007738862880015919609 : -engine_
+    C_0001837063213178722493 o-- C_0015755493073441548574 : -state_
+    C_0001837063213178722493 ()-- C_0015755493073441548574 : 
+    C_0001837063213178722493 ()-- C_0000320739637502306786 : 
+    C_0017562294191260416076 o-- C_0015512473658201822893 : -buffer_pool_
+    C_0014765565642052148771 ..> C_0005201676310609317876 : 
+    C_0014765565642052148771 ..> C_0005201676310609317876 : -creators_
 
 %% Generated with clang-uml, version 0.6.2
 %% LLVM version Ubuntu clang version 18.1.3 (1ubuntu1)
@@ -279,7 +369,7 @@ classDiagram
         +Initialize() bool*
         +Shutdown() void*
     }
-    click C_0006605104164141181516 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/ports/media/i_media_session.h#L9" "IMediaSession"
+    click C_0006605104164141181516 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/ports/media/i_media_session.h#L9" "IMediaSession"
     class C_0012773348947434140722["ports::control::IControlPort"]
     class C_0012773348947434140722 {
         <<abstract>>
@@ -287,7 +377,7 @@ classDiagram
         +Run() void*
         +Stop() void*
     }
-    click C_0012773348947434140722 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/ports/control/i_control_port.h#L7" "IControlPort"
+    click C_0012773348947434140722 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/ports/control/i_control_port.h#L7" "IControlPort"
 
 %% Generated with clang-uml, version 0.6.2
 %% LLVM version Ubuntu clang version 18.1.3 (1ubuntu1)
@@ -305,47 +395,6 @@ title: Core Utilities — Logger, Telemetry, Result
 ---
 classDiagram
     %%{ init: { 'theme': 'default' } }%%
-    class C_0003070975022905515086["core::LoggerTest"]
-    class C_0003070975022905515086 {
-        #TearDown() void
-    }
-    click C_0003070975022905515086 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/logger_test.cpp#L12" "LoggerTest"
-    class C_0005183287157482385322["core::LoggerTest_InitializeLoggerCreatesDefaultLogger_Test"]
-    class C_0005183287157482385322 {
-        +LoggerTest_InitializeLoggerCreatesDefaultLogger_Test() [default] void
-        +LoggerTest_InitializeLoggerCreatesDefaultLogger_Test() void
-        +LoggerTest_InitializeLoggerCreatesDefaultLogger_Test() void
-        +~LoggerTest_InitializeLoggerCreatesDefaultLogger_Test() [default] void
-        +operator=() LoggerTest_InitializeLoggerCreatesDefaultLogger_Test &
-        +operator=() LoggerTest_InitializeLoggerCreatesDefaultLogger_Test &
-        -TestBody() void
-        -test_info_ : ::testing::TestInfo *const
-    }
-    click C_0005183287157482385322 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/logger_test.cpp#L21" "LoggerTest_InitializeLoggerCreatesDefaultLogger_Test"
-    class C_0002737945163598883402["core::LoggerTest_InitializeLoggerSetsInfoLevel_Test"]
-    class C_0002737945163598883402 {
-        +LoggerTest_InitializeLoggerSetsInfoLevel_Test() [default] void
-        +LoggerTest_InitializeLoggerSetsInfoLevel_Test() void
-        +LoggerTest_InitializeLoggerSetsInfoLevel_Test() void
-        +~LoggerTest_InitializeLoggerSetsInfoLevel_Test() [default] void
-        +operator=() LoggerTest_InitializeLoggerSetsInfoLevel_Test &
-        +operator=() LoggerTest_InitializeLoggerSetsInfoLevel_Test &
-        -TestBody() void
-        -test_info_ : ::testing::TestInfo *const
-    }
-    click C_0002737945163598883402 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/logger_test.cpp#L34" "LoggerTest_InitializeLoggerSetsInfoLevel_Test"
-    class C_0018069749232895666528["core::LoggerTest_LoggerCanBeUsedAfterInitialization_Test"]
-    class C_0018069749232895666528 {
-        +LoggerTest_LoggerCanBeUsedAfterInitialization_Test() [default] void
-        +LoggerTest_LoggerCanBeUsedAfterInitialization_Test() void
-        +LoggerTest_LoggerCanBeUsedAfterInitialization_Test() void
-        +~LoggerTest_LoggerCanBeUsedAfterInitialization_Test() [default] void
-        +operator=() LoggerTest_LoggerCanBeUsedAfterInitialization_Test &
-        +operator=() LoggerTest_LoggerCanBeUsedAfterInitialization_Test &
-        -TestBody() void
-        -test_info_ : ::testing::TestInfo *const
-    }
-    click C_0018069749232895666528 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/logger_test.cpp#L47" "LoggerTest_LoggerCanBeUsedAfterInitialization_Test"
     class C_0002827361771953966828["core::Result&lt;T=void&gt;"]
     class C_0002827361771953966828 {
         +error() Result&lt;T&gt;$
@@ -356,7 +405,7 @@ classDiagram
         +success : bool
         +value : std::optional&lt;T&gt;
     }
-    click C_0002827361771953966828 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result.h#L9" "Result"
+    click C_0002827361771953966828 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result.h#L9" "Result"
     class C_0004632168876798078644["core::Result&lt;void&gt;"]
     class C_0004632168876798078644 {
         +error() core::Result&lt;void&gt;$
@@ -366,7 +415,7 @@ classDiagram
         +message : std::string
         +success : bool
     }
-    click C_0004632168876798078644 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result.h#L28" "Result"
+    click C_0004632168876798078644 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result.h#L28" "Result"
     class C_0005908783496579258385["core::ResultTest_VoidResultOkCreatesSuccessResult_Test"]
     class C_0005908783496579258385 {
         +ResultTest_VoidResultOkCreatesSuccessResult_Test() [default] void
@@ -378,7 +427,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0005908783496579258385 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L9" "ResultTest_VoidResultOkCreatesSuccessResult_Test"
+    click C_0005908783496579258385 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L9" "ResultTest_VoidResultOkCreatesSuccessResult_Test"
     class C_0008029587975264525172["core::ResultTest_VoidResultErrorCreatesFailureResult_Test"]
     class C_0008029587975264525172 {
         +ResultTest_VoidResultErrorCreatesFailureResult_Test() [default] void
@@ -390,7 +439,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0008029587975264525172 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L20" "ResultTest_VoidResultErrorCreatesFailureResult_Test"
+    click C_0008029587975264525172 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L20" "ResultTest_VoidResultErrorCreatesFailureResult_Test"
     class C_0012735563457742381121["core::ResultTest_VoidResultOkWithDefaultParameters_Test"]
     class C_0012735563457742381121 {
         +ResultTest_VoidResultOkWithDefaultParameters_Test() [default] void
@@ -402,7 +451,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0012735563457742381121 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L31" "ResultTest_VoidResultOkWithDefaultParameters_Test"
+    click C_0012735563457742381121 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L31" "ResultTest_VoidResultOkWithDefaultParameters_Test"
     class C_0017750373561783923567["core::ResultTest_TypedResultOkCreatesSuccessResultWithValue_Test"]
     class C_0017750373561783923567 {
         +ResultTest_TypedResultOkCreatesSuccessResultWithValue_Test() [default] void
@@ -414,7 +463,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0017750373561783923567 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L41" "ResultTest_TypedResultOkCreatesSuccessResultWithValue_Test"
+    click C_0017750373561783923567 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L41" "ResultTest_TypedResultOkCreatesSuccessResultWithValue_Test"
     class C_0000466048065365137126["core::ResultTest_TypedResultErrorCreatesFailureResultWithoutValue_Test"]
     class C_0000466048065365137126 {
         +ResultTest_TypedResultErrorCreatesFailureResultWithoutValue_Test() [default] void
@@ -426,7 +475,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0000466048065365137126 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L54" "ResultTest_TypedResultErrorCreatesFailureResultWithoutValue_Test"
+    click C_0000466048065365137126 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L54" "ResultTest_TypedResultErrorCreatesFailureResultWithoutValue_Test"
     class C_0009992922704365208604["core::ResultTest_TypedResultOkWithDefaultParameters_Test"]
     class C_0009992922704365208604 {
         +ResultTest_TypedResultOkWithDefaultParameters_Test() [default] void
@@ -438,7 +487,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0009992922704365208604 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L66" "ResultTest_TypedResultOkWithDefaultParameters_Test"
+    click C_0009992922704365208604 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L66" "ResultTest_TypedResultOkWithDefaultParameters_Test"
     class C_0002080181093764814603["core::ResultTest_TypedResultWithStringValue_Test"]
     class C_0002080181093764814603 {
         +ResultTest_TypedResultWithStringValue_Test() [default] void
@@ -450,7 +499,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0002080181093764814603 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L78" "ResultTest_TypedResultWithStringValue_Test"
+    click C_0002080181093764814603 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L78" "ResultTest_TypedResultWithStringValue_Test"
     class C_0010539444848039096614["core::ResultTest_TypedResultWithMovedValue_Test"]
     class C_0010539444848039096614 {
         +ResultTest_TypedResultWithMovedValue_Test() [default] void
@@ -462,7 +511,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0010539444848039096614 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L89" "ResultTest_TypedResultWithMovedValue_Test"
+    click C_0010539444848039096614 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L89" "ResultTest_TypedResultWithMovedValue_Test"
     class C_0003611047518293361269["core::ResultTest_ResultBoolConversionWorksCorrectly_Test"]
     class C_0003611047518293361269 {
         +ResultTest_ResultBoolConversionWorksCorrectly_Test() [default] void
@@ -474,7 +523,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0003611047518293361269 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L103" "ResultTest_ResultBoolConversionWorksCorrectly_Test"
+    click C_0003611047518293361269 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L103" "ResultTest_ResultBoolConversionWorksCorrectly_Test"
     class C_0003614864643725563970["core::ResultTest_DifferentExitCodesArePreserved_Test"]
     class C_0003614864643725563970 {
         +ResultTest_DifferentExitCodesArePreserved_Test() [default] void
@@ -486,7 +535,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0003614864643725563970 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/result_test.cpp#L113" "ResultTest_DifferentExitCodesArePreserved_Test"
+    click C_0003614864643725563970 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/result_test.cpp#L113" "ResultTest_DifferentExitCodesArePreserved_Test"
     class C_0004487493333614106075["core::SignalHandler"]
     class C_0004487493333614106075 {
         +SignalHandler() void
@@ -504,7 +553,7 @@ classDiagram
         -initialized_ : std::atomic&lt;bool&gt;
         -shutdown_callback_ : ShutdownCallback
     }
-    click C_0004487493333614106075 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/signal_handler.h#L8" "SignalHandler"
+    click C_0004487493333614106075 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/signal_handler.h#L8" "SignalHandler"
     class C_0007086053907388411958["core::OtelLogSink"]
     class C_0007086053907388411958 {
         +OtelLogSink() void
@@ -516,7 +565,7 @@ classDiagram
         #flush_() void
         #sink_it_() void
     }
-    click C_0007086053907388411958 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/otel_log_sink.h#L19" "OtelLogSink"
+    click C_0007086053907388411958 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/otel_log_sink.h#L19" "OtelLogSink"
     class C_0004451550955185917970["core::OtelLogSinkImpl"]
     class C_0004451550955185917970 {
         +OtelLogSinkImpl() void
@@ -526,16 +575,16 @@ classDiagram
         -initialized_ : bool
         -logger_ : std::shared_ptr&lt;logs_api::Logger&gt;
     }
-    click C_0004451550955185917970 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/otel_log_sink.cpp#L40" "OtelLogSinkImpl"
+    click C_0004451550955185917970 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/otel_log_sink.cpp#L40" "OtelLogSinkImpl"
     class C_0013148580921981687373["core::telemetry::StubTracer"]
     class C_0013148580921981687373 {
     }
-    click C_0013148580921981687373 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/telemetry.h#L9" "StubTracer"
+    click C_0013148580921981687373 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/telemetry.h#L9" "StubTracer"
     class C_0016780157519830105342["core::telemetry::StubSpan"]
     class C_0016780157519830105342 {
         +End() void
     }
-    click C_0016780157519830105342 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/telemetry.h#L10" "StubSpan"
+    click C_0016780157519830105342 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/telemetry.h#L10" "StubSpan"
     class C_0017723866300591275282["core::telemetry::TelemetryManager"]
     class C_0017723866300591275282 {
         -TelemetryManager() [default] void
@@ -552,7 +601,7 @@ classDiagram
         -enabled_ : bool
         -initialized_ : bool
     }
-    click C_0017723866300591275282 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/telemetry.h#L17" "TelemetryManager"
+    click C_0017723866300591275282 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/telemetry.h#L17" "TelemetryManager"
     class C_0002677876180628578883["core::telemetry::ScopedSpan"]
     class C_0002677876180628578883 {
         +ScopedSpan() void
@@ -565,10 +614,7 @@ classDiagram
         +SetAttribute() void
         +SetAttribute() void
     }
-    click C_0002677876180628578883 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/core/telemetry.h#L47" "ScopedSpan"
-    C_0003070975022905515086 <|-- C_0005183287157482385322 : 
-    C_0003070975022905515086 <|-- C_0002737945163598883402 : 
-    C_0003070975022905515086 <|-- C_0018069749232895666528 : 
+    click C_0002677876180628578883 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/core/telemetry.h#L47" "ScopedSpan"
     C_0004632168876798078644 ..|> C_0002827361771953966828 : 
     C_0004487493333614106075 --> C_0004487493333614106075 : -instance
     C_0007086053907388411958 o-- C_0004451550955185917970 : -pimpl_
@@ -600,39 +646,54 @@ classDiagram
         +GetVersionInfo() bool*
         +ProcessImage() bool*
     }
-    click C_0012027728199649945423 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/grpc_control/processor_engine_provider.h#L12" "ProcessorEngineProvider"
+    click C_0012027728199649945423 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/grpc_control/processor_engine_provider.h#L12" "ProcessorEngineProvider"
     class C_0017943137306940345566["grpc_control::AcceleratorControlClientConfig"]
     class C_0017943137306940345566 {
         +accelerator_version : std::string
         +ca_cert_file : std::string
+        +cameras : std::vector&lt;cuda_learning::RemoteCameraInfo&gt;
         +client_cert_file : std::string
         +client_key_file : std::string
         +control_addr : std::string
         +device_id : std::string
         +display_name : std::string
+        +keepalive_interval_s : int
+        +keepalive_timeout_s : int
         +max_reconnect_delay_s : int
     }
-    click C_0017943137306940345566 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/grpc_control/accelerator_control_client.h#L23" "AcceleratorControlClientConfig"
+    click C_0017943137306940345566 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/grpc_control/accelerator_control_client.h#L24" "AcceleratorControlClientConfig"
     class C_0000515333569306060753["grpc_control::AcceleratorControlClient"]
     class C_0000515333569306060753 {
         +AcceleratorControlClient() void
         +~AcceleratorControlClient() void
+        -ArmTeardownWatchdog() void
+        -BuildKeepaliveMessage() [const] cuda_learning::AcceleratorMessage
         -BuildRegisterMessage() [const] cuda_learning::AcceleratorMessage
+        -CancelStream() void
         -CandidatePumpLoop() void
         -Dispatch() void
         -HandleSignalingMessage() void
+        -IsRxStale() [const] bool
+        -KeepaliveLoop() void
         +Run() void
         -RunOnce() bool
         -Send() bool
         +Stop() void
+        -TeardownLocalSessions() void
+        -TouchLastRx() void
         -active_session_ids_ : std::vector&lt;std::string&gt;
+        -connection_generation_ : std::atomic&lt;uint64_t&gt;
         -ctx_ : grpc::ClientContext *
+        -ctx_mutex_ : std::mutex
+        -last_rx_ms_ : std::atomic&lt;int64_t&gt;
         -session_ids_mutex_ : std::mutex
         -stop_requested_ : std::atomic&lt;bool&gt;
         -stream_ : BidiStream *
+        -stream_failed_ : std::atomic&lt;bool&gt;
+        -teardown_watchdog_armed_ : std::atomic&lt;bool&gt;
         -write_mutex_ : std::mutex
     }
-    click C_0000515333569306060753 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/grpc_control/accelerator_control_client.h#L45" "AcceleratorControlClient"
+    click C_0000515333569306060753 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/grpc_control/accelerator_control_client.h#L52" "AcceleratorControlClient"
     class C_0008576921031893812578["grpc_control::ProcessorEngineAdapter"]
     class C_0008576921031893812578 {
         +ProcessorEngineAdapter() void
@@ -643,7 +704,7 @@ classDiagram
         +underlying() [const] std::shared_ptr&lt;jrb::application::engine::ProcessorEngine&gt;
         -engine_ : std::shared_ptr&lt;jrb::application::engine::ProcessorEngine&gt;
     }
-    click C_0008576921031893812578 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/grpc_control/processor_engine_adapter.h#L10" "ProcessorEngineAdapter"
+    click C_0008576921031893812578 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/grpc_control/processor_engine_adapter.h#L10" "ProcessorEngineAdapter"
     class C_0007767152947601741520["webrtc::ChunkReassembler"]
     class C_0007767152947601741520 {
         +ChunkReassembler() void
@@ -654,7 +715,7 @@ classDiagram
         -in_flight_order_ : std::vector&lt;uint32_t&gt;
         -timeout_ : std::chrono::milliseconds
     }
-    click C_0007767152947601741520 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/webrtc/data_channel_framing.h#L33" "ChunkReassembler"
+    click C_0007767152947601741520 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/data_channel_framing.h#L33" "ChunkReassembler"
     class C_0000976694639771035419["webrtc::ChunkReassembler::InFlightMessage"]
     class C_0000976694639771035419 {
         +chunk_count : uint16_t
@@ -662,18 +723,19 @@ classDiagram
         +first_chunk_at : std::chrono::steady_clock::time_point
         +received : uint16_t
     }
-    click C_0000976694639771035419 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/webrtc/data_channel_framing.h#L45" "ChunkReassembler::InFlightMessage"
+    click C_0000976694639771035419 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/data_channel_framing.h#L45" "ChunkReassembler::InFlightMessage"
     class C_0016585028379407129340["webrtc::EncodedAccessUnit"]
     class C_0016585028379407129340 {
         +data : rtc::binary
         +frame_info : rtc::FrameInfo
     }
-    click C_0016585028379407129340 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/webrtc/live_video_processor.h#L23" "EncodedAccessUnit"
+    click C_0016585028379407129340 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/live_video_processor.h#L26" "EncodedAccessUnit"
     class C_0004226281867295033087["webrtc::LiveVideoProcessor"]
     class C_0004226281867295033087 {
         +LiveVideoProcessor() void
         +~LiveVideoProcessor() void
         -BuildProcessingRequest() [const] bool
+        +ConsumePendingCapture() std::string
         -CopyDecodedFrameToRgbBuffer() bool
         -CopyResponseToRgbBuffer() [const] bool
         -EncodeRgbBuffer() bool
@@ -683,7 +745,11 @@ classDiagram
         -FillRgbFrame() [const] bool
         -HasActiveFilters() [const] bool
         +ProcessAccessUnit() bool
+        +RequestCapture() void
         +UpdateFilterState() [const] bool
+        -capture_filepath_ : std::string
+        -capture_mutex_ : std::mutex
+        -capture_pending_ : std::atomic&lt;bool&gt;
         -cuda_memory_pool_ : void *
         -decode_packet_ : AVPacket *
         -decode_to_rgb_context_ : SwsContext *
@@ -694,6 +760,7 @@ classDiagram
         -engine_ : jrb::application::engine::ProcessorEngine *
         -frame_height_ : int
         -frame_width_ : int
+        -image_sink_ : jrb::domain::interfaces::IImageSink *
         -input_pixel_format_ : int
         -next_pts_ : int64_t
         -rgb_input_frame_ : AVFrame *
@@ -701,14 +768,50 @@ classDiagram
         -rgb_to_yuv_context_ : SwsContext *
         -yuv_frame_ : AVFrame *
     }
-    click C_0004226281867295033087 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/webrtc/live_video_processor.h#L28" "LiveVideoProcessor"
+    click C_0004226281867295033087 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/live_video_processor.h#L31" "LiveVideoProcessor"
+    class C_0011038763200404027555["webrtc::SessionState"]
+    class C_0011038763200404027555 {
+        +camera_subscription : camera::CameraHub::Subscription
+        +candidates_cv : std::condition_variable
+        +candidates_mutex : std::mutex
+        +control_channel : std::shared_ptr&lt;rtc::DataChannel&gt;
+        +created_at : std::chrono::steady_clock::time_point
+        +data_channel : std::shared_ptr&lt;rtc::DataChannel&gt;
+        +detection_channel : std::shared_ptr&lt;rtc::DataChannel&gt;
+        +frame_count : std::atomic&lt;int&gt;
+        +gst_camera_source : std::unique_ptr&lt;camera::GstCameraSource&gt;
+        +inbound_depacketizer : std::shared_ptr&lt;rtc::H264RtpDepacketizer&gt;
+        +inbound_rtcp_session : std::shared_ptr&lt;rtc::RtcpReceivingSession&gt;
+        +inbound_video_track : std::shared_ptr&lt;rtc::Track&gt;
+        +last_heartbeat : std::chrono::steady_clock::time_point
+        +live_failure_count : std::atomic&lt;int&gt;
+        +live_filter_state : cuda_learning::ProcessImageRequest
+        +local_candidates_queue : std::queue&lt;rtc::Candidate&gt;
+        +media_mutex : std::mutex
+        +memory_pool : std::unique_ptr&lt;compute::cuda::CudaMemoryPool&gt;
+        +mutex : std::mutex
+        +outbound_nack_responder : std::shared_ptr&lt;rtc::RtcpNackResponder&gt;
+        +outbound_packetizer : std::shared_ptr&lt;rtc::H264RtpPacketizer&gt;
+        +outbound_rtp_config : std::shared_ptr&lt;rtc::RtpPacketizationConfig&gt;
+        +outbound_sr_reporter : std::shared_ptr&lt;rtc::RtcpSrReporter&gt;
+        +outbound_video_track : std::shared_ptr&lt;rtc::Track&gt;
+        +outgoing_message_id : std::atomic&lt;uint32_t&gt;
+        +peer_connection : std::shared_ptr&lt;rtc::PeerConnection&gt;
+        +pending_candidates : std::vector&lt;rtc::Candidate&gt;
+        +stats_channel : std::shared_ptr&lt;rtc::DataChannel&gt;
+    }
+    click C_0011038763200404027555 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/webrtc_session_state.h#L22" "SessionState"
     class C_0012002601456007248787["webrtc::WebRTCManagerConfig"]
     class C_0012002601456007248787 {
+        +accelerator_version : std::string
+        +camera_hub : std::shared_ptr&lt;camera::CameraHub&gt;
+        +captures_dir : std::string
         +device_id : std::string
         +display_name : std::string
         +engine : std::shared_ptr&lt;jrb::application::engine::ProcessorEngine&gt;
+        +image_sink : std::shared_ptr&lt;jrb::domain::interfaces::IImageSink&gt;
     }
-    click C_0012002601456007248787 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/webrtc/webrtc_manager.h#L30" "WebRTCManagerConfig"
+    click C_0012002601456007248787 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/webrtc_manager.h#L32" "WebRTCManagerConfig"
     class C_0007645506852776838588["webrtc::WebRTCManager"]
     class C_0007645506852776838588 {
         +WebRTCManager() void
@@ -716,6 +819,7 @@ classDiagram
         -CleanupInactiveSessions() void
         +CloseSession() bool
         -CloseSessionTransport() void$
+        +CreateCameraSession() bool
         +CreateSession() bool
         -EmitProcessingStats() void
         -ForwardDetections() void
@@ -739,67 +843,82 @@ classDiagram
         -SetupPeerConnectionCallbacks() std::shared_future&lt;std::string&gt;
         -SetupStatsChannel() void
         +Shutdown() void
+        +StopCameraSession() bool
         -UnregisterSessionChannel() void
+        -accelerator_version_ : std::string
+        -camera_hub_ : std::shared_ptr&lt;camera::CameraHub&gt;
+        -captures_dir_ : std::string
         -cleanup_running_ : std::atomic&lt;bool&gt;
         -cleanup_thread_ : std::thread
         -config_ : std::unique_ptr&lt;rtc::Configuration&gt;
         -device_id_ : std::string
         -display_name_ : std::string
         -engine_ : std::shared_ptr&lt;jrb::application::engine::ProcessorEngine&gt;
+        -image_sink_ : std::shared_ptr&lt;jrb::domain::interfaces::IImageSink&gt;
         -initialized_ : bool
         -server_info_ : std::unique_ptr&lt;jrb::application::server_info::IServerInfoProvider&gt;
         -session_channels_ : std::unordered_map&lt;std::string,std::weak_ptr&lt;rtc::DataChannel&gt;&gt;
         -session_channels_mutex_ : std::mutex
-        -sessions_ : std::unordered_map&lt;std::string,std::shared_ptr&lt;SessionState&gt;&gt;
         -sessions_mutex_ : std::mutex
     }
-    click C_0007645506852776838588 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/webrtc/webrtc_manager.h#L36" "WebRTCManager"
-    class C_0003516926192551703591["webrtc::WebRTCManager::SessionState"]
-    class C_0003516926192551703591 {
-        +candidates_cv : std::condition_variable
-        +candidates_mutex : std::mutex
-        +control_channel : std::shared_ptr&lt;rtc::DataChannel&gt;
-        +created_at : std::chrono::steady_clock::time_point
-        +data_channel : std::shared_ptr&lt;rtc::DataChannel&gt;
-        +detection_channel : std::shared_ptr&lt;rtc::DataChannel&gt;
-        +frame_count : std::atomic&lt;int&gt;
-        +inbound_depacketizer : std::shared_ptr&lt;rtc::H264RtpDepacketizer&gt;
-        +inbound_rtcp_session : std::shared_ptr&lt;rtc::RtcpReceivingSession&gt;
-        +inbound_video_track : std::shared_ptr&lt;rtc::Track&gt;
-        +last_heartbeat : std::chrono::steady_clock::time_point
-        +live_filter_state : cuda_learning::ProcessImageRequest
-        +local_candidates_queue : std::queue&lt;rtc::Candidate&gt;
-        +media_mutex : std::mutex
-        +memory_pool : std::unique_ptr&lt;compute::cuda::CudaMemoryPool&gt;
-        +mutex : std::mutex
-        +outbound_nack_responder : std::shared_ptr&lt;rtc::RtcpNackResponder&gt;
-        +outbound_packetizer : std::shared_ptr&lt;rtc::H264RtpPacketizer&gt;
-        +outbound_rtp_config : std::shared_ptr&lt;rtc::RtpPacketizationConfig&gt;
-        +outbound_sr_reporter : std::shared_ptr&lt;rtc::RtcpSrReporter&gt;
-        +outbound_video_track : std::shared_ptr&lt;rtc::Track&gt;
-        +outgoing_message_id : std::atomic&lt;uint32_t&gt;
-        +peer_connection : std::shared_ptr&lt;rtc::PeerConnection&gt;
-        +pending_candidates : std::vector&lt;rtc::Candidate&gt;
-        +stats_channel : std::shared_ptr&lt;rtc::DataChannel&gt;
+    click C_0007645506852776838588 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/webrtc_manager.h#L42" "WebRTCManager"
+    class C_0001037241522721557879["webrtc::ControlMessageDispatcher"]
+    class C_0001037241522721557879 {
+        +ControlMessageDispatcher() void
+        +Dispatch() void
+        -HandleCaptureFrame() void
+        -HandleDeleteCapturedImage() void
+        -HandleGetAcceleratorCapabilities() void
+        -HandleGetCapturedImage() void
+        -HandleGetVersion() void
+        -HandleListCapturedImages() void
+        -HandleListFilters() void
+        -HandleStartCameraStream() void
+        -HandleStopCameraStream() void
+        -accelerator_version_ : std::string
+        -camera_hub_ : std::shared_ptr&lt;camera::CameraHub&gt;
+        -captures_dir_ : std::string
+        -device_id_ : std::string
+        -display_name_ : std::string
+        -engine_ : std::shared_ptr&lt;jrb::application::engine::ProcessorEngine&gt;
+        -image_sink_ : std::shared_ptr&lt;jrb::domain::interfaces::IImageSink&gt;
+        -server_info_ : jrb::application::server_info::IServerInfoProvider *
+        -video_frame_handler_ : std::function&lt;void &lpar;const std::string &,rtc::binary,rtc::FrameInfo&rpar;&gt;
     }
-    click C_0003516926192551703591 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/webrtc/webrtc_manager.h#L60" "WebRTCManager::SessionState"
+    click C_0001037241522721557879 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/control_message_dispatcher.h#L31" "ControlMessageDispatcher"
+    class C_0014514261005697703577["webrtc::ControlMessageDispatcher::Config"]
+    class C_0014514261005697703577 {
+        +accelerator_version : std::string
+        +camera_hub : std::shared_ptr&lt;camera::CameraHub&gt;
+        +captures_dir : std::string
+        +device_id : std::string
+        +display_name : std::string
+        +engine : std::shared_ptr&lt;jrb::application::engine::ProcessorEngine&gt;
+        +image_sink : std::shared_ptr&lt;jrb::domain::interfaces::IImageSink&gt;
+        +server_info : jrb::application::server_info::IServerInfoProvider *
+        +video_frame_handler : std::function&lt;void &lpar;const std::string &,rtc::binary,rtc::FrameInfo&rpar;&gt;
+    }
+    click C_0014514261005697703577 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/control_message_dispatcher.h#L33" "ControlMessageDispatcher::Config"
     class C_0002452424400838743359["webrtc::sdp::OutboundVideoConfig"]
     class C_0002452424400838743359 {
         +mid : std::string
         +payload_type : int
     }
-    click C_0002452424400838743359 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/webrtc/sdp/sdp_utils.h#L12" "OutboundVideoConfig"
+    click C_0002452424400838743359 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/webrtc/sdp/sdp_utils.h#L12" "OutboundVideoConfig"
     C_0000515333569306060753 o-- C_0017943137306940345566 : -config_
     C_0000515333569306060753 --> C_0012027728199649945423 : -engine_
     C_0000515333569306060753 --> C_0007645506852776838588 : -webrtc_manager_
     C_0012027728199649945423 <|-- C_0008576921031893812578 : 
     C_0007767152947601741520 ()-- C_0000976694639771035419 : 
     C_0004226281867295033087 ..> C_0016585028379407129340 : 
+    C_0011038763200404027555 o-- C_0004226281867295033087 : +live_video_processor
+    C_0011038763200404027555 o-- C_0007767152947601741520 : +incoming_reassembler
     C_0007645506852776838588 ..> C_0012002601456007248787 : 
-    C_0007645506852776838588 ..> C_0003516926192551703591 : 
-    C_0007645506852776838588 ()-- C_0003516926192551703591 : 
-    C_0003516926192551703591 o-- C_0004226281867295033087 : +live_video_processor
-    C_0003516926192551703591 o-- C_0007767152947601741520 : +incoming_reassembler
+    C_0007645506852776838588 o-- C_0001037241522721557879 : -dispatcher_
+    C_0007645506852776838588 o-- C_0011038763200404027555 : -sessions_
+    C_0001037241522721557879 ..> C_0014514261005697703577 : 
+    C_0001037241522721557879 --> C_0011038763200404027555 : -handlers_
+    C_0001037241522721557879 ()-- C_0014514261005697703577 : 
 
 %% Generated with clang-uml, version 0.6.2
 %% LLVM version Ubuntu clang version 18.1.3 (1ubuntu1)
@@ -820,7 +939,7 @@ classDiagram
     class C_0010344940797213140253["cpu::internal::BorderClamperFactory"]
     class C_0010344940797213140253 {
     }
-    click C_0010344940797213140253 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter.h#L13" "BorderClamperFactory"
+    click C_0010344940797213140253 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter.h#L13" "BorderClamperFactory"
     class C_0001308943800909517930["cpu::BorderMode"]
     class C_0001308943800909517930 {
         <<enumeration>>
@@ -828,7 +947,7 @@ classDiagram
         kReflect
         kWrap
     }
-    click C_0001308943800909517930 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter.h#L23" "BorderMode"
+    click C_0001308943800909517930 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter.h#L23" "BorderMode"
     class C_0005897429116311035510["cpu::GaussianBlurFilter"]
     class C_0005897429116311035510 {
         +GaussianBlurFilter() void
@@ -851,14 +970,14 @@ classDiagram
         -separable_ : bool
         -sigma_ : float
     }
-    click C_0005897429116311035510 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter.h#L25" "GaussianBlurFilter"
+    click C_0005897429116311035510 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter.h#L25" "GaussianBlurFilter"
     class C_0008867106658332842661["cpu::GaussianBlurFilterTest"]
     class C_0008867106658332842661 {
         #SetUp() void
         #TearDown() void
         #image_loader_ : std::unique_ptr&lt;ImageLoader&gt;
     }
-    click C_0008867106658332842661 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L15" "GaussianBlurFilterTest"
+    click C_0008867106658332842661 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L15" "GaussianBlurFilterTest"
     class C_0013014884969652092545["cpu::GaussianBlurFilterTest_FilterConstructsWithDefaultValues_Test"]
     class C_0013014884969652092545 {
         +GaussianBlurFilterTest_FilterConstructsWithDefaultValues_Test() [default] void
@@ -870,7 +989,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0013014884969652092545 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L27" "GaussianBlurFilterTest_FilterConstructsWithDefaultValues_Test"
+    click C_0013014884969652092545 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L27" "GaussianBlurFilterTest_FilterConstructsWithDefaultValues_Test"
     class C_0015622299026702952527["cpu::GaussianBlurFilterTest_FilterConstructsWithCustomValues_Test"]
     class C_0015622299026702952527 {
         +GaussianBlurFilterTest_FilterConstructsWithCustomValues_Test() [default] void
@@ -882,7 +1001,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0015622299026702952527 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L39" "GaussianBlurFilterTest_FilterConstructsWithCustomValues_Test"
+    click C_0015622299026702952527 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L39" "GaussianBlurFilterTest_FilterConstructsWithCustomValues_Test"
     class C_0005938815156134313611["cpu::GaussianBlurFilterTest_SettersUpdateFilterConfiguration_Test"]
     class C_0005938815156134313611 {
         +GaussianBlurFilterTest_SettersUpdateFilterConfiguration_Test() [default] void
@@ -894,7 +1013,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0005938815156134313611 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L49" "GaussianBlurFilterTest_SettersUpdateFilterConfiguration_Test"
+    click C_0005938815156134313611 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L49" "GaussianBlurFilterTest_SettersUpdateFilterConfiguration_Test"
     class C_0015005305776787898460["cpu::GaussianBlurFilterTest_AppliesBlurToImageSuccessfully_Test"]
     class C_0015005305776787898460 {
         +GaussianBlurFilterTest_AppliesBlurToImageSuccessfully_Test() [default] void
@@ -906,7 +1025,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0015005305776787898460 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L64" "GaussianBlurFilterTest_AppliesBlurToImageSuccessfully_Test"
+    click C_0015005305776787898460 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L64" "GaussianBlurFilterTest_AppliesBlurToImageSuccessfully_Test"
     class C_0009861164858595367630["cpu::GaussianBlurFilterTest_BlurPreservesImageDimensions_Test"]
     class C_0009861164858595367630 {
         +GaussianBlurFilterTest_BlurPreservesImageDimensions_Test() [default] void
@@ -918,7 +1037,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0009861164858595367630 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L88" "GaussianBlurFilterTest_BlurPreservesImageDimensions_Test"
+    click C_0009861164858595367630 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L88" "GaussianBlurFilterTest_BlurPreservesImageDimensions_Test"
     class C_0013071167011124245902["cpu::GaussianBlurFilterTest_DifferentSigmaValuesProduceDifferentResults_Test"]
     class C_0013071167011124245902 {
         +GaussianBlurFilterTest_DifferentSigmaValuesProduceDifferentResults_Test() [default] void
@@ -930,7 +1049,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0013071167011124245902 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L110" "GaussianBlurFilterTest_DifferentSigmaValuesProduceDifferentResults_Test"
+    click C_0013071167011124245902 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L110" "GaussianBlurFilterTest_DifferentSigmaValuesProduceDifferentResults_Test"
     class C_0009836051393831639866["cpu::GaussianBlurFilterTest_DifferentBorderModesProduceDifferentResults_Test"]
     class C_0009836051393831639866 {
         +GaussianBlurFilterTest_DifferentBorderModesProduceDifferentResults_Test() [default] void
@@ -942,7 +1061,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0009836051393831639866 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L140" "GaussianBlurFilterTest_DifferentBorderModesProduceDifferentResults_Test"
+    click C_0009836051393831639866 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L140" "GaussianBlurFilterTest_DifferentBorderModesProduceDifferentResults_Test"
     class C_0004960405877269943532["cpu::GaussianBlurFilterTest_SeparableAndNonSeparableProduceSameResults_Test"]
     class C_0004960405877269943532 {
         +GaussianBlurFilterTest_SeparableAndNonSeparableProduceSameResults_Test() [default] void
@@ -954,7 +1073,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0004960405877269943532 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L176" "GaussianBlurFilterTest_SeparableAndNonSeparableProduceSameResults_Test"
+    click C_0004960405877269943532 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L176" "GaussianBlurFilterTest_SeparableAndNonSeparableProduceSameResults_Test"
     class C_0012247706710778130787["cpu::GaussianBlurFilterTest_AppliesCorrectlyToSmallImage_Test"]
     class C_0012247706710778130787 {
         +GaussianBlurFilterTest_AppliesCorrectlyToSmallImage_Test() [default] void
@@ -966,7 +1085,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0012247706710778130787 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L212" "GaussianBlurFilterTest_AppliesCorrectlyToSmallImage_Test"
+    click C_0012247706710778130787 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L212" "GaussianBlurFilterTest_AppliesCorrectlyToSmallImage_Test"
     class C_0014725696972901327407["cpu::GaussianBlurFilterTest_SingleChannelImageProcessesCorrectly_Test"]
     class C_0014725696972901327407 {
         +GaussianBlurFilterTest_SingleChannelImageProcessesCorrectly_Test() [default] void
@@ -978,7 +1097,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0014725696972901327407 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L232" "GaussianBlurFilterTest_SingleChannelImageProcessesCorrectly_Test"
+    click C_0014725696972901327407 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L232" "GaussianBlurFilterTest_SingleChannelImageProcessesCorrectly_Test"
     class C_0012192004089441259651["cpu::GaussianBlurFilterTest_LargeKernelSizeProducesHeavyBlur_Test"]
     class C_0012192004089441259651 {
         +GaussianBlurFilterTest_LargeKernelSizeProducesHeavyBlur_Test() [default] void
@@ -990,7 +1109,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0012192004089441259651 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L252" "GaussianBlurFilterTest_LargeKernelSizeProducesHeavyBlur_Test"
+    click C_0012192004089441259651 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L252" "GaussianBlurFilterTest_LargeKernelSizeProducesHeavyBlur_Test"
     class C_0005227718989996190739["cpu::GaussianBlurFilterTest_NonSeparableBlurProducesValidOutput_Test"]
     class C_0005227718989996190739 {
         +GaussianBlurFilterTest_NonSeparableBlurProducesValidOutput_Test() [default] void
@@ -1002,7 +1121,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0005227718989996190739 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L281" "GaussianBlurFilterTest_NonSeparableBlurProducesValidOutput_Test"
+    click C_0005227718989996190739 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L281" "GaussianBlurFilterTest_NonSeparableBlurProducesValidOutput_Test"
     class C_0012461225515377379491["cpu::GaussianBlurFilterTest_AllBorderModesHandleEdgePixels_Test"]
     class C_0012461225515377379491 {
         +GaussianBlurFilterTest_AllBorderModesHandleEdgePixels_Test() [default] void
@@ -1014,7 +1133,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0012461225515377379491 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L300" "GaussianBlurFilterTest_AllBorderModesHandleEdgePixels_Test"
+    click C_0012461225515377379491 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/blur_filter_test.cpp#L300" "GaussianBlurFilterTest_AllBorderModesHandleEdgePixels_Test"
     class C_0002119661949802885195["cpu::GrayscaleFilter"]
     class C_0002119661949802885195 {
         +GrayscaleFilter() void
@@ -1027,7 +1146,7 @@ classDiagram
         +SetAlgorithm() void
         -algorithm_ : GrayscaleAlgorithm
     }
-    click C_0002119661949802885195 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/grayscale_filter.h#L10" "GrayscaleFilter"
+    click C_0002119661949802885195 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/grayscale_filter.h#L10" "GrayscaleFilter"
     class C_0010836651246536935609["cpu::CpuFilterFactory"]
     class C_0010836651246536935609 {
         +CpuFilterFactory() [default] void
@@ -1036,7 +1155,7 @@ classDiagram
         +GetAcceleratorType() [const] cuda_learning::AcceleratorType
         +GetFilterDescriptors() [const] std::vector&lt;jrb::application::engine::FilterDescriptor&gt;
     }
-    click C_0010836651246536935609 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cpu/cpu_filter_factory.h#L7" "CpuFilterFactory"
+    click C_0010836651246536935609 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cpu/cpu_filter_factory.h#L7" "CpuFilterFactory"
     C_0005897429116311035510 o-- C_0001308943800909517930 : -border_mode_
     C_0005897429116311035510 o-- C_0010344940797213140253 : -border_clamper_factory_
     C_0008867106658332842661 <|-- C_0013014884969652092545 : 
@@ -1077,7 +1196,7 @@ classDiagram
         +GetAcceleratorType() [const] cuda_learning::AcceleratorType
         +GetFilterDescriptors() [const] std::vector&lt;jrb::application::engine::FilterDescriptor&gt;
     }
-    click C_0007615336746000686635 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/cuda_filter_factory.h#L7" "CudaFilterFactory"
+    click C_0007615336746000686635 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/cuda_filter_factory.h#L7" "CudaFilterFactory"
     class C_0008705470386285148694["cuda::BorderMode"]
     class C_0008705470386285148694 {
         <<enumeration>>
@@ -1085,7 +1204,7 @@ classDiagram
         REFLECT
         WRAP
     }
-    click C_0008705470386285148694 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter.h#L14" "BorderMode"
+    click C_0008705470386285148694 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter.h#L14" "BorderMode"
     class C_0002814001579263874940["cuda::GaussianBlurFilter"]
     class C_0002814001579263874940 {
         +GaussianBlurFilter() void
@@ -1105,7 +1224,7 @@ classDiagram
         -separable_ : bool
         -sigma_ : float
     }
-    click C_0002814001579263874940 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter.h#L16" "GaussianBlurFilter"
+    click C_0002814001579263874940 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter.h#L16" "GaussianBlurFilter"
     class C_0013357311912543817760["cuda::GrayscaleFilter"]
     class C_0013357311912543817760 {
         +GrayscaleFilter() void
@@ -1117,14 +1236,14 @@ classDiagram
         +SetAlgorithm() void
         -algorithm_ : GrayscaleAlgorithm
     }
-    click C_0013357311912543817760 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/grayscale_filter.h#L10" "GrayscaleFilter"
+    click C_0013357311912543817760 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/grayscale_filter.h#L10" "GrayscaleFilter"
     class C_0007867184912872719953["cuda::GaussianBlurFilterTest"]
     class C_0007867184912872719953 {
         #SetUp() void
         #TearDown() void
         #image_loader_ : std::unique_ptr&lt;ImageLoader&gt;
     }
-    click C_0007867184912872719953 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L15" "GaussianBlurFilterTest"
+    click C_0007867184912872719953 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L15" "GaussianBlurFilterTest"
     class C_0014338627021419530494["cuda::GaussianBlurFilterTest_FilterConstructsWithDefaultValues_Test"]
     class C_0014338627021419530494 {
         +GaussianBlurFilterTest_FilterConstructsWithDefaultValues_Test() [default] void
@@ -1136,7 +1255,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0014338627021419530494 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L27" "GaussianBlurFilterTest_FilterConstructsWithDefaultValues_Test"
+    click C_0014338627021419530494 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L27" "GaussianBlurFilterTest_FilterConstructsWithDefaultValues_Test"
     class C_0016459301136835905479["cuda::GaussianBlurFilterTest_FilterConstructsWithCustomValues_Test"]
     class C_0016459301136835905479 {
         +GaussianBlurFilterTest_FilterConstructsWithCustomValues_Test() [default] void
@@ -1148,7 +1267,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0016459301136835905479 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L39" "GaussianBlurFilterTest_FilterConstructsWithCustomValues_Test"
+    click C_0016459301136835905479 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L39" "GaussianBlurFilterTest_FilterConstructsWithCustomValues_Test"
     class C_0006217282387620038949["cuda::GaussianBlurFilterTest_SettersUpdateFilterConfiguration_Test"]
     class C_0006217282387620038949 {
         +GaussianBlurFilterTest_SettersUpdateFilterConfiguration_Test() [default] void
@@ -1160,7 +1279,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0006217282387620038949 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L49" "GaussianBlurFilterTest_SettersUpdateFilterConfiguration_Test"
+    click C_0006217282387620038949 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L49" "GaussianBlurFilterTest_SettersUpdateFilterConfiguration_Test"
     class C_0016863696427298780991["cuda::GaussianBlurFilterTest_AppliesBlurToImageSuccessfully_Test"]
     class C_0016863696427298780991 {
         +GaussianBlurFilterTest_AppliesBlurToImageSuccessfully_Test() [default] void
@@ -1172,7 +1291,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0016863696427298780991 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L64" "GaussianBlurFilterTest_AppliesBlurToImageSuccessfully_Test"
+    click C_0016863696427298780991 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L64" "GaussianBlurFilterTest_AppliesBlurToImageSuccessfully_Test"
     class C_0009083496411418190285["cuda::GaussianBlurFilterTest_BlurPreservesImageDimensions_Test"]
     class C_0009083496411418190285 {
         +GaussianBlurFilterTest_BlurPreservesImageDimensions_Test() [default] void
@@ -1184,7 +1303,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0009083496411418190285 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L88" "GaussianBlurFilterTest_BlurPreservesImageDimensions_Test"
+    click C_0009083496411418190285 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L88" "GaussianBlurFilterTest_BlurPreservesImageDimensions_Test"
     class C_0010290465055497638262["cuda::GaussianBlurFilterTest_DifferentSigmaValuesProduceDifferentResults_Test"]
     class C_0010290465055497638262 {
         +GaussianBlurFilterTest_DifferentSigmaValuesProduceDifferentResults_Test() [default] void
@@ -1196,7 +1315,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0010290465055497638262 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L110" "GaussianBlurFilterTest_DifferentSigmaValuesProduceDifferentResults_Test"
+    click C_0010290465055497638262 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L110" "GaussianBlurFilterTest_DifferentSigmaValuesProduceDifferentResults_Test"
     class C_0001308379048357095277["cuda::GaussianBlurFilterTest_DifferentBorderModesProduceDifferentResults_Test"]
     class C_0001308379048357095277 {
         +GaussianBlurFilterTest_DifferentBorderModesProduceDifferentResults_Test() [default] void
@@ -1208,7 +1327,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0001308379048357095277 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L140" "GaussianBlurFilterTest_DifferentBorderModesProduceDifferentResults_Test"
+    click C_0001308379048357095277 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L140" "GaussianBlurFilterTest_DifferentBorderModesProduceDifferentResults_Test"
     class C_0015346377464463784732["cuda::GaussianBlurFilterTest_AppliesCorrectlyToSmallImage_Test"]
     class C_0015346377464463784732 {
         +GaussianBlurFilterTest_AppliesCorrectlyToSmallImage_Test() [default] void
@@ -1220,7 +1339,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0015346377464463784732 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L176" "GaussianBlurFilterTest_AppliesCorrectlyToSmallImage_Test"
+    click C_0015346377464463784732 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L176" "GaussianBlurFilterTest_AppliesCorrectlyToSmallImage_Test"
     class C_0008906375639432249268["cuda::GaussianBlurFilterTest_SingleChannelImageProcessesCorrectly_Test"]
     class C_0008906375639432249268 {
         +GaussianBlurFilterTest_SingleChannelImageProcessesCorrectly_Test() [default] void
@@ -1232,7 +1351,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0008906375639432249268 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L196" "GaussianBlurFilterTest_SingleChannelImageProcessesCorrectly_Test"
+    click C_0008906375639432249268 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L196" "GaussianBlurFilterTest_SingleChannelImageProcessesCorrectly_Test"
     class C_0005058626398358616231["cuda::GaussianBlurFilterTest_LargeKernelSizeProducesHeavyBlur_Test"]
     class C_0005058626398358616231 {
         +GaussianBlurFilterTest_LargeKernelSizeProducesHeavyBlur_Test() [default] void
@@ -1244,7 +1363,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0005058626398358616231 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L216" "GaussianBlurFilterTest_LargeKernelSizeProducesHeavyBlur_Test"
+    click C_0005058626398358616231 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L216" "GaussianBlurFilterTest_LargeKernelSizeProducesHeavyBlur_Test"
     class C_0013491617695070197926["cuda::GaussianBlurFilterTest_AllBorderModesHandleEdgePixels_Test"]
     class C_0013491617695070197926 {
         +GaussianBlurFilterTest_AllBorderModesHandleEdgePixels_Test() [default] void
@@ -1256,7 +1375,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0013491617695070197926 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L245" "GaussianBlurFilterTest_AllBorderModesHandleEdgePixels_Test"
+    click C_0013491617695070197926 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/filters/blur_filter_test.cpp#L245" "GaussianBlurFilterTest_AllBorderModesHandleEdgePixels_Test"
     class C_0017297884481959038049["cuda::CudaMemoryPool"]
     class C_0017297884481959038049 {
         +CudaMemoryPool() [default] void
@@ -1273,7 +1392,7 @@ classDiagram
         -mutex_ : std::mutex
         -total_allocated_bytes_ : std::size_t
     }
-    click C_0017297884481959038049 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/memory/cuda_memory_pool.h#L10" "CudaMemoryPool"
+    click C_0017297884481959038049 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/memory/cuda_memory_pool.h#L10" "CudaMemoryPool"
     class C_0002870417091937544357["cuda::Detection"]
     class C_0002870417091937544357 {
         +class_id : int
@@ -1284,14 +1403,14 @@ classDiagram
         +x : float
         +y : float
     }
-    click C_0002870417091937544357 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/models/detection.h#L7" "Detection"
+    click C_0002870417091937544357 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/models/detection.h#L7" "Detection"
     class C_0012539698074853643060["cuda::IYoloDetector"]
     class C_0012539698074853643060 {
         <<abstract>>
         +~IYoloDetector() [default,constexpr] void
         +GetDetections() [const] const std::vector&lt;Detection&gt; &*
     }
-    click C_0012539698074853643060 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/domain/interfaces/i_yolo_detector.h#L9" "IYoloDetector"
+    click C_0012539698074853643060 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/domain/interfaces/i_yolo_detector.h#L9" "IYoloDetector"
     class C_0000293881482806403736["cuda::ModelInfo"]
     class C_0000293881482806403736 {
         +description : std::string
@@ -1299,7 +1418,7 @@ classDiagram
         +model_path : std::string
         +name : std::string
     }
-    click C_0000293881482806403736 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/tensorrt/model_registry.h#L9" "ModelInfo"
+    click C_0000293881482806403736 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/tensorrt/model_registry.h#L9" "ModelInfo"
     class C_0004231114763037218656["cuda::ModelRegistry"]
     class C_0004231114763037218656 {
         +ModelRegistry() [default] void
@@ -1308,7 +1427,7 @@ classDiagram
         +GetModelInfo() [const] const ModelInfo *
         +RegisterModel() void
     }
-    click C_0004231114763037218656 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/tensorrt/model_registry.h#L16" "ModelRegistry"
+    click C_0004231114763037218656 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/tensorrt/model_registry.h#L16" "ModelRegistry"
     class C_0002016018658661933354["cuda::ModelManager"]
     class C_0002016018658661933354 {
         -ModelManager() [default] void
@@ -1323,7 +1442,7 @@ classDiagram
         -model_paths_ : std::unordered_map&lt;std::string,std::string&gt;
         -mutex_ : std::mutex
     }
-    click C_0002016018658661933354 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/tensorrt/model_manager.h#L13" "ModelManager"
+    click C_0002016018658661933354 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/tensorrt/model_manager.h#L13" "ModelManager"
     class C_0004883688039647094556["cuda::YOLODetector"]
     class C_0004883688039647094556 {
         +YOLODetector() void
@@ -1335,12 +1454,12 @@ classDiagram
         -confidence_threshold_ : float
         -impl_ : std::unique_ptr&lt;Impl&gt;
     }
-    click C_0004883688039647094556 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/tensorrt/yolo_detector.h#L9" "YOLODetector"
+    click C_0004883688039647094556 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/tensorrt/yolo_detector.h#L9" "YOLODetector"
     class C_0010548274032834292206["cuda::TRTLogger"]
     class C_0010548274032834292206 {
         +log() void
     }
-    click C_0010548274032834292206 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/tensorrt/yolo_detector.cpp#L52" "TRTLogger"
+    click C_0010548274032834292206 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/tensorrt/yolo_detector.cpp#L59" "TRTLogger"
     class C_0010670625254109404164["cuda::YOLODetector::Impl"]
     class C_0010670625254109404164 {
         -ApplyNMS() std::vector&lt;Detection&gt;$
@@ -1370,7 +1489,7 @@ classDiagram
         -output_size_ : size_t
         -runtime_ : nvinfer1::IRuntime *
     }
-    click C_0010670625254109404164 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/cuda/tensorrt/yolo_detector.cpp#L73" "YOLODetector::Impl"
+    click C_0010670625254109404164 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/cuda/tensorrt/yolo_detector.cpp#L80" "YOLODetector::Impl"
     C_0002814001579263874940 o-- C_0008705470386285148694 : -border_mode_
     C_0007867184912872719953 <|-- C_0014338627021419530494 : 
     C_0007867184912872719953 <|-- C_0016459301136835905479 : 
@@ -1417,7 +1536,7 @@ classDiagram
         +GetAcceleratorType() [const] cuda_learning::AcceleratorType
         +GetFilterDescriptors() [const] std::vector&lt;jrb::application::engine::FilterDescriptor&gt;
     }
-    click C_0004576326558859307292 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/opencl/opencl_filter_factory.h#L10" "OpenCLFilterFactory"
+    click C_0004576326558859307292 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/opencl/opencl_filter_factory.h#L10" "OpenCLFilterFactory"
     class C_0018343420802103899024["opencl::GaussianBlurFilter"]
     class C_0018343420802103899024 {
         +GaussianBlurFilter() void
@@ -1431,7 +1550,7 @@ classDiagram
         -kernel_v_ : cl_kernel
         -program_ : cl_program
     }
-    click C_0018343420802103899024 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/opencl/filters/blur_filter.h#L11" "GaussianBlurFilter"
+    click C_0018343420802103899024 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/opencl/filters/blur_filter.h#L11" "GaussianBlurFilter"
     class C_0016726580293519053405["opencl::Context"]
     class C_0016726580293519053405 {
         -Context() void
@@ -1451,7 +1570,7 @@ classDiagram
         -platform_ : cl_platform_id
         -queue_ : cl_command_queue
     }
-    click C_0016726580293519053405 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/opencl/context/context.h#L10" "Context"
+    click C_0016726580293519053405 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/opencl/context/context.h#L10" "Context"
     class C_0001381174246648675622["opencl::GrayscaleFilter"]
     class C_0001381174246648675622 {
         +GrayscaleFilter() void
@@ -1464,7 +1583,7 @@ classDiagram
         -kernel_ready_ : bool
         -program_ : cl_program
     }
-    click C_0001381174246648675622 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/opencl/filters/grayscale_filter.h#L11" "GrayscaleFilter"
+    click C_0001381174246648675622 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/opencl/filters/grayscale_filter.h#L11" "GrayscaleFilter"
 
 %% Generated with clang-uml, version 0.6.2
 %% LLVM version Ubuntu clang version 18.1.3 (1ubuntu1)
@@ -1490,7 +1609,7 @@ classDiagram
         +GetAcceleratorType() [const] cuda_learning::AcceleratorType
         +GetFilterDescriptors() [const] std::vector&lt;jrb::application::engine::FilterDescriptor&gt;
     }
-    click C_0018190227109498425533 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/vulkan_filter_factory.h#L10" "VulkanFilterFactory"
+    click C_0018190227109498425533 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/vulkan_filter_factory.h#L10" "VulkanFilterFactory"
     class C_0009516930384194590311["vulkan::GaussianBlurFilter"]
     class C_0009516930384194590311 {
         +GaussianBlurFilter() void
@@ -1507,7 +1626,7 @@ classDiagram
         -pipeline_ready_ : bool
         -shader_module_ : vk::ShaderModule
     }
-    click C_0009516930384194590311 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter.h#L14" "GaussianBlurFilter"
+    click C_0009516930384194590311 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter.h#L14" "GaussianBlurFilter"
     class C_0017119432327451923928["vulkan::Context"]
     class C_0017119432327451923928 {
         -Context() void
@@ -1532,13 +1651,13 @@ classDiagram
         -physical_device_ : vk::PhysicalDevice
         -queue_ : vk::Queue
     }
-    click C_0017119432327451923928 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/context/context.h#L16" "Context"
+    click C_0017119432327451923928 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/context/context.h#L16" "Context"
     class C_0015254283623081976151["vulkan::GaussianBlurFilterTest"]
     class C_0015254283623081976151 {
         #SetUp() void
         #loader_ : std::unique_ptr&lt;ImageLoader&gt;
     }
-    click C_0015254283623081976151 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L22" "GaussianBlurFilterTest"
+    click C_0015254283623081976151 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L22" "GaussianBlurFilterTest"
     class C_0009820433282547733670["vulkan::GaussianBlurFilterTest_Success_ConstructsWithCorrectType_Test"]
     class C_0009820433282547733670 {
         +GaussianBlurFilterTest_Success_ConstructsWithCorrectType_Test() [default] void
@@ -1550,7 +1669,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0009820433282547733670 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L34" "GaussianBlurFilterTest_Success_ConstructsWithCorrectType_Test"
+    click C_0009820433282547733670 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L34" "GaussianBlurFilterTest_Success_ConstructsWithCorrectType_Test"
     class C_0008698411182414121450["vulkan::GaussianBlurFilterTest_Success_IsNotInPlace_Test"]
     class C_0008698411182414121450 {
         +GaussianBlurFilterTest_Success_IsNotInPlace_Test() [default] void
@@ -1562,7 +1681,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0008698411182414121450 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L42" "GaussianBlurFilterTest_Success_IsNotInPlace_Test"
+    click C_0008698411182414121450 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L42" "GaussianBlurFilterTest_Success_IsNotInPlace_Test"
     class C_0017162933394421547325["vulkan::GaussianBlurFilterTest_Success_ApplyReturnsTrueWhenContextAvailable_Test"]
     class C_0017162933394421547325 {
         +GaussianBlurFilterTest_Success_ApplyReturnsTrueWhenContextAvailable_Test() [default] void
@@ -1574,7 +1693,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0017162933394421547325 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L52" "GaussianBlurFilterTest_Success_ApplyReturnsTrueWhenContextAvailable_Test"
+    click C_0017162933394421547325 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L52" "GaussianBlurFilterTest_Success_ApplyReturnsTrueWhenContextAvailable_Test"
     class C_0015559999824339633645["vulkan::GaussianBlurFilterTest_Success_OutputDimensionsPreserved_Test"]
     class C_0015559999824339633645 {
         +GaussianBlurFilterTest_Success_OutputDimensionsPreserved_Test() [default] void
@@ -1586,7 +1705,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0015559999824339633645 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L68" "GaussianBlurFilterTest_Success_OutputDimensionsPreserved_Test"
+    click C_0015559999824339633645 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L68" "GaussianBlurFilterTest_Success_OutputDimensionsPreserved_Test"
     class C_0006284695356327858398["vulkan::GaussianBlurFilterTest_Success_BlurActuallyChangesPixels_Test"]
     class C_0006284695356327858398 {
         +GaussianBlurFilterTest_Success_BlurActuallyChangesPixels_Test() [default] void
@@ -1598,7 +1717,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0006284695356327858398 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L89" "GaussianBlurFilterTest_Success_BlurActuallyChangesPixels_Test"
+    click C_0006284695356327858398 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L89" "GaussianBlurFilterTest_Success_BlurActuallyChangesPixels_Test"
     class C_0018026485976502431525["vulkan::GaussianBlurFilterTest_Success_ConstantImageRemainsConstantAfterBlur_Test"]
     class C_0018026485976502431525 {
         +GaussianBlurFilterTest_Success_ConstantImageRemainsConstantAfterBlur_Test() [default] void
@@ -1610,7 +1729,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0018026485976502431525 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L111" "GaussianBlurFilterTest_Success_ConstantImageRemainsConstantAfterBlur_Test"
+    click C_0018026485976502431525 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L111" "GaussianBlurFilterTest_Success_ConstantImageRemainsConstantAfterBlur_Test"
     class C_0015394887257409114691["vulkan::GaussianBlurFilterTest_Success_SingleChannelImageProcessedCorrectly_Test"]
     class C_0015394887257409114691 {
         +GaussianBlurFilterTest_Success_SingleChannelImageProcessedCorrectly_Test() [default] void
@@ -1622,7 +1741,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0015394887257409114691 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L133" "GaussianBlurFilterTest_Success_SingleChannelImageProcessedCorrectly_Test"
+    click C_0015394887257409114691 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L133" "GaussianBlurFilterTest_Success_SingleChannelImageProcessedCorrectly_Test"
     class C_0012914578899388017827["vulkan::GaussianBlurFilterTest_Success_BlurReducesHighFrequencyVariation_Test"]
     class C_0012914578899388017827 {
         +GaussianBlurFilterTest_Success_BlurReducesHighFrequencyVariation_Test() [default] void
@@ -1634,7 +1753,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0012914578899388017827 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L153" "GaussianBlurFilterTest_Success_BlurReducesHighFrequencyVariation_Test"
+    click C_0012914578899388017827 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L153" "GaussianBlurFilterTest_Success_BlurReducesHighFrequencyVariation_Test"
     class C_0001023352672268732578["vulkan::GaussianBlurFilterTest_Success_SmallImageHandledCorrectly_Test"]
     class C_0001023352672268732578 {
         +GaussianBlurFilterTest_Success_SmallImageHandledCorrectly_Test() [default] void
@@ -1646,7 +1765,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0001023352672268732578 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L190" "GaussianBlurFilterTest_Success_SmallImageHandledCorrectly_Test"
+    click C_0001023352672268732578 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/blur_filter_test.cpp#L190" "GaussianBlurFilterTest_Success_SmallImageHandledCorrectly_Test"
     class C_0009048361618486078197["vulkan::GrayscaleFilter"]
     class C_0009048361618486078197 {
         +GrayscaleFilter() void
@@ -1663,13 +1782,13 @@ classDiagram
         -pipeline_ready_ : bool
         -shader_module_ : vk::ShaderModule
     }
-    click C_0009048361618486078197 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter.h#L14" "GrayscaleFilter"
+    click C_0009048361618486078197 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter.h#L14" "GrayscaleFilter"
     class C_0015372386241807495856["vulkan::GrayscaleFilterTest"]
     class C_0015372386241807495856 {
         #SetUp() void
         #loader_ : std::unique_ptr&lt;ImageLoader&gt;
     }
-    click C_0015372386241807495856 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L30" "GrayscaleFilterTest"
+    click C_0015372386241807495856 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L30" "GrayscaleFilterTest"
     class C_0009647178073809925785["vulkan::GrayscaleFilterTest_Success_ConstructsWithCorrectType_Test"]
     class C_0009647178073809925785 {
         +GrayscaleFilterTest_Success_ConstructsWithCorrectType_Test() [default] void
@@ -1681,7 +1800,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0009647178073809925785 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L42" "GrayscaleFilterTest_Success_ConstructsWithCorrectType_Test"
+    click C_0009647178073809925785 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L42" "GrayscaleFilterTest_Success_ConstructsWithCorrectType_Test"
     class C_0015219279838656792955["vulkan::GrayscaleFilterTest_Success_IsNotInPlace_Test"]
     class C_0015219279838656792955 {
         +GrayscaleFilterTest_Success_IsNotInPlace_Test() [default] void
@@ -1693,7 +1812,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0015219279838656792955 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L50" "GrayscaleFilterTest_Success_IsNotInPlace_Test"
+    click C_0015219279838656792955 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L50" "GrayscaleFilterTest_Success_IsNotInPlace_Test"
     class C_0012097212184263874087["vulkan::GrayscaleFilterTest_Success_ApplyReturnsTrueWhenContextAvailable_Test"]
     class C_0012097212184263874087 {
         +GrayscaleFilterTest_Success_ApplyReturnsTrueWhenContextAvailable_Test() [default] void
@@ -1705,7 +1824,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0012097212184263874087 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L60" "GrayscaleFilterTest_Success_ApplyReturnsTrueWhenContextAvailable_Test"
+    click C_0012097212184263874087 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L60" "GrayscaleFilterTest_Success_ApplyReturnsTrueWhenContextAvailable_Test"
     class C_0011611853806601716453["vulkan::GrayscaleFilterTest_Success_OutputDimensionsPreserved_Test"]
     class C_0011611853806601716453 {
         +GrayscaleFilterTest_Success_OutputDimensionsPreserved_Test() [default] void
@@ -1717,7 +1836,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0011611853806601716453 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L77" "GrayscaleFilterTest_Success_OutputDimensionsPreserved_Test"
+    click C_0011611853806601716453 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L77" "GrayscaleFilterTest_Success_OutputDimensionsPreserved_Test"
     class C_0015778773354101382337["vulkan::GrayscaleFilterTest_Success_OutputValuesAreInValidRange_Test"]
     class C_0015778773354101382337 {
         +GrayscaleFilterTest_Success_OutputValuesAreInValidRange_Test() [default] void
@@ -1729,7 +1848,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0015778773354101382337 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L95" "GrayscaleFilterTest_Success_OutputValuesAreInValidRange_Test"
+    click C_0015778773354101382337 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L95" "GrayscaleFilterTest_Success_OutputValuesAreInValidRange_Test"
     class C_0017094683318139075804["vulkan::GrayscaleFilterTest_Success_MatchesCpuBT601WithinRoundingTolerance_Test"]
     class C_0017094683318139075804 {
         +GrayscaleFilterTest_Success_MatchesCpuBT601WithinRoundingTolerance_Test() [default] void
@@ -1741,7 +1860,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0017094683318139075804 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L121" "GrayscaleFilterTest_Success_MatchesCpuBT601WithinRoundingTolerance_Test"
+    click C_0017094683318139075804 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L121" "GrayscaleFilterTest_Success_MatchesCpuBT601WithinRoundingTolerance_Test"
     class C_0009079231436390356867["vulkan::GrayscaleFilterTest_Success_ConstantColorImageProducesExpectedLuminance_Test"]
     class C_0009079231436390356867 {
         +GrayscaleFilterTest_Success_ConstantColorImageProducesExpectedLuminance_Test() [default] void
@@ -1753,7 +1872,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0009079231436390356867 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L154" "GrayscaleFilterTest_Success_ConstantColorImageProducesExpectedLuminance_Test"
+    click C_0009079231436390356867 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L154" "GrayscaleFilterTest_Success_ConstantColorImageProducesExpectedLuminance_Test"
     class C_0007443640806489088130["vulkan::GrayscaleFilterTest_Error_RejectsFourChannelInput_Test"]
     class C_0007443640806489088130 {
         +GrayscaleFilterTest_Error_RejectsFourChannelInput_Test() [default] void
@@ -1765,7 +1884,7 @@ classDiagram
         -TestBody() void
         -test_info_ : ::testing::TestInfo *const
     }
-    click C_0007443640806489088130 href "https://github.com/josnelihurt-code/learning-cuda/blob/97e3ed959ece1d65059f15e1d5119503c9b683f8/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L177" "GrayscaleFilterTest_Error_RejectsFourChannelInput_Test"
+    click C_0007443640806489088130 href "https://github.com/josnelihurt-code/learning-cuda/blob/f678fb2e6e1a3cc4938a9c19326f3f7f532594cf/src/cpp_accelerator/adapters/compute/vulkan/filters/grayscale_filter_test.cpp#L177" "GrayscaleFilterTest_Error_RejectsFourChannelInput_Test"
     C_0015254283623081976151 <|-- C_0009820433282547733670 : 
     C_0015254283623081976151 <|-- C_0008698411182414121450 : 
     C_0015254283623081976151 <|-- C_0017162933394421547325 : 

@@ -16,7 +16,7 @@ Microservices, observability, testing, and cloud deployment.
 ### Services to Build
 - [x] #4 Image Processing Service (ProcessImage endpoint implemented)
 - [x] #5 File Service (ListAvailableImages, UploadImage implemented)
-- [ ] #507 StreamProcessVideo implementation (defined but returns Unimplemented)
+- ~~#507 StreamProcessVideo implementation (defined but returns Unimplemented)~~ (obsolete — the `StreamProcessVideo` RPC is no longer defined in any proto; superseded by `SignalingStream` in `proto/webrtc_signal.proto`)
 - [ ] #524 Video Management Service (ListVideos, StreamVideo, Upload)
 - [ ] #524 Model Inference Service (Predict, StreamInference)
 
@@ -27,7 +27,7 @@ Microservices, observability, testing, and cloud deployment.
 - [x] #9 RESTful endpoints: GET /api/v1/images, POST /api/v1/images/upload, etc.
 - [x] #10 Dual protocol support: REST + Connect + gRPC in single server
 - [x] #11 Native HTTP/JSON support without gateway overhead
-- [ ] #507 Implement bidirectional streaming for video
+- [x] #507 Implement bidirectional streaming for video (via `SignalingStream` in `proto/webrtc_signal.proto`)
 - [ ] #524 Add Connect-Web for browser clients
 
 ### Infrastructure
@@ -128,7 +128,7 @@ Microservices, observability, testing, and cloud deployment.
 - [x] #54 Create pre-commit-cpp.sh, pre-commit-go.sh, pre-commit-frontend.sh
 - [x] #55 Create pre-commit-lint-cpp.sh, pre-commit-lint-go.sh, pre-commit-lint-frontend.sh
 - [x] #56 Create pre-push hook (full validation with all browsers)
-- [x] #57 Add setup-hooks.sh installation script
+- [x] #57 Add hooks installation script (`scripts/hooks/install.sh`)
 - [x] #58 Document git hooks in README
 - [x] #59 Configure golangci-lint with gosec exceptions and govet tweaks
 - [ ] Add commit-msg hook for conventional commits validation
@@ -152,8 +152,9 @@ Microservices, observability, testing, and cloud deployment.
 - [x] #72 Create mocks for StaticImageRepository interface
 - [x] #73 Total application layer coverage: 6 use cases tested (29+ test cases, 857 lines)
 - [x] #74 Total infrastructure layer coverage: 1 repository tested (99 lines)
-- [ ] Add unit tests for handlers (ConnectRPC, WebSocket, HTTP)
-- [ ] Add unit tests for repositories (mock Flipt client)
+- [x] Add unit tests for ConnectRPC handlers (config, file, webrtc)
+- [ ] Add unit tests for HTTP handlers
+- [x] Add unit tests for repositories (GOFF — `goff_repository_test.go` in `src/go_api/pkg/infrastructure/featureflags/`)
 - [ ] Add unit tests for remaining infrastructure services
 - [ ] Mock all remaining domain interfaces
 
@@ -256,7 +257,7 @@ Microservices, observability, testing, and cloud deployment.
 - [ ] #529 TLS for gRPC
 - [ ] #529 Auth (JWT, OAuth)
 - [ ] #529 Rate limiting
-- [ ] #529 Fix WebSocket CORS validation (currently accepts all origins)
+- ~~#529 Fix WebSocket CORS validation (currently accepts all origins)~~ (obsolete — WebSocket transport removed in favor of WebRTC)
 - [ ] #529 Input validation layer (image size limits, request validation)
 - [ ] #529 Custom domain errors with proper error codes
 
@@ -266,16 +267,16 @@ Microservices, observability, testing, and cloud deployment.
 - [x] #131 Configure clang-tidy for C++ with 50+ code quality checks
 - [x] #132 Configure golangci-lint with 20+ linters for Go
 - [x] #133 Configure ESLint + Prettier for TypeScript/React frontend
-- [x] #134 Create unified run-linters.sh script (supports --fix mode)
+- [x] #134 Create unified linters script `scripts/test/linters.sh` (supports --fix mode)
 - [x] #135 Add Docker services for all linters (lint-frontend, lint-golang, lint-cpp)
 - [x] #136 Enhanced .clang-format with comprehensive formatting rules
 - [x] #137 Configure linter exclusions for tests, proto, and generated code
-- [ ] Pre-commit hooks for automatic linting
+- [x] Pre-commit hooks for automatic linting (`scripts/hooks/pre-commit.sh` runs the C++/Go/frontend/language lint scripts)
 - [ ] CI/CD integration for linting on pull requests
 
 ### Testing & Coverage
 - [x] #138 Setup Vitest for frontend unit tests with coverage
-- [x] #139 Create run-coverage.sh script for all test coverage
+- [x] #139 Create coverage script `scripts/test/coverage.sh` for all test coverage
 - [x] #140 Add coverage-report-viewer Docker service (port 5052)
 - [x] #141 Configure coverage thresholds (80% for all metrics)
 - [x] #142 Implement Go unit tests for ProcessImageUseCase (12 test cases)
@@ -296,7 +297,7 @@ Microservices, observability, testing, and cloud deployment.
 - [x] #150 Simplify config initialization with automatic unmarshaling
 - [ ] Add godoc documentation for all exported types/functions
 - [ ] Extract magic numbers to constants (timeouts, intervals, buffer sizes)
-- [ ] Refactor long functions (websocket.processFrame)
+- [ ] Refactor long functions
 - [ ] Add validation DTOs (separate from domain models)
 - [ ] Error handling middleware for HTTP/gRPC
 - [ ] Add tools.go for build dependencies versioning
@@ -312,7 +313,7 @@ Microservices, observability, testing, and cloud deployment.
 - [ ] Support multiple server-side cameras
 - [ ] Support video files as input sources
 - [ ] Support remote stream URLs (RTSP, HLS)
-- [ ] Implement GetFlag in FliptRepository
+- [x] Implement GetFlag in GoffRepository (`src/go_api/pkg/infrastructure/featureflags/goff_repository.go`)
 
 ## Notes
 

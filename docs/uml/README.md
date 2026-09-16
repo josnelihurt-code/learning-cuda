@@ -65,7 +65,7 @@ Key settings:
 | `generate_method_arguments` | `none` | Keeps diagrams readable |
 | `include_relations_also_as_members` | `false` | Avoids redundant edges |
 | `generate_packages` | `true` | Shows namespace hierarchy |
-| `remove_compile_flags` | `-frandom-seed`, `-MD` | Removes Bazel-specific flags clang-uml doesn't understand |
+| `remove_compile_flags` | `-frandom-seed`, `-MD`, `-Wno-missing-requires` | Removes Bazel-specific flags clang-uml doesn't understand |
 
 ## Troubleshooting
 

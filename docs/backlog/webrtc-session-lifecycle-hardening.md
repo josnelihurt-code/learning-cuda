@@ -62,8 +62,9 @@ Add a unit test in `webrtc_session_manager_test.go` that:
 
 ### Problem
 
-Both the C++ peer connection (`src/cpp_accelerator/ports/grpc/webrtc_manager.cpp:148`) and the
-frontend peer connection (`src/front-end/src/infrastructure/connection/webrtc-service.ts:103`)
+Both the C++ peer connection (`src/cpp_accelerator/adapters/webrtc/webrtc_manager.cpp:85`) and the
+frontend peer connection (`src/front-end/src/infrastructure/connection/webrtc-service.ts`,
+`DEFAULT_ICE_SERVERS` at line 34, applied at line 128)
 configure only `stun:stun.l.google.com:19302`. No TURN relay is available.
 
 This is already tracked as backlog item `#511 Study STUN/TURN for NAT traversal` in

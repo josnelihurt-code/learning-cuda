@@ -57,8 +57,13 @@ docs/
     webrtc-session-lifecycle-hardening.md
     webrtc-trickle-ice-inline.md
     infrastructure.md, kernels.md, neural-networks.md, video-streaming.md
+  issues/                               # Issue investigation records
+    registry-issue-go4.6.1-cpp4.7.9-proto4.7.0.md
   runbooks/                             # Operational runbooks
     accelerator-mtls.md                 # mTLS certificate setup and rotation
+  uml/                                  # UML class diagram docs and generated output
+    README.md, index.md
+    generated/                          # clang-uml .mmd diagrams (not committed)
   ci-workflows.md                       # CI/CD pipeline documentation
   testing-and-coverage.md               # Testing strategy and coverage
 ```

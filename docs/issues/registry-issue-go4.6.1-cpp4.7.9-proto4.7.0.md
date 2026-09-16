@@ -3,7 +3,7 @@
 | Field | Value |
 |-------|--------|
 | Opened | 2026-07-26 |
-| Status | Fix committed on PR [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) — CI green, awaiting review/merge (see [Remaining steps](#remaining-steps)) |
+| Status | Fix merged via PR [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) (merge commit `0eafa91`) — deploy + soak validation still pending (see [Remaining steps](#remaining-steps)) |
 | Go API | observed `4.6.1` → fix bumps to `4.6.2` |
 | cpp-accelerator | observed `4.7.9` (`cpp-accelerator-4.7.9-proto4.7.0-arm64`) → fix bumps to `4.7.10` |
 | proto | `4.7.0` (unchanged) |
@@ -217,7 +217,7 @@ No C++ test covers the reconnect path — there is no injectable transport for `
 
 ## Remaining steps
 
-The fix is committed on PR [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) (`fix/accelerator-control-reconnect-hang`); CI passed on 2026-07-26. Remaining items still open:
+The fix on PR [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) (`fix/accelerator-control-reconnect-hang`) was merged to `main` (merge commit `0eafa91`); CI passed on 2026-07-26. Remaining items still open:
 
 1. **Triage the competing hypothesis first** (read-only, no deploy needed):
    ```bash
@@ -227,7 +227,7 @@ The fix is committed on PR [#746](https://github.com/josnelihurt-code/learning-c
    Confirm whether Jetson output stopped across *all* subsystems at `23:17:08` or only for the control client, and check `df -h` / `ls -l /tmp/cppaccelerator.log*` on the device. Record the answer in a revision note — it decides whether the primary hypothesis or the logging hypothesis was right.
 2. ✅ **Commit** on a `fix/` branch off `main` (`fix/accelerator-control-reconnect-hang`) — VERSION files bumped to cpp `4.7.10` / Go `4.6.2`; pre-commit version check passed. Done (commit `b9d274d`).
 3. **Add a C++ regression test** for the reconnect path: extract the stream behind an injectable interface, simulate a `Read` that never returns after cancel, and assert `Run()` reaches its reconnect sleep within a deadline. Without this the abort watchdog is the only thing standing between us and a repeat.
-4. ✅ **Open the PR** — [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) (`Closes #745`); CI green on 2026-07-26 (ARM PR build 2m17s, app image build 1m48s, web-frontend + yolo-model-gen pass). Awaiting review/merge.
+4. ✅ **Open the PR** — [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) (`Closes #745`); CI green on 2026-07-26 (ARM PR build 2m17s, app image build 1m48s, web-frontend + yolo-model-gen pass). Merged (merge commit `0eafa91`).
 5. **After merge, validate the deploy** with the commands in that section — expect Jetson image `cpp-accelerator-4.7.10-…`, Go image `app:4.6.2-amd64`.
 6. **Soak** for at least one full session cycle and grep the Jetson for the new markers:
    ```
@@ -337,7 +337,7 @@ If Go-side changes are ever required, bump `src/go_api/VERSION` and follow [`.gi
 
 - **Actions:** Committed the fix on `fix/accelerator-control-reconnect-hang` (off `origin/main`, commit `b9d274d`) — code-only, doc edits kept on this docs branch. Opened fix PR [#746](https://github.com/josnelihurt-code/learning-cuda/pull/746) (`Closes #745`). Pre-commit version check passed.
 - **CI:** All checks green on 2026-07-26 — ARM PR build 2m17s, Build app image (PRs only) 1m48s, web-frontend + yolo-model-gen pass, Detect changed paths pass. Deploy/push jobs correctly skipped (run only on merge to `main`).
-- **Status:** PR #746 awaiting review/merge; deploy + soak validation still pending (remaining steps 1, 3, 5, 6, 7).
+- **Status:** PR #746 merged (merge commit `0eafa91`); deploy + soak validation still pending (remaining steps 1, 3, 5, 6, 7).
 
 ---
 
