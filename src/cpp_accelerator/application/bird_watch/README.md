@@ -43,7 +43,8 @@ graph TB
 |---|---|---|
 | `CameraHub` | `adapters/camera/camera_hub.{h,cpp}` | Shared H.264 fan-out publisher. `BirdWatcher` calls `Subscribe()` to receive frames. Camera stays alive even with zero subscribers. |
 | `ProcessorEngine` | `application/engine/processor_engine.{h,cpp}` | Synchronous YOLO inference endpoint. `BirdWatcher` calls `ProcessImage()` per frame. |
-| `IImageSink` / `ImageWriter` | `domain/interfaces/` | BMP file writer. `BirdWatcher` calls `writeBmp()` to persist captures. |
+| `IImageSink` | `domain/interfaces/` | Image sink contract. `BirdWatcher` persists captures via `writeBmp()`. |
+| `ImageWriter` | `adapters/image_io/image_writer.{h,cpp}` | BMP file writer used by `writeBmp()`. |
 | `main.cpp` | `cmd/accelerator_control_client/` | Wires everything together; reads absl flags, constructs `BirdWatcher`, calls `Start()`. |
 
 ## Frame Processing Pipeline
@@ -160,26 +161,30 @@ All flags are set in `main.cpp` via absl and forwarded through
 
 | Flag | Default | Maps to |
 |---|---|---|
-| `--bird_watch_enabled` | `false` | `config.enabled` |
+| `--bird_watch_enabled` | `true` | `config.enabled` |
 | `--bird_watch_confidence` | `0.4` | `config.confidence_threshold` |
 | `--bird_watch_idle_interval_s` | `3` | `config.idle_interval_s` |
 | `--bird_watch_alert_frames` | `5` | `config.alert_frames` |
 | `--bird_watch_max_per_minute` | `5` | `config.max_per_minute` |
 | `--bird_watch_min_interval_s` | `5` | `config.min_save_interval_s` |
 | `--bird_watch_camera_id` | `0` | `config.camera_sensor_id` |
-| `--captures_dir` | — | `config.captures_dir` |
+| `--captures_dir` | `/tmp/cuda-captures` | `config.captures_dir` |
 
 ## Jetson / Nvidia Argus Notes
 
 With `--config=nvidia-argus-camera`, `GstCameraSourceImpl` selects the
-`NvidiaArgusBackend` at runtime. The Argus pipeline re-emits SPS/PPS at every
-IDR (`h264parse config-interval=-1`, `nvv4l2h264enc insert-sps-pps=true`), so
-decoder recovery after queue overflow is guaranteed within one GOP (~1–2 s).
+`NvidiaArgusBackend` at runtime. The Argus stream branch encodes with
+`x264enc` using **rolling intra-refresh** (`intra-refresh=true`,
+`key-int-max=60`) plus `h264parse config-interval=-1`: SPS/PPS are emitted
+at the stream head only — there are no periodic IDRs, so a late-joining or
+lossy client cannot resync until the stream restarts (see README_STILLS.md
+"Known follow-ups").
 
-The BirdWatcher's default 1280×720 may not be a native sensor mode on Jetson
-cameras (e.g., IMX477). If the Argus pipeline fails to negotiate, set the
-capture dimensions to 0 to let the backend pick its defaults (typically
-1920×1080@30).
+The BirdWatcher's default 1280×720 is not a native sensor mode on Jetson
+cameras (e.g., IMX477); the backend scales to it via `nvvidconv`. If the
+capture dimensions are set to 0, the backend picks its defaults: 1280×720
+encode resolution, with the sensor always driven at its full 4056×3040@15
+mode (requested fps is ignored).
 
 ## Build
 
@@ -207,5 +212,9 @@ bazel build --config=cuda --config=nvidia-argus-camera \
 # [BirdWatcher] Started (camera=0, threshold=0.40)
 # [BirdWatcher] first H264 frame decoded 1280x720
 # [BirdWatcher] IDLE -> ALERT (bird detected)
-# [BirdWatcher] Saved capture: ./captures/2026-05-02T19-00-43Z.bmp
+# [BirdWatcher] Saved 4056x3040 still capture: ./captures/2026-05-02T19-00-43Z.bmp
 ```
+
+Note: BMP capture requires the Argus backend (full-res `still_sink` branch).
+On x86/V4L2 builds `GrabStillFrame` is unsupported, so saves are skipped
+with a "GrabStillFrame returned empty; skipping save" log.

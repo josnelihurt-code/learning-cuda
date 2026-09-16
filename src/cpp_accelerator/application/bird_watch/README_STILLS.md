@@ -291,7 +291,7 @@ Net result: `+227 / -558` lines across nine files; ~330 lines removed.
 | `adapters/camera/nvbuf_cuda_utils.{h,cpp}` | `NvBufSurface` mapping wrapper |
 | `adapters/compute/cuda/kernels/nv12_utils_kernel.{h,cu}` | `cuda_nv12_to_rgba_device`, `cuda_nv12_letterbox_device` |
 | `adapters/camera/camera_hub.{h,cpp}` | Subscriber fan-out, `GrabStillFrame` and `GetGpuFrameProcessor` delegation |
-| `adapters/webrtc/live_video_processor.{h,cpp}` | WebRTC-side decode/filter/re-encode for sessions with active filters |
+| `adapters/webrtc/live_video_processor.{h,cpp}` | WebRTC-side decode/filter/re-encode for every streaming session (see "Known follow-ups") |
 | `application/bird_watch/bird_watcher.{h,cpp}` | Detection loop, queue management, GPU vs H.264 path selection |
 | `application/bird_watch/bird_watcher_gpu_argus.cpp` | `ConnectGpuPath` / `DisconnectGpuPath` wiring on Argus |
 | `third_party/nvbufsurface/nvbufsurface.h` | CI-only stub matching the JetPack 6 / L4T R36 layout. The real header at `/usr/src/jetson_multimedia_api/include/nvbufsurface.h` and `libnvbuf_utils.so` are mounted into the container at runtime. |

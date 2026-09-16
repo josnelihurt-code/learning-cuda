@@ -427,7 +427,7 @@ Variant 3 is fast but two more nuisances remain. Variant 4 is variant 3 plus two
 
 **Tweak A — Gaussian weights live in constant memory.**
 ```cpp
-__constant__ float c_gaussian_kernel[kMaxKernelSize];   // declared at file scope
+__constant__ float c_gaussian_kernel[K_MAX_KERNEL_SIZE];   // declared at file scope
 // ...
 cudaMemcpyToSymbol(c_gaussian_kernel, kernel, kernel_size * sizeof(float), 0,
                    cudaMemcpyHostToDevice);             // upload once before launch
@@ -579,7 +579,7 @@ sequenceDiagram
 
 YOLOv10 ships with **end-to-end NMS baked into the graph**: output is `[1, N, 6] = (x1,y1,x2,y2,conf,class_id)`. The detector just confidence-filters; no CPU NMS needed.
 
-YOLOv8-style models output `[1, N, 4 + num_classes]` with `(cx,cy,w,h, score_per_class…)`. For these, the code does **CPU-side NMS** (`ApplyNMS` at line 458): sort by confidence, walk the list, suppress any later box whose IoU with a kept box exceeds 0.45. This NMS is intentionally on CPU because N is small after confidence filtering — moving it to GPU would cost more in launch overhead than it saves.
+YOLOv8-style models output `[1, N, 4 + num_classes]` with `(cx,cy,w,h, score_per_class…)`. For these, the code does **CPU-side NMS** (`ApplyNMS` at line 465): sort by confidence, walk the list, suppress any later box whose IoU with a kept box exceeds 0.45. This NMS is intentionally on CPU because N is small after confidence filtering — moving it to GPU would cost more in launch overhead than it saves.
 
 ### 7.5 Coordinate transform
 
@@ -607,7 +607,7 @@ A checklist of CUDA capabilities you can study by reading these files:
 - **Coalesced access via RGBA repack** — blur separable path.
 - **Cooperative tile loading with halo** — tiled blur.
 - **`cudaDeviceSynchronize` + `cudaGetLastError`** — error handling pattern after every launch.
-- **`cudaErrorString`** — for human-readable diagnostics.
+- **`cudaGetErrorString`** — for human-readable diagnostics.
 - **Memory pool / reuse** — `memory/cuda_memory_pool.cpp`.
 - **NCHW layout for DL inference** — letterbox kernel scatter write.
 - **TensorRT integration** — `tensorrt/yolo_detector.cpp`: `IRuntime`, `ICudaEngine`, `IExecutionContext`, `enqueueV3`, `setTensorAddress`, `setMemoryPoolLimit`, `buildSerializedNetwork`, ONNX parser, optimization profile for dynamic shapes.

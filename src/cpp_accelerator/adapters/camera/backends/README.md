@@ -50,45 +50,42 @@ Jetson production build currently enables Argus through:
 
 ## 3) Current Jetson Argus Stream Pipeline
 
-`NvidiaArgusBackend::Start(...)` builds one of two pipelines depending on
-whether the platform has an NVENC hardware encoder. Probe order:
-
-1. Is the `nvv4l2h264enc` GStreamer element registered? (plugin loaded)
-2. Does the kernel device node `/dev/v4l2-nvenc` exist? (encoder hardware
-   actually present)
-
-Both must be true to take the hardware path. Orin Nano fails (2) — see §13.
-
-**Hardware-encode path** (Orin NX, AGX Orin, Xavier, etc.):
+Since the high-resolution stills refactor (#722), `NvidiaArgusBackend::Start(...)`
+builds a single pipeline — no encoder probing, no NVENC path. The sensor always
+captures at full resolution (`4056x3040 @ 15 fps`, NVMM NV12) and a `tee` fans
+out to three consumers that each need a different resolution:
 
 ```text
-nvarguscamerasrc sensor-id=<id> wbmode=<mode> !
-video/x-raw(memory:NVMM),width=<w>,height=<h>,framerate=<fps>/1,format=NV12 !
-nvvidconv !
-nvv4l2h264enc insert-sps-pps=true bitrate=2000000 !
-h264parse config-interval=-1 !
-video/x-h264,stream-format=byte-stream,alignment=au !
-appsink name=sink emit-signals=true max-buffers=2 drop=true
+nvarguscamerasrc sensor-id=<id> wbmode=<mode>     (always 4056x3040 @ 15 fps)
+   !
+ tee name=cam_tee
+   |
+   +--> still_sink branch    full-res NV12 in system memory -> still captures
+   |       queue leaky=2 max-size-buffers=1 ! nvvidconv !
+   |       video/x-raw,4056x3040,NV12 !
+   |       appsink name=still_sink emit-signals=false max-buffers=1 drop=true
+   |
+   +--> raw_sink branch      encode-res NVMM NV12 -> GPU frame processor (YOLO)
+   |       queue leaky=2 max-size-buffers=2 ! nvvidconv !
+   |       video/x-raw(memory:NVMM),<encode_w>x<encode_h>,NV12 !
+   |       appsink name=raw_sink emit-signals=true max-buffers=2 drop=true
+   |
+   +--> stream_sink branch   encode-res I420 -> x264enc -> h264parse -> WebRTC
+           queue leaky=2 max-size-buffers=2 ! nvvidconv !
+           video/x-raw,I420,<encode_w>x<encode_h> !
+           x264enc tune=zerolatency speed-preset=ultrafast bitrate=2000
+                   vbv-buf-capacity=400 intra-refresh=true key-int-max=60 !
+           video/x-h264,profile=baseline !
+           h264parse config-interval=-1 !
+           video/x-h264,stream-format=byte-stream,alignment=au !
+           appsink name=stream_sink emit-signals=true max-buffers=2 drop=true
 ```
 
-**Software-encode fallback** (Orin Nano — no NVENC):
-
-```text
-nvarguscamerasrc sensor-id=<id> wbmode=<mode> !
-video/x-raw(memory:NVMM),width=<w>,height=<h>,framerate=<fps>/1,format=NV12 !
-nvvidconv ! video/x-raw,format=I420 !
-x264enc tune=zerolatency speed-preset=ultrafast bitrate=2000
-        vbv-buf-capacity=400 intra-refresh=true key-int-max=60 !
-video/x-h264,profile=baseline !
-h264parse config-interval=-1 !
-video/x-h264,stream-format=byte-stream,alignment=au !
-appsink name=sink emit-signals=true max-buffers=2 drop=true
-```
+Encoding is always software `x264enc` (Orin Nano has no NVENC — §13.1; the
+encoder probe this section used to describe was removed by the #722 refactor).
 
 Important runtime behavior implemented:
 
-- Encoder selection is automatic. If neither encoder is available the backend
-  fails fast with a clear message instead of starting a broken pipeline.
 - Output is pinned to **Annex-B / AU-aligned** H.264 (`stream-format=byte-stream,
   alignment=au`). The downstream consumer is `live_video_processor` which
   feeds bytes to libavcodec; libavcodec's H.264 decoder rejects AVC framing,
@@ -100,8 +97,10 @@ Important runtime behavior implemented:
 - `wbmode` defaults to `4` (warm-fluorescent) and is overridable at runtime
   via the `NVARGUS_WBMODE` env var (1=auto, 2=incandescent, 3=fluorescent,
   4=warm-fluorescent, 5=daylight, 6=cloudy-daylight).
-- If request arrives as invalid `0x0@0fps`, backend normalizes to
-  `1920x1080@30`.
+- If a request arrives as invalid `0x0@0fps`, the backend normalizes to
+  `1280x720` and ignores the requested fps — the sensor always drives the
+  clock at 15 fps. The request's width/height set the `raw_sink`/`stream_sink`
+  (encode) resolution only; the source still captures full-sensor.
 - `h264parse` is optional at parse time; if missing the pipeline still
   builds without parser (with warning log) — but byte-stream pinning is
   lost in that case.
@@ -412,6 +411,10 @@ Software encode at 1080p30 with `x264enc tune=zerolatency speed-preset=
 ultrafast` runs at ~15% total CPU on Orin Nano (measured 12-21% across all
 6 cores at idle clocks via `tegrastats`), with no thermal climb at room
 temperature. Plenty of headroom for the rest of the WebRTC + CUDA pipeline.
+
+**Superseded**: the high-resolution stills refactor (#722) removed this probe
+and the NVENC path entirely — `x264enc` is now the unconditional encoder and
+the backend no longer references `nvv4l2h264enc` (see §3).
 
 ### 13.2) `Invalid NAL unit 0` flood — h264parse picked AVC framing
 

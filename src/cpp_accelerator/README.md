@@ -6,7 +6,7 @@ High-performance image processing library implementing Clean Architecture princi
 
 The CUDA Accelerator Library provides a production-grade image processing framework with GPU-accelerated filters. The architecture uses a **pluggable filter factory** pattern: `ProcessorEngine` is decoupled from concrete filter implementations via `IFilterFactory`, with one factory registered per accelerator backend (CUDA, CPU, OpenCL). New backends are added by implementing `IFilterFactory` and registering it at startup — no engine changes required. The library also includes remote camera capture via GStreamer/Jetson camera sources, streamed over WebRTC peer connections.
 
-**Version**: See `VERSION` file (currently 4.7.2)
+**Version**: See `VERSION` file (currently 4.7.10)
 
 **Features**:
 - Multi-backend GPU acceleration: **CUDA**, **OpenCL**, and CPU fallback
@@ -771,7 +771,7 @@ The `ProcessorEngine` is the core orchestration component that coordinates image
 
 The domain layer defines core abstractions used throughout the library:
 
-**FilterType Enum**: `GRAYSCALE`, `BLUR`
+**FilterType Enum**: `GRAYSCALE`, `BLUR`, `MODEL_INFERENCE`
 
 **GrayscaleAlgorithm Enum**: `BT601` (SDTV), `BT709` (HDTV), `Average`, `Lightness`, `Luminosity`
 
@@ -795,7 +795,7 @@ All code in `cpp_accelerator/` compiles without warnings when `-Werror` is enabl
 
 The library previously exposed a C API through `processor_api.h`. The shared library build target (`libcuda_processor.so`) has been removed. The `processor_engine` wrapper in the application layer is now used directly by the gRPC and WebRTC adapters.
 
-**API Version**: The C API version was defined as `PROCESSOR_API_VERSION "2.1.0"`. This is separate from the library version (4.7.2).
+**API Version**: The C API version was defined as `PROCESSOR_API_VERSION "2.1.0"`. This is separate from the library version (4.7.10).
 
 ## Adding New Filters or Backends
 
@@ -812,7 +812,7 @@ The library previously exposed a C API through `processor_api.h`. The shared lib
 3. **Composition**: Create a new `composition/platform/platform_support_<backend>.cpp` that includes `cpu` + the new backend
 4. **Bazel flags**: Add `bool_flag` and `config_setting` in `bazel/flags/BUILD`, add `--config` shorthand in `.bazelrc`
 5. **Composition BUILD**: Add entries to the `select()` blocks in `composition/BUILD` for the new backend and its combinations
-6. **Protocol buffer**: Add the new `AcceleratorType` enum value in `image_processor_service.proto`
+6. **Protocol buffer**: Add the new `AcceleratorType` enum value in `proto/common.proto`
 
 The `FilterFactoryRegistry` handles the rest — no engine logic changes needed.
 
@@ -842,9 +842,8 @@ bazel test //src/cpp_accelerator/adapters/compute/opencl/filters:grayscale_filte
 bazel test //src/cpp_accelerator/adapters/compute/opencl/filters:blur_filter_test
 bazel test //src/cpp_accelerator/adapters/compute/vulkan/filters:grayscale_filter_test
 bazel test //src/cpp_accelerator/adapters/compute/vulkan/filters:blur_filter_test
-bazel test //src/cpp_accelerator/adapters/image_io:image_loader_test
-bazel test //src/cpp_accelerator/adapters/image_io:image_writer_test
-bazel test //src/cpp_accelerator/adapters/config:config_manager_test
+bazel test //src/cpp_accelerator/adapters/image_io:image_adapters_test
+bazel test //src/cpp_accelerator/adapters/config:config_test
 bazel test //src/cpp_accelerator/adapters/webrtc:data_channel_framing_test
 ```
 
