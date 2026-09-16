@@ -38,9 +38,6 @@ bazel test //src/cpp_accelerator/...                # C++ tests
 # Specific C++ test
 bazel test //src/cpp_accelerator/core:logger_test
 
-# BDD acceptance tests (requires services running)
-go test ./test/integration/tests/acceptance -run TestFeatures -v
-
 # E2E tests
 ./scripts/test/e2e.sh --chromium   # Fast: Chromium only
 ./scripts/test/e2e.sh              # All browsers
@@ -97,10 +94,11 @@ managed with the `gh stack` extension (`github/gh-stack`; install with
 src/cpp_accelerator/
   application/         # Use cases, FilterPipeline, BufferPool
   domain/interfaces/   # IFilter, ImageBuffer, IImageProcessor
-  infrastructure/cuda/ # CUDA kernel implementations
-  infrastructure/cpu/  # CPU fallback implementations
-  ports/grpc/         # gRPC service (primary integration)
-  ports/shared_lib/   # Shared library exports
+  adapters/compute/cuda/ # CUDA kernel implementations
+  adapters/compute/cpu/  # CPU fallback implementations
+  adapters/grpc_control/ # gRPC client (primary integration)
+  adapters/webrtc/       # WebRTC (data channel framing, live video)
+  cmd/accelerator_control_client/ # Client binary
   core/               # Logger, Telemetry, Result type
 
 src/go_api/
@@ -109,7 +107,7 @@ src/go_api/
   pkg/application/    # Use cases
   pkg/domain/         # Domain logic
   pkg/infrastructure/ # Repositories, gRPC client
-  pkg/interfaces/     # HTTP/WebSocket handlers
+  pkg/interfaces/     # HTTP/ConnectRPC/WebRTC signaling handlers
 
 src/front-end/        # React (Vite)
 ```
@@ -119,7 +117,7 @@ src/front-end/        # React (Vite)
 - Clean Architecture with dependency injection
 - FilterPipeline orchestrates composable filter chains
 - ProcessorEngine coordinates between ports and pipeline
-- gRPC streaming for video processing (StreamProcessVideo)
+- gRPC streaming for control/signaling (AcceleratorControlService.Connect bidi stream); media over WebRTC
 
 ## Testing Patterns
 
@@ -153,7 +151,7 @@ Proto generation: `./scripts/build/protos.sh`
 
 ## Tech Stack
 
-- **Backend**: Go with native HTTPS, WebSocket support
+- **Backend**: Go with native HTTPS, WebRTC signaling via ConnectRPC
 - **Processing**: C++/CUDA via gRPC service (ConnectRPC)
 - **Build**: Bazel for C++/CUDA, Makefile for Go
 - **Frontend**: React + TypeScript with Vite
@@ -194,7 +192,7 @@ bazel build //src/cpp_accelerator/...
 Requires GStreamer dev headers and plugins:
 ```bash
 sudo apt-get install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-    gstreamer1.0-plugins-good gstreamer1.0-plugins-ugly
+    gstreamer1.0-plugins-good libgstreamer-plugins-ugly1.0-dev
 ```
 
 Build and run with v4l2 camera support enabled:
@@ -223,8 +221,9 @@ The code targets the TRT 10.x API exclusively: `getNbIOTensors`, `setTensorAddre
 ### ONNX → TRT engine caching
 On first run with a new model, the detector builds a TRT engine from the `.onnx` file
 and saves it as `.engine` (or `.jp6.engine` on Jetson Orin / aarch64). Subsequent runs
-load the cached engine directly. The model path in `processor_engine.cpp` is:
-`data/models/yolov10n.onnx`.
+load the cached engine directly. `processor_engine.cpp` references the model by
+id (`yolov10n`); the model path `data/models/yolov10n.onnx` is registered in
+`src/cpp_accelerator/composition/platform/cuda/cuda_platform.cpp`.
 
 ### Docker builds with TRT runtime
 Pass `--build-arg ENABLE_TENSORRT=true` to include TRT runtime libs in the container:

@@ -72,7 +72,7 @@ graph TB
         ProcessorEngine[Processor Engine]
         CudaKernels[CUDA Kernels]
         CpuFallback[CPU Fallback]
-        YOLODetector[YOLO Detector<br/>ONNX Runtime]
+        YOLODetector[YOLO Detector<br/>TensorRT]
         DataChannelFraming[Data Channel Framing]
     end
     
@@ -142,7 +142,7 @@ graph TB
     subgraph "C++/CUDA Accelerator Client"
         AccelClient[AcceleratorControlClient<br/>Outbound mTLS Client]
         ProcessorEngine[Processor Engine]
-        SharedLibrary[Shared Library<br/>libcuda_processor.so]
+        SharedLibrary[C++/CUDA Accelerator Code]
         GrayscaleKernel[Grayscale Kernels]
         BlurKernel[Blur Kernels]
         YOLODetector[YOLO Detector]
@@ -201,7 +201,8 @@ The system uses a reverse gRPC topology where C++ accelerator clients dial into 
 - Go acts as the gRPC server hosting `AcceleratorControlService`
 - Accepts inbound mTLS connections from registered accelerators
 - Multiplexes all commands over a single bidirectional stream per accelerator
-- Message types: Register, ProcessImage, ListFilters, GetVersionInfo, SignalingMessage, Keepalive, ErrorReport, DetectionResult
+- Message types: Register, RegisterAck, SignalingMessage, Keepalive, ErrorReport
+- Image commands (ProcessImage, ListFilters, GetVersionInfo) ride the WebRTC control data channel as `ControlRequest` payloads; detection results use the `Detection`/`DetectionFrame` messages (see `proto/image_processor_service.proto`)
 - Implemented in: `src/go_api/pkg/infrastructure/processor/control_server.go`
 - Registry: `src/go_api/pkg/infrastructure/processor/registry.go`
 - Session management: `src/go_api/pkg/infrastructure/processor/session.go`
@@ -219,12 +220,12 @@ The system uses a reverse gRPC topology where C++ accelerator clients dial into 
 - Outbound client that dials the Go control server
 - Sends Register message with device_id, capabilities, version
 - Processes commands received over the bidi stream locally
-- Hosts the shared library (`libcuda_processor.so`) containing:
+- Hosts the C++/CUDA accelerator code (built into the `accelerator_control_client` executable) containing:
   - CUDA kernels for GPU processing
   - CPU fallback implementations
   - Filter definitions and metadata
   - Processor Engine for orchestrating filter pipelines
-- Implemented in: `src/cpp_accelerator/ports/grpc/accelerator_control_client.cpp`
+- Implemented in: `src/cpp_accelerator/adapters/grpc_control/accelerator_control_client.cpp`
 
 **Deployment Benefits:**
 - No inbound NAT/port-forwarding required at accelerator site
@@ -273,8 +274,6 @@ Production-like Docker deployment running locally using pre-built images from Gi
 
 **Access:**
 - Main app: https://app.localhost
-- Grafana: https://grafana.localhost
-- Jaeger: https://jaeger.localhost
 - Reports: https://reports.localhost
 
 **Configuration:** `config/config.staging.yaml`
@@ -333,7 +332,7 @@ Install validation hooks:
 
 Hooks:
 - pre-commit: Unit tests + linters
-- pre-push: Full validation with all browsers
+- pre-push: Build checks (C++/CUDA accelerator client, Go server, frontend)
 
 Skip when needed: `git commit --no-verify` or `git push --no-verify`
 
@@ -348,7 +347,7 @@ Skip when needed: `git commit --no-verify` or `git push --no-verify`
 
 **Frontend**: React dashboard with TypeScript, Vite bundler.
 
-**Observability**: Jaeger distributed tracing, Grafana dashboards, Loki log aggregation, Flipt feature flags.
+**Observability**: Jaeger distributed tracing, Grafana dashboards, Loki log aggregation, GO Feature Flag.
 
 ## Image Processing Filters
 
@@ -363,7 +362,6 @@ Currently implemented a bunch of different filters to explore various GPU progra
 
 **Blur algorithms** (learning convolution and shared memory):
 - **Gaussian Blur** - configurable kernel size and sigma
-- **Box Blur** - simple box blur with separable optimization
 
 **Coming next** (exploring different GPU concepts):
 - Edge detection (Sobel, Canny) - learning gradients and complex algorithms
@@ -395,7 +393,7 @@ The app includes a dynamic tools dropdown that adapts to your environment:
 - GO Feature Flags - runtime configuration (YAML-based)
 
 **Testing:**
-- BDD Test Reports - Cucumber test results
+- Test Reports - test results viewer (falls back to "No Test Results" when no reports have been generated)
 - Code Coverage Reports - Unit test coverage dashboard
 
 Add new tools by editing `config/config.yaml`, no code changes needed.
@@ -447,17 +445,18 @@ See [Testing & Coverage Documentation](docs/testing-and-coverage.md) for detaile
 
 ```
 src/cpp_accelerator/
-  application/         # Use cases, FilterPipeline, BufferPool, Commands
+  application/         # engine, pipeline, commands
   domain/              # Interfaces (IFilter, ImageBuffer, IImageProcessor)
-  infrastructure/
-    cuda/              # GPU kernels, YOLO detector, model management
-    cpu/               # CPU fallback implementations
-    filters/           # Equivalence tests
-    image/             # Image loader/writer
+  adapters/
+    compute/           # cuda/ (GPU kernels, TensorRT YOLO in cuda/tensorrt/), cpu/, opencl/, vulkan/
+    image_io/          # Image loader/writer
     config/            # Configuration management
-  ports/
-    grpc/              # gRPC service, data channel framing, live video processor
-    shared_lib/        # Shared library exports
+    webrtc/            # data_channel_framing.cpp, live_video_processor.cpp, webrtc_manager.cpp
+    grpc_control/      # gRPC control client
+    camera/            # Camera backends
+  composition/         # Platform wiring (e.g. CUDA platform initialization)
+  cmd/
+    accelerator_control_client/ # Client binary
   core/                # Logger, Telemetry, Result type
 
 src/go_api/
@@ -558,7 +557,7 @@ The current architecture provides a solid foundation, but the vision extends to 
 
 ### Technical Approach
 
-**Shared Library Foundation**: The current shared library architecture (`libcuda_processor.so`) is designed to be accelerator-agnostic. The same filter interface can be implemented with:
+**Accelerator Foundation**: The current accelerator architecture (the `accelerator_control_client` C++/CUDA executable) is designed to be accelerator-agnostic. The same filter interface can be implemented with:
 - CUDA kernels (current)
 - OpenCL kernels (planned)
 - ARM-optimized implementations (planned)
