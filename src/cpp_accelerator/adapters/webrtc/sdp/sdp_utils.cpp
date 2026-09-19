@@ -68,33 +68,50 @@ std::optional<OutboundVideoConfig> FindOutboundVideoConfig(const rtc::Descriptio
   return std::nullopt;
 }
 
-std::string BuildManualCandidateSdp(const std::string& session_id) {
-  const char* public_ip_env = std::getenv("WEBRTC_PUBLIC_IP");
-  const char* public_port_env = std::getenv("WEBRTC_PUBLIC_PORT");
-  const char* public_tcp_port_env = std::getenv("WEBRTC_PUBLIC_TCP_PORT");
+std::optional<uint16_t> LocalUdpHostPort(const rtc::Description& description) {
+  for (rtc::Candidate candidate : description.candidates()) {
+    if (candidate.type() != rtc::Candidate::Type::Host ||
+        candidate.transportType() != rtc::Candidate::TransportType::Udp) {
+      continue;
+    }
+    // Candidates parsed from SDP strings are unresolved until asked to.
+    if (!candidate.port()) {
+      candidate.resolve(rtc::Candidate::ResolveMode::Simple);
+    }
+    if (candidate.port()) {
+      return candidate.port();
+    }
+  }
+  return std::nullopt;
+}
 
-  if (public_ip_env == nullptr || public_port_env == nullptr) {
-    spdlog::debug(
-        "[WebRTC:{}] WEBRTC_PUBLIC_IP or WEBRTC_PUBLIC_PORT not set, skipping manual ICE candidate",
-        session_id);
+std::string BuildPublicCandidateSdp(const std::string& session_id, const std::string& public_ip,
+                                    uint16_t udp_port) {
+  if (public_ip.empty()) {
+    spdlog::debug("[WebRTC:{}] no observed public IP — skipping public ICE candidate", session_id);
     return {};
+  }
+
+  uint16_t udp_public_port = udp_port;
+  if (const char* override_port = std::getenv("WEBRTC_PUBLIC_PORT")) {
+    udp_public_port = static_cast<uint16_t>(std::stoi(override_port));
+  }
+  uint16_t tcp_public_port = 60060;
+  if (const char* override_tcp = std::getenv("WEBRTC_PUBLIC_TCP_PORT")) {
+    tcp_public_port = static_cast<uint16_t>(std::stoi(override_tcp));
   }
 
   try {
     std::ostringstream candidate_sdp;
-    candidate_sdp << "a=candidate:1 1 UDP 2130706431 " << public_ip_env << " " << public_port_env
+    candidate_sdp << "a=candidate:1 1 UDP 2130706431 " << public_ip << " " << udp_public_port
                   << " typ host\r\n";
-    if (public_tcp_port_env != nullptr) {
-      candidate_sdp << "a=candidate:2 1 TCP 2130706430 " << public_ip_env << " "
-                    << public_tcp_port_env << " typ host tcptype passive\r\n";
-      spdlog::info("[WebRTC:{}] Will inject TCP ICE candidate for firewall fallback: {}:{}",
-                   session_id, public_ip_env, public_tcp_port_env);
-    }
-    spdlog::info("[WebRTC:{}] Will inject manual ICE candidate in SDP: {}:{}", session_id,
-                 public_ip_env, public_port_env);
+    candidate_sdp << "a=candidate:2 1 TCP 2130706430 " << public_ip << " " << tcp_public_port
+                  << " typ host tcptype passive\r\n";
+    spdlog::info("[WebRTC:{}] Will inject public ICE candidates: {} udp:{}/tcp:{} (firewall fallback)",
+                 session_id, public_ip, udp_public_port, tcp_public_port);
     return candidate_sdp.str();
   } catch (const std::exception& e) {
-    spdlog::warn("[WebRTC:{}] Failed to prepare manual ICE candidate: {}", session_id, e.what());
+    spdlog::warn("[WebRTC:{}] Failed to prepare public ICE candidate: {}", session_id, e.what());
     return {};
   }
 }

@@ -50,6 +50,10 @@ public:
 
   bool IsInitialized() const { return initialized_; }
 
+  // Public egress IP observed by the control server; injected into SDP candidates.
+  void SetObservedPublicIp(const std::string& ip);
+  std::string observed_public_ip() const;
+
   bool CreateSession(const std::string& session_id, const std::string& sdp_offer,
                      std::string* sdp_answer, std::string* error_message);
 
@@ -87,7 +91,7 @@ private:
   // onIceStateChange, onLocalDescription, onLocalCandidate) and the onTrack callback.
   std::shared_future<std::string> SetupPeerConnectionCallbacks(
       const std::string& session_id, std::shared_ptr<SessionState> session,
-      std::shared_ptr<std::string> manual_candidate_sdp, std::string* sdp_answer_out);
+      const std::string& public_ip, std::string* sdp_answer_out);
 
   // Adds the outbound H264 video track and configures the RTP packetizer chain
   // based on the parsed SDP offer. Returns false on error.
@@ -150,6 +154,8 @@ private:
   std::atomic<bool> cleanup_running_;
   std::thread cleanup_thread_;
   std::string accelerator_version_;
+  mutable std::mutex observed_ip_mutex_;
+  std::string observed_public_ip_;
 };
 
 }  // namespace jrb::adapters::webrtc
