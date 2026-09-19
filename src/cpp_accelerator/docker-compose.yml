@@ -95,4 +95,15 @@ services:
       - ${ACCELERATOR_MODELS_DIR:-./models}:/opt/cuda/grpc/data/models:rw
       - ${ACCELERATOR_CAPTURES_DIR:-./captures}:/app/captures:rw
 
+  # Sends each new bird-capture BMP to Telegram (idle without token/chat env).
+  # See telegram-notifier/README.md.
+  telegram-notifier:
+    build: ./telegram-notifier
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+    volumes:
+      - ${ACCELERATOR_CAPTURES_DIR:-./captures}:/captures:ro
+
 volumes: {}
