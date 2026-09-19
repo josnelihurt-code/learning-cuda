@@ -26,11 +26,12 @@ import (
 // but the type holds room for the registry that step-05 will introduce.
 type ControlServer struct {
 	gen.UnimplementedAcceleratorControlServiceServer
-	cfg      config.ProcessorConfig
-	log      zerolog.Logger
-	grpcSrv  *grpc.Server
-	lis      net.Listener
-	registry *Registry
+	cfg         config.ProcessorConfig
+	log         zerolog.Logger
+	grpcSrv     *grpc.Server
+	lis         net.Listener
+	registry    *Registry
+	observedIps *observedIPTracker
 }
 
 func NewControlServer(cfg config.ProcessorConfig, registry *Registry) (*ControlServer, error) {
@@ -78,10 +79,11 @@ func NewControlServer(cfg config.ProcessorConfig, registry *Registry) (*ControlS
 	)
 
 	srv := &ControlServer{
-		cfg:      cfg,
-		log:      *logger.Global(),
-		grpcSrv:  grpcSrv,
-		registry: registry,
+		cfg:         cfg,
+		log:         *logger.Global(),
+		grpcSrv:     grpcSrv,
+		registry:    registry,
+		observedIps: newObservedIPTracker(),
 	}
 	gen.RegisterAcceleratorControlServiceServer(grpcSrv, srv)
 	return srv, nil
@@ -163,11 +165,21 @@ func (s *ControlServer) Connect(stream grpc.BidiStreamingServer[gen.ConnectReque
 		return status.Error(codes.AlreadyExists, err.Error())
 	}
 
+	observedIP := observedIPFromContext(stream.Context(), s.log)
+	if changed, previous := s.observedIps.observe(reg.Register.DeviceId, observedIP); changed {
+		s.log.Warn().
+			Str("device_id", reg.Register.DeviceId).
+			Str("previous_ip", previous).
+			Str("observed_ip", observedIP).
+			Msg("accelerator public IP changed between registrations — clients restart on this event")
+	}
+
 	s.log.Info().
 		Str("device_id", reg.Register.DeviceId).
 		Str("display_name", reg.Register.DisplayName).
 		Str("version", reg.Register.AcceleratorVersion).
 		Str("assigned_session_id", assignedID).
+		Str("observed_ip", observedIP).
 		Msg("accelerator connected")
 
 	defer func() {
@@ -183,13 +195,14 @@ func (s *ControlServer) Connect(stream grpc.BidiStreamingServer[gen.ConnectReque
 			Msg("accelerator disconnected")
 	}()
 
-	// 3. Acknowledge registration.
+	// 3. Acknowledge registration. Empty observed_ip = unroutable peer (logged).
 	ack := &gen.ConnectResponse{Message: &gen.AcceleratorMessage{
 		CommandId: first.Message.GetCommandId(),
 		Payload: &gen.AcceleratorMessage_RegisterAck{
 			RegisterAck: &gen.RegisterAck{
 				Accepted:          true,
 				AssignedSessionId: assignedID,
+				ObservedIp:        observedIP,
 			},
 		},
 	}}
