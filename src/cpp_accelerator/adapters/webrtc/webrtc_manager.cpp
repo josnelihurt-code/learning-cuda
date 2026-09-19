@@ -45,9 +45,8 @@ using jrb::adapters::image::ImageWriter;
 using jrb::adapters::webrtc::protocol::CopyProcessMetadata;
 using jrb::adapters::webrtc::protocol::ParseDataChannelRequest;
 using jrb::adapters::webrtc::protocol::ResolveGenericSelectionsInPlace;
-using jrb::adapters::webrtc::sdp::BuildPublicCandidateSdp;
 using jrb::adapters::webrtc::sdp::FindOutboundVideoConfig;
-using jrb::adapters::webrtc::sdp::LocalUdpHostPort;
+using jrb::adapters::webrtc::sdp::InjectPublicCandidate;
 using jrb::adapters::webrtc::sdp::MakeSsrc;
 using jrb::adapters::webrtc::sdp::StripRtpHeaderExtensions;
 using jrb::adapters::webrtc::sdp::WaitForSdpAnswer;
@@ -561,31 +560,7 @@ std::shared_future<std::string> WebRTCManager::SetupPeerConnectionCallbacks(
       return;
     }
     std::string sdp = description.generateSdp();
-
-    // Inject public ICE candidates into the SDP if we know our public IP.
-    if (!public_ip.empty()) {
-      const auto udp_port = LocalUdpHostPort(description);
-      if (!udp_port) {
-        spdlog::warn("[WebRTC:{}] No UDP host candidate in local description, public candidate not injected",
-                     session_id);
-      } else {
-        const std::string candidate_sdp = BuildPublicCandidateSdp(session_id, public_ip, *udp_port);
-        spdlog::info("[WebRTC:{}] Injecting public ICE candidate into SDP", session_id);
-        const size_t media_pos = sdp.find("m=");
-        if (media_pos != std::string::npos) {
-          // Insert before the second media section (or at end) so the candidate
-          // becomes its own properly delimited line that Chrome will accept.
-          const size_t next_media = sdp.find("\r\nm=", media_pos + 2);
-          const size_t insert_pos = (next_media == std::string::npos) ? sdp.size() : next_media + 2;
-          sdp.insert(insert_pos, candidate_sdp);
-          spdlog::info("[WebRTC:{}] Public ICE candidate injected (SDP length: {} -> {})", session_id,
-                       description.generateSdp().length(), sdp.length());
-        } else {
-          spdlog::warn("[WebRTC:{}] Could not find media section in SDP, candidate not injected",
-                       session_id);
-        }
-      }
-    }
+    InjectPublicCandidate(session_id, public_ip, description, &sdp);
 
     if (sdp_answer_out != nullptr && sdp_answer_out->empty()) {
       *sdp_answer_out = sdp;

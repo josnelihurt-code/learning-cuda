@@ -85,6 +85,33 @@ std::optional<uint16_t> LocalUdpHostPort(const rtc::Description& description) {
   return std::nullopt;
 }
 
+void InjectPublicCandidate(const std::string& session_id, const std::string& public_ip,
+                           const rtc::Description& description, std::string* sdp) {
+  if (public_ip.empty() || sdp == nullptr) {
+    return;
+  }
+  const auto udp_port = LocalUdpHostPort(description);
+  if (!udp_port) {
+    spdlog::warn("[WebRTC:{}] No UDP host candidate in local description, public candidate not injected",
+                 session_id);
+    return;
+  }
+  const std::string candidate_sdp = BuildPublicCandidateSdp(session_id, public_ip, *udp_port);
+  const size_t media_pos = sdp->find("m=");
+  if (media_pos == std::string::npos) {
+    spdlog::warn("[WebRTC:{}] Could not find media section in SDP, candidate not injected", session_id);
+    return;
+  }
+  // Insert before the second media section (or at end) so the candidate
+  // becomes its own properly delimited line that Chrome will accept.
+  const size_t next_media = sdp->find("\r\nm=", media_pos + 2);
+  const size_t insert_pos = (next_media == std::string::npos) ? sdp->size() : next_media + 2;
+  const size_t length_before = sdp->length();
+  sdp->insert(insert_pos, candidate_sdp);
+  spdlog::info("[WebRTC:{}] Public ICE candidate injected for {}:{} (SDP length: {} -> {})",
+               session_id, public_ip, *udp_port, length_before, sdp->length());
+}
+
 std::string BuildPublicCandidateSdp(const std::string& session_id, const std::string& public_ip,
                                     uint16_t udp_port) {
   if (public_ip.empty()) {
@@ -107,8 +134,6 @@ std::string BuildPublicCandidateSdp(const std::string& session_id, const std::st
                   << " typ host\r\n";
     candidate_sdp << "a=candidate:2 1 TCP 2130706430 " << public_ip << " " << tcp_public_port
                   << " typ host tcptype passive\r\n";
-    spdlog::info("[WebRTC:{}] Will inject public ICE candidates: {} udp:{}/tcp:{} (firewall fallback)",
-                 session_id, public_ip, udp_public_port, tcp_public_port);
     return candidate_sdp.str();
   } catch (const std::exception& e) {
     spdlog::warn("[WebRTC:{}] Failed to prepare public ICE candidate: {}", session_id, e.what());

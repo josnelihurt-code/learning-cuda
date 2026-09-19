@@ -29,6 +29,12 @@ std::string BuildPublicCandidateSdp(const std::string& session_id, const std::st
 // UDP host port this session bound, from the local description's candidates.
 std::optional<uint16_t> LocalUdpHostPort(const rtc::Description& description);
 
+// Inserts public ICE candidates for public_ip (built with the description's
+// bound UDP port) into sdp before the second media section. No-op without a
+// public IP or a UDP host candidate.
+void InjectPublicCandidate(const std::string& session_id, const std::string& public_ip,
+                           const rtc::Description& description, std::string* sdp);
+
 // Waits up to 10s for the SDP answer via future or pc.localDescription(). Returns true on success.
 bool WaitForSdpAnswer(const std::string& session_id,
                       std::shared_future<std::string> answer_future,

@@ -280,16 +280,11 @@ bool AcceleratorControlClient::RunOnce(int* reconnect_delay_s) {
   // source IP; absence means an old server or a proxy in front of the port.
   const std::string observed_ip = ack_msg.register_ack().observed_ip();
   if (observed_ip.empty()) {
-    spdlog::critical(
-        "{} RegisterAck without observed_ip — server predates contract 5.0.0 or a proxy sits in "
-        "front of the control port. Exiting so the restart policy keeps retrying loudly.",
-        kLogPrefix);
+    spdlog::critical("{} RegisterAck without observed_ip", kLogPrefix);
     std::exit(1);
   }
   if (!last_observed_ip_.empty() && last_observed_ip_ != observed_ip) {
-    spdlog::critical("{} public IP changed {} -> {} — exiting for restart so new sessions pick "
-                     "candidates for the current IP",
-                     kLogPrefix, last_observed_ip_, observed_ip);
+    spdlog::critical("{} public IP changed {} -> {}", kLogPrefix, last_observed_ip_, observed_ip);
     std::exit(1);
   }
   last_observed_ip_ = observed_ip;

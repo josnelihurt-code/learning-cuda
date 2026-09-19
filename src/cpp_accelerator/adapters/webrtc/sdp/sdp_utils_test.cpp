@@ -63,4 +63,40 @@ TEST(SdpUtilsTest, Success_PortEnvOverride) {
   EXPECT_NE(sdp.find("98.248.157.222 20000 typ host"), std::string::npos);
 }
 
+TEST(SdpUtilsTest, Success_InjectPublicCandidateBeforeSecondMediaSection) {
+  auto description = MakeAnswerWithUdpHostCandidate(
+      "candidate:1 1 UDP 2130706431 192.168.10.213 10042 typ host");
+  std::string sdp =
+      "v=0\r\n"
+      "m=audio 9 UDP/TLS/RTPSAVPF 111\r\n"
+      "a=rtpmap:111 opus/48000/2\r\n"
+      "m=video 9 UDP/TLS/RTPSAVPF 96\r\n"
+      "a=rtpmap:96 H264/90000\r\n";
+  InjectPublicCandidate("sess", "98.248.157.222", description, &sdp);
+  const size_t audio_pos = sdp.find("m=audio");
+  const size_t injected_pos = sdp.find("a=candidate:1 1 UDP 2130706431 98.248.157.222 10042");
+  const size_t video_pos = sdp.find("m=video");
+  ASSERT_NE(injected_pos, std::string::npos);
+  EXPECT_LT(audio_pos, injected_pos);
+  EXPECT_LT(injected_pos, video_pos);
+}
+
+TEST(SdpUtilsTest, Edge_InjectPublicCandidateNoOp) {
+  auto description = MakeAnswerWithUdpHostCandidate(
+      "candidate:1 1 UDP 2130706431 192.168.10.213 10042 typ host");
+  const std::string original =
+      "v=0\r\n"
+      "m=video 9 UDP/TLS/RTPSAVPF 96\r\n";
+  std::string sdp = original;
+  InjectPublicCandidate("sess", "", description, &sdp);
+  EXPECT_EQ(sdp, original);
+
+  rtc::Description without_candidate(
+      "v=0\r\n"
+      "m=video 9 UDP/TLS/RTPSAVPF 96\r\n",
+      rtc::Description::Type::Answer);
+  InjectPublicCandidate("sess", "98.248.157.222", without_candidate, &sdp);
+  EXPECT_EQ(sdp, original);
+}
+
 }  // namespace

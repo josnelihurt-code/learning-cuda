@@ -134,8 +134,6 @@ private:
   std::mutex session_ids_mutex_;
   std::vector<std::string> active_session_ids_;
 
-  // Public IP reported by the server in RegisterAck; a change across
-  // registrations is fatal (docker restart re-registers with the fresh IP).
   std::string last_observed_ip_;
 };
 
