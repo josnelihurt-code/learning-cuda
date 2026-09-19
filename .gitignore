@@ -124,3 +124,6 @@ scripts/dev/__pycache__/update_launch_attach_process_id_common.cpython-313.pyc
 # clang-uml generated diagrams
 docs/uml/generated/
 src/cpp_accelerator/cmd/hello-world-nvidia-argus/hello-world-nvidia-argus
+
+# ZCode session plans (never commit)
+.zcode/plans/
