@@ -107,6 +107,10 @@ message RegisterAck {
   string reject_reason = 2;
   // Server-side correlation id assigned to this accelerator connection.
   string assigned_session_id = 3;
+  // REQUIRED (contract 5.0.0): public source IP of the control connection as
+  // seen by the server. Omitted only when the peer is not routable (proxy/LB
+  // in front of the control port); clients treat absence as a violation.
+  string observed_ip = 4;
 }
 
 // Keepalive is sent by either side to confirm the stream is alive.

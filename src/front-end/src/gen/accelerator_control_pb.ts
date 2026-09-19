@@ -423,6 +423,19 @@ export class RegisterAck extends Message<RegisterAck> {
    */
   assignedSessionId = "";
 
+  /**
+   * REQUIRED (contract 5.0.0): source IP of the control connection as seen by
+   * the server — the accelerator's public egress address. Clients use it to
+   * build reachable ICE candidates and MUST treat its absence on an accepted
+   * registration as a contract violation. The server omits it ONLY when the
+   * observed source is a private/loopback address (a proxy or load balancer
+   * sits in front of the control port), which is a topology misconfiguration
+   * the resulting client crash-loop makes visible.
+   *
+   * @generated from field: string observed_ip = 4;
+   */
+  observedIp = "";
+
   constructor(data?: PartialMessage<RegisterAck>) {
     super();
     proto3.util.initPartial(data, this);
@@ -434,6 +447,7 @@ export class RegisterAck extends Message<RegisterAck> {
     { no: 1, name: "accepted", kind: "scalar", T: 8 /* ScalarType.BOOL */ },
     { no: 2, name: "reject_reason", kind: "scalar", T: 9 /* ScalarType.STRING */ },
     { no: 3, name: "assigned_session_id", kind: "scalar", T: 9 /* ScalarType.STRING */ },
+    { no: 4, name: "observed_ip", kind: "scalar", T: 9 /* ScalarType.STRING */ },
   ]);
 
   static fromBinary(bytes: Uint8Array, options?: Partial<BinaryReadOptions>): RegisterAck {
