@@ -4,9 +4,10 @@ services:
     container_name: cuda-accelerator-client
     restart: unless-stopped
     runtime: nvidia
-    ports:
-      - "60060:60060/tcp"  # WebRTC TCP fallback for clients behind UDP-blocking firewalls
-      - "10000-10199:10000-10199/udp"  # WebRTC ICE candidates
+    # Host networking: the client binds the ICE UDP range (10000-10199) and the
+    # TCP fallback (60060) directly on the host, so host candidates carry the
+    # LAN IP. Public candidates come from observed_ip (contract 5.0.0).
+    network_mode: host
 
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
@@ -15,9 +16,6 @@ services:
       - OTEL_LOGS_ENABLED=false
       - OTEL_LOGS_ENDPOINT=https://otel-cuda-demo.josnelihurt.me/v1/logs
       - OTEL_ENVIRONMENT=production
-      - WEBRTC_PUBLIC_IP=73.71.7.90
-      - WEBRTC_PUBLIC_PORT=10000
-      - WEBRTC_PUBLIC_TCP_PORT=60060
       # nvarguscamerasrc wbmode override (1=auto,2=incandescent,3=fluorescent,
       # 4=warm-fluorescent,5=daylight,6=cloudy-daylight). Auto-WB on the stock
       # Arducam IMX477 ISP tuning produces a cyan cast in mixed indoor light;
