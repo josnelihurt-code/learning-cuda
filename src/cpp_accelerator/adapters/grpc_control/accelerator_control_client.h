@@ -133,6 +133,8 @@ private:
   // Set of active WebRTC session IDs (for candidate pump).
   std::mutex session_ids_mutex_;
   std::vector<std::string> active_session_ids_;
+
+  std::string last_observed_ip_;
 };
 
 }  // namespace jrb::adapters::grpc_control

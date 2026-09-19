@@ -45,8 +45,8 @@ using jrb::adapters::image::ImageWriter;
 using jrb::adapters::webrtc::protocol::CopyProcessMetadata;
 using jrb::adapters::webrtc::protocol::ParseDataChannelRequest;
 using jrb::adapters::webrtc::protocol::ResolveGenericSelectionsInPlace;
-using jrb::adapters::webrtc::sdp::BuildManualCandidateSdp;
 using jrb::adapters::webrtc::sdp::FindOutboundVideoConfig;
+using jrb::adapters::webrtc::sdp::InjectPublicCandidate;
 using jrb::adapters::webrtc::sdp::MakeSsrc;
 using jrb::adapters::webrtc::sdp::StripRtpHeaderExtensions;
 using jrb::adapters::webrtc::sdp::WaitForSdpAnswer;
@@ -71,6 +71,16 @@ WebRTCManager::~WebRTCManager() {
   if (initialized_) {
     Shutdown();
   }
+}
+
+void WebRTCManager::SetObservedPublicIp(const std::string& ip) {
+  std::lock_guard<std::mutex> lock(observed_ip_mutex_);
+  observed_public_ip_ = ip;
+}
+
+std::string WebRTCManager::observed_public_ip() const {
+  std::lock_guard<std::mutex> lock(observed_ip_mutex_);
+  return observed_public_ip_;
 }
 
 bool WebRTCManager::Initialize() {
@@ -208,12 +218,11 @@ bool WebRTCManager::CreateSession(const std::string& session_id, const std::stri
     session->live_filter_state.set_api_version("1.1");
     spdlog::info("[WebRTC:{}] Created dedicated CUDA memory pool for session", session_id);
 
-    // 2. Build manual ICE candidate SDP (reads env vars; may return empty string).
-    auto manual_candidate_ptr = std::make_shared<std::string>(BuildManualCandidateSdp(session_id));
+    // 2. Public ICE candidates come from the observed IP at answer time.
+    const std::string public_ip = observed_public_ip();
 
     // 3. Register peer connection and media track callbacks.
-    auto answer_future =
-        SetupPeerConnectionCallbacks(session_id, session, manual_candidate_ptr, sdp_answer_str);
+    auto answer_future = SetupPeerConnectionCallbacks(session_id, session, public_ip, sdp_answer_str);
 
     // 4. Register data channel dispatcher.
     SetupDataChannels(session_id, session);
@@ -349,10 +358,9 @@ bool WebRTCManager::CreateCameraSession(const std::string& session_id,
     session->last_heartbeat = std::chrono::steady_clock::now();
     session->peer_connection = std::make_shared<rtc::PeerConnection>(*config_);
 
-    auto manual_candidate_ptr = std::make_shared<std::string>(BuildManualCandidateSdp(session_id));
+    const std::string public_ip = observed_public_ip();
 
-    auto answer_future =
-        SetupPeerConnectionCallbacks(session_id, session, manual_candidate_ptr, sdp_answer_str);
+    auto answer_future = SetupPeerConnectionCallbacks(session_id, session, public_ip, sdp_answer_str);
 
     SetupDataChannels(session_id, session);
 
@@ -448,7 +456,7 @@ bool WebRTCManager::StopCameraSession(const std::string& session_id, std::string
 
 std::shared_future<std::string> WebRTCManager::SetupPeerConnectionCallbacks(
     const std::string& session_id, std::shared_ptr<SessionState> session,
-    std::shared_ptr<std::string> manual_candidate_sdp, std::string* sdp_answer_out) {
+    const std::string& public_ip, std::string* sdp_answer_out) {
   auto answer_promise = std::make_shared<std::promise<std::string>>();
   std::shared_future<std::string> answer_future = answer_promise->get_future();
 
@@ -543,8 +551,7 @@ std::shared_future<std::string> WebRTCManager::SetupPeerConnectionCallbacks(
   });
 
   session->peer_connection->onLocalDescription([session_id, sdp_answer_out, answer_promise,
-                                                manual_candidate_sdp](
-                                                   rtc::Description description) {
+                                                public_ip](rtc::Description description) {
     spdlog::debug("[WebRTC:{}] Local description created (type: {})", session_id,
                   description.typeString());
     if (description.type() != rtc::Description::Type::Answer) {
@@ -553,24 +560,7 @@ std::shared_future<std::string> WebRTCManager::SetupPeerConnectionCallbacks(
       return;
     }
     std::string sdp = description.generateSdp();
-
-    // Inject manual ICE candidate into SDP if configured.
-    if (!manual_candidate_sdp->empty()) {
-      spdlog::info("[WebRTC:{}] Injecting manual ICE candidate into SDP", session_id);
-      const size_t media_pos = sdp.find("m=");
-      if (media_pos != std::string::npos) {
-        // Insert before the second media section (or at end) so the candidate
-        // becomes its own properly delimited line that Chrome will accept.
-        const size_t next_media = sdp.find("\r\nm=", media_pos + 2);
-        const size_t insert_pos = (next_media == std::string::npos) ? sdp.size() : next_media + 2;
-        sdp.insert(insert_pos, *manual_candidate_sdp);
-        spdlog::info("[WebRTC:{}] Manual ICE candidate injected (SDP length: {} -> {})", session_id,
-                     description.generateSdp().length(), sdp.length());
-      } else {
-        spdlog::warn("[WebRTC:{}] Could not find media section in SDP, candidate not injected",
-                     session_id);
-      }
-    }
+    InjectPublicCandidate(session_id, public_ip, description, &sdp);
 
     if (sdp_answer_out != nullptr && sdp_answer_out->empty()) {
       *sdp_answer_out = sdp;

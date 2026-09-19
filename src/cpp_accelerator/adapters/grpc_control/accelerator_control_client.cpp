@@ -276,6 +276,22 @@ bool AcceleratorControlClient::RunOnce(int* reconnect_delay_s) {
   spdlog::info("{} Registered, session_id={}", kLogPrefix,
                ack_msg.register_ack().assigned_session_id());
 
+  // Contract 5.0.0: the server must report the control connection's public
+  // source IP; absence means an old server or a proxy in front of the port.
+  const std::string observed_ip = ack_msg.register_ack().observed_ip();
+  if (observed_ip.empty()) {
+    spdlog::critical("{} RegisterAck without observed_ip", kLogPrefix);
+    std::exit(1);
+  }
+  if (!last_observed_ip_.empty() && last_observed_ip_ != observed_ip) {
+    spdlog::critical("{} public IP changed {} -> {}", kLogPrefix, last_observed_ip_, observed_ip);
+    std::exit(1);
+  }
+  last_observed_ip_ = observed_ip;
+  if (webrtc_manager_ != nullptr) {
+    webrtc_manager_->SetObservedPublicIp(observed_ip);
+  }
+
   if (reconnect_delay_s != nullptr) {
     *reconnect_delay_s = 1;
   }
