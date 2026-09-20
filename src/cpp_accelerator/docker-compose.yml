@@ -1,4 +1,19 @@
 services:
+  otel-collector:
+    image: "otel/opentelemetry-collector:0.104.0"
+    container_name: cuda-otel-collector
+    restart: unless-stopped
+    command: ["--config=/etc/otelcol/config.yaml"]
+    # Host networking so the accelerator (also host-networked) can reach it
+    # on 127.0.0.1:4317.
+    network_mode: host
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    environment:
+      # "Basic <base64>" computed at deploy time from the
+      # GRAFANA_CLOUD_OTLP_TOKEN GitHub secret and the stack instance ID.
+      - GRAFANA_OTLP_AUTH_HEADER=${OTEL_AUTH_HEADER_BASIC:?OTEL_AUTH_HEADER_BASIC is required}
+
   accelerator-client:
     image: "${ACCELERATOR_IMAGE:?ACCELERATOR_IMAGE is not set, provide versioned tag cpp-accelerator-X.Y.Z-protoA.B.C-arm64}"
     container_name: cuda-accelerator-client
@@ -13,8 +28,13 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - LD_LIBRARY_PATH=/usr/local/cuda-12.6/targets/aarch64-linux/lib:/usr/local/lib:/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu/nvidia:$LD_LIBRARY_PATH
-      - OTEL_LOGS_ENABLED=false
-      - OTEL_LOGS_ENDPOINT=https://otel-cuda-demo.josnelihurt.me/v1/logs
+      # OTLP over local gRPC to the otel-collector sidecar, which owns the
+      # TLS + auth hop to Grafana Cloud (the bazel curl/gRPC have no TLS).
+      - OTEL_LOGS_ENABLED=true
+      - OTEL_LOGS_ENDPOINT=http://localhost:4317
+      - OTEL_METRICS_ENABLED=true
+      - OTEL_METRICS_ENDPOINT=http://localhost:4317
+      - OTEL_SERVICE_NAME=cuda-cpp-accelerator
       - OTEL_ENVIRONMENT=production
       # nvarguscamerasrc wbmode override (1=auto,2=incandescent,3=fluorescent,
       # 4=warm-fluorescent,5=daylight,6=cloudy-daylight). Auto-WB on the stock

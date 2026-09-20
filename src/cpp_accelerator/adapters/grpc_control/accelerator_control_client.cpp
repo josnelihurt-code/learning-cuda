@@ -25,6 +25,8 @@
 #include "proto/_virtual_imports/common_proto/common.pb.h"
 #include "proto/_virtual_imports/image_processor_service_proto/image_processor_service.pb.h"
 
+#include "src/cpp_accelerator/core/otel_metrics.h"
+
 namespace jrb::adapters::grpc_control {
 
 using cuda_learning::AcceleratorControlService;
@@ -171,6 +173,7 @@ void AcceleratorControlClient::Run() {
       break;
     }
     spdlog::warn("{} Reconnecting in {}s...", kLogPrefix, delay_s);
+    ::jrb::core::otel::metrics::Count("accelerator.control.reconnects");
     for (int i = 0; i < delay_s * 10 && !stop_requested_; ++i) {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }

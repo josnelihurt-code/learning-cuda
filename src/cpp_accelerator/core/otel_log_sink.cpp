@@ -14,10 +14,11 @@
 
 #include "src/cpp_accelerator/core/version.h"
 
+#include "src/cpp_accelerator/core/otel_config.h"
+
 // OpenTelemetry includes
-#include "opentelemetry/exporters/otlp/otlp_http_log_record_exporter.h"
-#include "opentelemetry/exporters/otlp/otlp_http_log_record_exporter_factory.h"
-#include "opentelemetry/exporters/otlp/otlp_http_log_record_exporter_options.h"
+#include "opentelemetry/exporters/otlp/otlp_grpc_log_record_exporter_factory.h"
+#include "opentelemetry/exporters/otlp/otlp_grpc_log_record_exporter_options.h"
 #include "opentelemetry/logs/provider.h"
 #include "opentelemetry/sdk/logs/batch_log_record_processor.h"
 #include "opentelemetry/sdk/logs/logger_provider.h"
@@ -33,7 +34,7 @@ namespace otlp = opentelemetry::exporter::otlp;
 namespace resource = opentelemetry::sdk::resource;
 
 namespace {
-constexpr const char* kServiceName = "cuda-cpp-app";
+constexpr const char* kDefaultServiceName = "cuda-cpp-accelerator";
 }  // namespace
 
 // PIMPL implementation to hide OpenTelemetry details
@@ -41,35 +42,22 @@ class OtelLogSinkImpl {
 public:
   OtelLogSinkImpl(const std::string& endpoint, const std::string& environment) {
     try {
-      // Parse endpoint URL
-      std::string host;
-      std::string path = "/v1/logs";
-      bool use_ssl = true;
+      // OTLP/gRPC to the local collector sidecar (http:// marks insecure).
+      // The bazel-built libcurl has no TLS backend and its gRPC channel cannot
+      // negotiate ALPN, so TLS termination happens in the otel-collector.
+      const bool use_ssl = endpoint.rfind("https://", 0) == 0;
 
-      if (endpoint.find("http://") == 0) {
-        use_ssl = false;
-        host = endpoint.substr(7);
-      } else if (endpoint.find("https://") == 0) {
-        use_ssl = true;
-        host = endpoint.substr(8);
-      } else {
-        host = endpoint;
+      otlp::OtlpGrpcLogRecordExporterOptions opts;
+      opts.endpoint = otel::NormalizeGrpcEndpoint(endpoint);
+      opts.use_ssl_credentials = use_ssl;
+      opts.timeout = std::chrono::seconds(10);
+      const std::string auth = otel::AuthorizationHeader();
+      if (!auth.empty()) {
+        opts.metadata.emplace("authorization", auth);
       }
-
-      // Extract path if present
-      size_t path_pos = host.find('/');
-      if (path_pos != std::string::npos) {
-        path = host.substr(path_pos);
-        host = host.substr(0, path_pos);
-      }
-
-      // Configure OTLP HTTP exporter
-      otlp::OtlpHttpLogRecordExporterOptions opts;
-      opts.url = (use_ssl ? "https://" : "http://") + host + path;
-      opts.content_type = otlp::HttpRequestContentType::kJson;
 
       auto exporter = std::unique_ptr<logs_sdk::LogRecordExporter>(
-          otlp::OtlpHttpLogRecordExporterFactory::Create(opts));
+          otlp::OtlpGrpcLogRecordExporterFactory::Create(opts));
 
       // Configure batch processor
       logs_sdk::BatchLogRecordProcessorOptions processor_opts;
@@ -84,10 +72,11 @@ public:
       if (service_version.empty() || service_version == "unknown") {
         service_version = "1.0.0";
       }
+      const std::string service_name = otel::ServiceName(kDefaultServiceName);
 
       // Create resource attributes
       auto resource_attributes = resource::ResourceAttributes{
-          {resource::SemanticConventions::kServiceName, kServiceName},
+          {resource::SemanticConventions::kServiceName, service_name},
           {resource::SemanticConventions::kServiceVersion, service_version},
           {"environment", environment}};
       auto resource_ptr = resource::Resource::Create(resource_attributes);
@@ -100,9 +89,9 @@ public:
       logs_api::Provider::SetLoggerProvider(provider);
 
       // Get logger instance
-      logger_ = provider->GetLogger(kServiceName, kServiceName, service_version);
+      logger_ = provider->GetLogger(service_name, service_name, service_version);
 
-      spdlog::info("OpenTelemetry logs sink initialized (endpoint: {})", opts.url);
+      spdlog::info("OpenTelemetry logs sink initialized (gRPC endpoint: {})", opts.endpoint);
       initialized_ = true;
     } catch (const std::exception& e) {
       spdlog::error("Failed to initialize OpenTelemetry logs sink: {}", e.what());

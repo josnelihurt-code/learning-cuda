@@ -25,9 +25,11 @@ extern "C" {
 #include "proto/_virtual_imports/image_processor_service_proto/image_processor_service.pb.h"
 #include "src/cpp_accelerator/application/engine/processor_engine.h"
 #include "src/cpp_accelerator/core/logger.h"
+#include "src/cpp_accelerator/core/otel_metrics.h"
 #include "src/cpp_accelerator/domain/interfaces/image_sink.h"
 
 namespace jrb::application::bird_watch {
+namespace otel = ::jrb::core::otel;
 
 namespace {
 constexpr std::string_view kLogPrefix = "[BirdWatcher]";
@@ -462,16 +464,30 @@ bool BirdWatcher::DetectBird(const std::vector<uint8_t>& rgb, int width, int hei
   req.set_api_version("1.1");
 
   ProcessImageResponse resp;
-  if (!engine_->ProcessImage(req, &resp, cuda_memory_pool_.get()) || resp.code() != 0) {
+  const auto inference_start = std::chrono::steady_clock::now();
+  const bool ok = engine_->ProcessImage(req, &resp, cuda_memory_pool_.get()) && resp.code() == 0;
+  otel::metrics::ObserveMs(
+      "accelerator.inference.duration_ms",
+      std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - inference_start)
+          .count());
+  if (!ok) {
     spdlog::warn("{} ProcessImage failed: {}", kLogPrefix, resp.message());
+    otel::metrics::Count("accelerator.inference.errors", 1, "camera",
+                         std::to_string(config_.camera_sensor_id));
     return false;
   }
+  otel::metrics::Count("accelerator.frames_inferred", 1, "camera",
+                       std::to_string(config_.camera_sensor_id));
   bool hit = false;
   for (const auto& d : resp.detections()) {
     if (d.class_name() == "bird" && d.confidence() >= config_.confidence_threshold) {
       hit = true;
       break;
     }
+  }
+  if (hit) {
+    otel::metrics::Count("accelerator.frames_with_bird", 1, "camera",
+                         std::to_string(config_.camera_sensor_id));
   }
   spdlog::debug("{} YOLO {}x{} threshold={:.2f} raw_dets={} bird_hit={}", kLogPrefix, width, height,
                 config_.confidence_threshold, resp.detections_size(), hit);
@@ -560,6 +576,8 @@ void BirdWatcher::SaveCapture(const std::vector<uint8_t>& /*rgb*/, int /*width*/
   had_capture_ = true;
   last_capture_time_ = now;
   capture_times_.push_back(now);
+  otel::metrics::Count("accelerator.captures", 1, "camera",
+                       std::to_string(config_.camera_sensor_id));
   spdlog::info("{} Saved {}x{} still capture: {}", kLogPrefix, still_w, still_h, path);
 }
 

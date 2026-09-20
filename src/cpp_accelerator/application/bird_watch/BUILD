@@ -14,6 +14,7 @@ cc_library(
         "//src/cpp_accelerator/adapters/camera:gpu_frame_processor",
         "//src/cpp_accelerator/adapters/compute/cuda/memory:cuda_memory_pool",
         "//src/cpp_accelerator/application/engine:engine",
+        "//src/cpp_accelerator/core:otel_metrics",
         "//src/cpp_accelerator/domain/interfaces:interfaces",
         "@com_github_paullouisageneau_libdatachannel//:libdatachannel",
         "@spdlog",

@@ -28,6 +28,13 @@ cc_library(
 )
 
 cc_library(
+    name = "otel_config",
+    srcs = ["otel_config.cpp"],
+    hdrs = ["otel_config.h"],
+    visibility = ["//visibility:public"],
+)
+
+cc_library(
     name = "otel_log_sink",
     srcs = ["otel_log_sink.cpp"],
     hdrs = ["otel_log_sink.h"],
@@ -35,10 +42,26 @@ cc_library(
     deps = [
         "@spdlog",
         "@io_opentelemetry_cpp//api:api",
-        "@io_opentelemetry_cpp//exporters/otlp:otlp_http_log_record_exporter",
+        "@io_opentelemetry_cpp//exporters/otlp:otlp_grpc_log_record_exporter",
         "@io_opentelemetry_cpp//sdk/src/logs:logs",
         "@io_opentelemetry_cpp//sdk/src/resource:resource",
-        "@curl//:curl",
+        ":otel_config",
+        ":version",
+    ],
+)
+
+cc_library(
+    name = "otel_metrics",
+    srcs = ["otel_metrics.cpp"],
+    hdrs = ["otel_metrics.h"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@spdlog",
+        "@io_opentelemetry_cpp//api:api",
+        "@io_opentelemetry_cpp//exporters/otlp:otlp_grpc_metric_exporter",
+        "@io_opentelemetry_cpp//sdk/src/metrics:metrics",
+        "@io_opentelemetry_cpp//sdk/src/resource:resource",
+        ":otel_config",
         ":version",
     ],
 )

@@ -35,6 +35,7 @@ cc_library(
         "//src/cpp_accelerator/application/pipeline:filter_pipeline",
         "//src/cpp_accelerator/composition:platform_support",
         "//src/cpp_accelerator/core:logger",
+        "//src/cpp_accelerator/core:otel_metrics",
         "//src/cpp_accelerator/core:telemetry",
         "//src/cpp_accelerator/core:version",
         "//src/cpp_accelerator/domain/interfaces",
