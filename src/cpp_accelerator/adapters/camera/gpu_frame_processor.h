@@ -1,8 +1,10 @@
 #pragma once
 
 // GPU-space NV12 -> RGBA tap for Jetson NvidiaArgusBackend.
-// Maps an NV12 NVMM GstBuffer to CUDA, runs nv12_to_rgba_kernel, and forwards
-// the host RGBA buffer to an optional consumer (e.g. BirdWatcher YOLO).
+// Imports the NV12 NVMM GstBuffer into CUDA through its EGLImage (no CPU
+// plane mapping; tiled/block-linear NVMM memory is only GPU-readable), runs
+// nv12_to_rgba_kernel, and forwards the host RGBA buffer to an optional
+// consumer (e.g. BirdWatcher YOLO).
 // Designed to do NO work when no RgbCallback is registered, so the WebRTC
 // streaming path pays nothing extra when YOLO inference is idle.
 

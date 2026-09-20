@@ -158,6 +158,8 @@ int NvBufSurfaceMap(NvBufSurface *surf, int index, int plane,
 int NvBufSurfaceUnMap(NvBufSurface *surf, int index, int plane);
 int NvBufSurfaceSyncForDevice(NvBufSurface *surf, int index, int plane);
 int NvBufSurfaceSyncForCpu(NvBufSurface *surf, int index, int plane);
+int NvBufSurfaceMapEglImage(NvBufSurface *surf, int index);
+int NvBufSurfaceUnMapEglImage(NvBufSurface *surf, int index);
 
 #ifdef __cplusplus
 }
