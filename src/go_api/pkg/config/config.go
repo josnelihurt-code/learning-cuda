@@ -88,7 +88,7 @@ func New(configFile string) *Manager {
 }
 
 func setDefaults(v *viper.Viper) {
-	defaults := map[string]interface{}{
+	defaults := map[string]any{
 		"environment":         "development",
 		"http_client_timeout": "10s",
 

@@ -93,7 +93,7 @@ func TestListAvailableImagesUseCase_Execute(t *testing.T) {
 			tt.setupMock(mockRepo)
 
 			sut := NewListAvailableImagesUseCase(mockRepo)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			output, err := sut.Execute(ctx, ListAvailableImagesUseCaseInput{})
 

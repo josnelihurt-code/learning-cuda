@@ -1,7 +1,6 @@
 package video
 
 import (
-	"context"
 	"testing"
 
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
@@ -81,7 +80,7 @@ func TestListInputsUseCase_Execute(t *testing.T) {
 			mockRepo := new(MockVideoRepository)
 			mockRepo.On("List", mock.Anything).Return([]domain.Video{}, nil)
 			sut := NewListInputsUseCase(mockRepo, nil)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Act
 			output, err := sut.Execute(ctx, ListInputsUseCaseInput{})

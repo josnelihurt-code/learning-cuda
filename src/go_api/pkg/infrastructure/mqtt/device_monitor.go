@@ -57,49 +57,25 @@ func (dm *DeviceMonitor) Start(ctx context.Context) error {
 	info2Chan := make(chan Info2Data, 10)
 	lwtChan := make(chan string, 10)
 
-	if err := dm.link.subscribeSensorWithRaw(func(data SensorData) error {
-		select {
-		case sensorChan <- data:
-		default:
-		}
-		return nil
-	}); err != nil {
+	if err := dm.link.subscribeSensorWithRaw(dropPump(sensorChan)); err != nil {
 		logger.Global().Warn().Err(err).Msg("MQTT: subscribe to SENSOR failed; device monitor disabled")
 		dm.link.disconnect()
 		return nil
 	}
 
-	if err := dm.link.subscribeInfo1(func(data Info1Data) error {
-		select {
-		case info1Chan <- data:
-		default:
-		}
-		return nil
-	}); err != nil {
+	if err := dm.link.subscribeInfo1(dropPump(info1Chan)); err != nil {
 		logger.Global().Warn().Err(err).Msg("MQTT: subscribe to INFO1 failed; device monitor disabled")
 		dm.link.disconnect()
 		return nil
 	}
 
-	if err := dm.link.subscribeInfo2(func(data Info2Data) error {
-		select {
-		case info2Chan <- data:
-		default:
-		}
-		return nil
-	}); err != nil {
+	if err := dm.link.subscribeInfo2(dropPump(info2Chan)); err != nil {
 		logger.Global().Warn().Err(err).Msg("MQTT: subscribe to INFO2 failed; device monitor disabled")
 		dm.link.disconnect()
 		return nil
 	}
 
-	if err := dm.link.subscribeLWT(func(status string) error {
-		select {
-		case lwtChan <- status:
-		default:
-		}
-		return nil
-	}); err != nil {
+	if err := dm.link.subscribeLWT(dropPump(lwtChan)); err != nil {
 		logger.Global().Warn().Err(err).Msg("MQTT: subscribe to LWT failed; device monitor disabled")
 		dm.link.disconnect()
 		return nil
@@ -116,6 +92,18 @@ func (dm *DeviceMonitor) Start(ctx context.Context) error {
 	go dm.monitorLoop(sensorChan, info1Chan, info2Chan, lwtChan)
 
 	return nil
+}
+
+// dropPump adapts an MQTT callback subscription to a buffered channel,
+// dropping messages when the consumer falls behind.
+func dropPump[T any](out chan<- T) func(T) error {
+	return func(v T) error {
+		select {
+		case out <- v:
+		default:
+		}
+		return nil
+	}
 }
 
 func (dm *DeviceMonitor) monitorLoop(sensorChan <-chan SensorData, info1Chan <-chan Info1Data, info2Chan <-chan Info2Data, lwtChan <-chan string) {

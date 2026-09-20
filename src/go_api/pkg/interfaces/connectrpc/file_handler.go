@@ -86,9 +86,7 @@ func (h *FileHandler) UploadImage(
 		logger.FromContext(ctx).Error().Err(err).Msg("Failed to upload image")
 
 		code := connect.CodeInternal
-		if err.Error() == "file too large" {
-			code = connect.CodeInvalidArgument
-		} else if err.Error() == "invalid format" {
+		if errors.Is(err, imageapp.ErrFileTooLarge) || errors.Is(err, imageapp.ErrInvalidFormat) {
 			code = connect.CodeInvalidArgument
 		}
 
@@ -166,9 +164,7 @@ func (h *FileHandler) UploadVideo(
 		logger.FromContext(ctx).Error().Err(err).Msg("Failed to upload video")
 
 		code := connect.CodeInternal
-		if errors.Is(err, videoapp.ErrFileTooLarge) {
-			code = connect.CodeInvalidArgument
-		} else if errors.Is(err, videoapp.ErrInvalidFormat) {
+		if errors.Is(err, videoapp.ErrFileTooLarge) || errors.Is(err, videoapp.ErrInvalidFormat) {
 			code = connect.CodeInvalidArgument
 		}
 

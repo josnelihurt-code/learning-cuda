@@ -1,6 +1,6 @@
 ARG UBUNTU_VERSION=24.04
 ARG TARGETARCH=amd64
-ARG GO_VERSION=1.24.0
+ARG GO_VERSION=1.27.1
 
 FROM scratch AS integration-tests-base
 LABEL mock.component="integration-tests-base" \

@@ -152,7 +152,7 @@ func (h *ConfigHandler) UpsertFeatureFlag(
 	}
 	in := req.Msg.GetFlag()
 	flagType := domain.FeatureFlagType(in.GetType())
-	defaultValue := interface{}(in.GetDefaultValue())
+	defaultValue := any(in.GetDefaultValue())
 	if flagType == domain.BooleanFlagType {
 		parsed, err := strconv.ParseBool(in.GetDefaultValue())
 		if err != nil {

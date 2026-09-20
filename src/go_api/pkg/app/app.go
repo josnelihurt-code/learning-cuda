@@ -18,6 +18,7 @@ import (
 	httphandlers "github.com/jrb/cuda-learning/src/go_api/pkg/interfaces/http"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/telemetry"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"golang.org/x/sync/errgroup"
 )
 
 type App struct {
@@ -228,33 +229,29 @@ func (a *App) Run() error {
 	a.setupConnectRPCServices(mux)
 	handler := a.makeTelemetryMiddleware(mux)
 
-	errChan := make(chan error, 2)
+	var g errgroup.Group
 
-	go func() {
+	g.Go(func() error {
 		log.Info().
 			Str("port", a.Config.Server.HTTPPort).
 			Msg("Starting HTTP server")
-		if err := http.ListenAndServe(a.Config.Server.HTTPPort, handler); err != nil {
-			errChan <- err
-		}
-	}()
+		return http.ListenAndServe(a.Config.Server.HTTPPort, handler)
+	})
 
 	if a.Config.Server.TLS.Enabled {
-		go func() {
+		g.Go(func() error {
 			log.Info().
 				Str("port", a.Config.Server.HTTPSPort).
 				Str("cert", a.Config.Server.TLS.CertFile).
 				Msg("Starting HTTPS server")
-			if err := http.ListenAndServeTLS(
+			return http.ListenAndServeTLS(
 				a.Config.Server.HTTPSPort,
 				a.Config.Server.TLS.CertFile,
 				a.Config.Server.TLS.KeyFile,
 				handler,
-			); err != nil {
-				errChan <- err
-			}
-		}()
+			)
+		})
 	}
 
-	return <-errChan
+	return g.Wait()
 }

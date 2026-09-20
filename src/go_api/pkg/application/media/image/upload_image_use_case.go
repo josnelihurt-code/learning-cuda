@@ -1,6 +1,7 @@
 package image
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -14,11 +15,16 @@ import (
 const maxFileSize = 10 * 1024 * 1024
 
 var (
-	errFileTooLarge  = errors.New("file too large")
-	errInvalidFormat = errors.New("invalid format")
+	// ErrFileTooLarge and ErrInvalidFormat are matched by the connect handler
+	// to map validation failures to connect error codes.
+	ErrFileTooLarge  = errors.New("file too large")
+	ErrInvalidFormat = errors.New("invalid format")
 	errEmptyFilename = errors.New("empty filename")
 	errEmptyFileData = errors.New("empty file data")
 )
+
+// pngSignature is the 8-byte PNG magic number.
+var pngSignature = []byte{137, 80, 78, 71, 13, 10, 26, 10}
 
 type UploadImageUseCaseInput struct {
 	Filename string
@@ -62,15 +68,15 @@ func (uc *UploadImageUseCase) Execute(ctx context.Context, input UploadImageUseC
 	}
 
 	if len(input.FileData) > maxFileSize {
-		span.RecordError(errFileTooLarge)
+		span.RecordError(ErrFileTooLarge)
 		span.SetAttributes(attribute.String("validation.error", "file_too_large"))
-		return UploadImageUseCaseOutput{}, errFileTooLarge
+		return UploadImageUseCaseOutput{}, ErrFileTooLarge
 	}
 
 	if !isPNGFormat(input.FileData) {
-		span.RecordError(errInvalidFormat)
+		span.RecordError(ErrInvalidFormat)
 		span.SetAttributes(attribute.String("validation.error", "invalid_format"))
-		return UploadImageUseCaseOutput{}, errInvalidFormat
+		return UploadImageUseCaseOutput{}, ErrInvalidFormat
 	}
 
 	image, err := uc.repository.Save(ctx, input.Filename, input.FileData)
@@ -88,14 +94,5 @@ func (uc *UploadImageUseCase) Execute(ctx context.Context, input UploadImageUseC
 }
 
 func isPNGFormat(data []byte) bool {
-	if len(data) < 8 {
-		return false
-	}
-	pngHeader := []byte{137, 80, 78, 71, 13, 10, 26, 10}
-	for i := 0; i < 8; i++ {
-		if data[i] != pngHeader[i] {
-			return false
-		}
-	}
-	return true
+	return bytes.HasPrefix(data, pngSignature)
 }
