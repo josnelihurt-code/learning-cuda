@@ -7,7 +7,7 @@ ARG YOLO_MODEL_REGISTRY=ghcr.io/josnelihurt-code/learning-cuda
 ARG COMMIT_HASH=unknown
 # Pre-built Bazel fetch + third-party/proto libs (see src/cpp_accelerator/docker-cpp-dependencies/).
 ARG CPP_DEPS_REGISTRY=ghcr.io/josnelihurt-code/learning-cuda
-ARG CPP_DEPS_VERSION=1.0.0
+ARG CPP_DEPS_VERSION=3.4.0
 # Pre-built CUDA runtime base with ffmpeg/libav* installed (see src/cpp_accelerator/docker-cuda-runtime/).
 # Caching this layer avoids re-running apt-get on every cpp-accelerator build.
 ARG CUDA_RUNTIME_REGISTRY=ghcr.io/josnelihurt-code/learning-cuda

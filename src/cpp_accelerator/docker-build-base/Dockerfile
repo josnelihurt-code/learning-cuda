@@ -28,18 +28,23 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# TensorRT for YOLO inference
-# For x86_64 desktop: Install from NVIDIA repository
-# For aarch64 (ARM64 CI): Download and install from NVIDIA repo for compilation
-# For Jetson: TensorRT is pre-installed with JetPack (but we include for CI builds)
+# TensorRT for YOLO inference.
+# Pinned to the exact version the cuda-runtime base image ships (libnvinfer10
+# 10.16.1.11, soname libnvinfer.so.10). Unpinned, apt follows the NVIDIA CUDA
+# repo's latest, which drifted to TRT 11 (soname .so.11) — binaries then fail
+# to load in the Jetson runtime image. Keep in sync with
+# src/cpp_accelerator/docker-cuda-runtime/Dockerfile.
+ARG TENSORRT_VERSION=10.16.1.11-1+cuda13.2
+
 RUN apt-get update && \
+    TRT_PKGS="libnvinfer-dev=${TENSORRT_VERSION} libnvinfer-headers-dev=${TENSORRT_VERSION} libnvinfer-safe-headers-dev=${TENSORRT_VERSION} libnvonnxparsers-dev=${TENSORRT_VERSION}" && \
     if [ "$TARGETARCH" = "amd64" ]; then \
-        apt-get install -y --no-install-recommends libnvinfer-bin libnvinfer-dev libnvonnxparsers-dev && \
+        apt-get install -y --no-install-recommends libnvinfer-bin=${TENSORRT_VERSION} ${TRT_PKGS} && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/*; \
     elif [ "$TARGETARCH" = "arm64" ]; then \
-        echo "Installing TensorRT dev libraries for ARM64 (compilation only)..."; \
-        apt-get install -y --no-install-recommends libnvinfer-dev libnvonnxparsers-dev && \
+        echo "Installing TensorRT ${TENSORRT_VERSION} dev libraries for ARM64 (compilation only)..."; \
+        apt-get install -y --no-install-recommends ${TRT_PKGS} && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/*; \
     fi
