@@ -69,7 +69,7 @@ GStreamer tee (cam_tee)
 | Branch | Consumer | Path | Cost when idle |
 |--------|----------|------|----------------|
 | `still_sink` | `BirdWatcher::SaveCapture` via `CameraHub::GrabStillFrame` | `gst_app_sink_try_pull_sample` (pull-on-demand) -> `gst_buffer_map` -> `sws_scale NV12 -> RGB24` -> `writeBmp` 4056x3040 | The leaky queue keeps a fresh frame around but nothing copies until something pulls. |
-| `raw_sink` | `GpuFrameProcessor` -> `BirdWatcher::OnRgbaFrame` | `MapNvmmBuffer` -> `cudaMemcpy(H->D)` Y+UV -> CUDA NV12->RGBA -> `cudaMemcpy(D->H)` -> RGBA callback -> YOLO via TensorRT | If no `RgbCallback` is registered, `Process()` returns before mapping. The branch keeps running but pays no GPU/CPU cost. |
+| `raw_sink` | `GpuFrameProcessor` -> `BirdWatcher::OnRgbaFrame` | `NvBufSurfaceMapEglImage` -> `cudaGraphicsEGLRegisterImage` -> GPU-side plane copy (D->D; layout-safe `cudaMemcpy2DFromArray` for tiled buffers) -> CUDA NV12->RGBA -> `cudaMemcpy(D->H)` -> RGBA callback -> YOLO via TensorRT | If no `RgbCallback` is registered, `Process()` returns before mapping. The branch keeps running but pays no GPU/CPU cost. |
 | `stream_sink` | `NvidiaArgusBackend::Impl::OnStreamSample` -> `CameraHub` fan-out -> WebRTC `LiveVideoProcessor` | One Annex-B AU per buffer, copied into `rtc::binary`, dispatched to subscribers | Always active while the WebRTC session has a sink. |
 
 The high-resolution still capture is the `still_sink` branch end-to-end. Note
@@ -269,12 +269,14 @@ Net result: `+227 / -558` lines across nine files; ~330 lines removed.
   to RGB and re-encodes, even when `HasActiveFilters(state)` is false. For
   unfiltered sessions the pipeline could pass the inbound AU straight to
   the outbound track. This was discussed but explicitly deferred.
-- **Real zero-copy NVMM->CUDA on the BirdWatcher tap.** Today
-  `GpuFrameProcessor::Process` does `NvBufSurfaceMap` + `cudaMemcpy(H->D)`.
-  On Jetson iGPU with unified DRAM, `NvBufSurfaceMapEglImage` plus
-  `cuGraphicsEGLRegisterImage` (or allocating with
-  `NVBUF_MEM_CUDA_UNIFIED`) would let CUDA read the pixel data without any
-  copy. Worth doing if YOLO frame rate becomes a constraint.
+- ~~**Real zero-copy NVMM->CUDA on the BirdWatcher tap.**~~ Done (5.0.1):
+  `GpuFrameProcessor::Process` now imports the NVMM buffer through its
+  EGLImage (`NvBufSurfaceMapEglImage` + `cudaGraphicsEGLRegisterImage`) and
+  copies the Y/UV planes GPU-side. This also fixed the silent detection
+  outage: `nvvidconv` NVMM output is block-linear (tiled), which a CPU
+  `NvBufSurfaceMap` read returns scrambled, so YOLO had been fed noise since
+  #722 shipped. Tiled buffers surface as CUDA arrays (read with
+  `cudaMemcpy2DFromArray`); pitch-linear ones as device pointers.
 - **Recovery from packet loss.** `intra-refresh=true` plus
   `config-interval=-1` means SPS/PPS are emitted exactly once at startup
   and there are no IDRs afterwards. Any WebRTC client that joins late or
@@ -288,7 +290,7 @@ Net result: `+227 / -558` lines across nine files; ~330 lines removed.
 |------|------|
 | `adapters/camera/backends/nvidia_argus_backend.{h,cpp}` | `tee` pipeline, three appsink callbacks, `GrabStillFrame` |
 | `adapters/camera/gpu_frame_processor.{h,cpp}` | NV12 NVMM -> RGBA tap, idle when no `RgbCallback` |
-| `adapters/camera/nvbuf_cuda_utils.{h,cpp}` | `NvBufSurface` mapping wrapper |
+| `adapters/camera/nvbuf_cuda_utils.{h,cpp}` | `NvBufSurface` handle extraction from NVMM GstBuffers |
 | `adapters/compute/cuda/kernels/nv12_utils_kernel.{h,cu}` | `cuda_nv12_to_rgba_device`, `cuda_nv12_letterbox_device` |
 | `adapters/camera/camera_hub.{h,cpp}` | Subscriber fan-out, `GrabStillFrame` and `GetGpuFrameProcessor` delegation |
 | `adapters/webrtc/live_video_processor.{h,cpp}` | WebRTC-side decode/filter/re-encode for every streaming session (see "Known follow-ups") |
