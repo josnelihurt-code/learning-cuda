@@ -13,11 +13,16 @@ go_feature_flag:
   namespace: "default"
 
 observability:
-  enabled: false
+  enabled: true
   service_name: "cuda-image-processor"
   service_version: "1.0.0"
+  # Grafana Cloud OTLP gateway (stack olivesofa1456, region us-west-0).
+  # The token is injected at runtime via OTEL_EXPORTER_OTLP_TOKEN.
+  otel_exporter_protocol: "http/protobuf"
   otel_collector_grpc_endpoint: "alpha.local.josnelihurt.me:4317"
-  otel_collector_http_endpoint: "https://alpha.local.josnelihurt.me:4318"
+  otel_collector_http_endpoint: "https://otlp-gateway-prod-us-west-0.grafana.net/otlp"
+  otel_auth_instance_id: "1836703"
+  otel_environment: "production"
   trace_sampling_rate: 1.0
 
 logging:
@@ -26,8 +31,8 @@ logging:
   output: "file"
   file_path: "/tmp/goserver.log"
   include_caller: true
-  remote_enabled: false
-  remote_endpoint: "https://otel-cuda-demo.josnelihurt.me/v1/logs"
+  remote_enabled: true
+  remote_endpoint: "https://otlp-gateway-prod-us-west-0.grafana.net/otlp/v1/logs"
   remote_environment: "production"
 
 processor:

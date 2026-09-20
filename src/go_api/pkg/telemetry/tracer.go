@@ -9,7 +9,9 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -31,26 +33,35 @@ func New(ctx context.Context, enabled bool, config *config.ObservabilityConfig) 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	res, err := resource.New(ctx,
-		resource.WithAttributes(
-			attribute.String("service.name", config.ServiceName),
-			attribute.String("service.version", config.ServiceVersion),
-		),
-	)
+	resAttrs := []attribute.KeyValue{
+		attribute.String("service.name", config.ServiceName),
+		attribute.String("service.version", config.ServiceVersion),
+	}
+	if config.OtelEnvironment != "" {
+		resAttrs = append(resAttrs, attribute.String("environment", config.OtelEnvironment))
+	}
+	res, err := resource.New(ctx, resource.WithAttributes(resAttrs...))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
 	}
 
-	conn, err := grpc.NewClient(config.OtelCollectorGRPCEndpoint,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to OpenTelemetry collector at %s: %w", config.OtelCollectorGRPCEndpoint, err)
-	}
-
-	exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create OTLP trace exporter: %w", err)
+	var exporter *otlptrace.Exporter
+	if config.UsesHTTPProtocol() {
+		exporter, err = newHTTPTraceExporter(ctx, config)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		conn, err := grpc.NewClient(config.OtelCollectorGRPCEndpoint,
+			grpc.WithTransportCredentials(insecure.NewCredentials()),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to connect to OpenTelemetry collector at %s: %w", config.OtelCollectorGRPCEndpoint, err)
+		}
+		exporter, err = otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create OTLP trace exporter: %w", err)
+		}
 	}
 
 	samplingRate := config.TraceSamplingRate
@@ -77,6 +88,8 @@ func New(ctx context.Context, enabled bool, config *config.ObservabilityConfig) 
 	))
 
 	logger.Global().Info().
+		Str("protocol", config.OtelExporterProtocol).
+		Str("http_endpoint", config.OtelCollectorHTTPEndpoint).
 		Str("grpc_endpoint", config.OtelCollectorGRPCEndpoint).
 		Float64("sampling_rate", config.TraceSamplingRate).
 		Msg("OpenTelemetry tracer initialized")
@@ -85,6 +98,31 @@ func New(ctx context.Context, enabled bool, config *config.ObservabilityConfig) 
 		provider: provider,
 		enabled:  true,
 	}, nil
+}
+
+func newHTTPTraceExporter(ctx context.Context, config *config.ObservabilityConfig) (*otlptrace.Exporter, error) {
+	target, err := parseOTLPHTTPTarget(config.OtelCollectorHTTPEndpoint, config.AuthHeader())
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse OTLP HTTP endpoint %s: %w", config.OtelCollectorHTTPEndpoint, err)
+	}
+
+	opts := []otlptracehttp.Option{
+		otlptracehttp.WithEndpoint(target.host),
+		otlptracehttp.WithURLPath(target.path + "/v1/traces"),
+		otlptracehttp.WithTimeout(30 * time.Second),
+	}
+	if headers := authHeaders(config); headers != nil {
+		opts = append(opts, otlptracehttp.WithHeaders(headers))
+	}
+	if target.insecure {
+		opts = append(opts, otlptracehttp.WithInsecure())
+	}
+
+	exporter, err := otlptracehttp.New(ctx, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OTLP HTTP trace exporter: %w", err)
+	}
+	return exporter, nil
 }
 
 func (tp *TracerProvider) Shutdown(ctx context.Context) error {
@@ -99,4 +137,3 @@ func (tp *TracerProvider) Shutdown(ctx context.Context) error {
 	logger.Global().Info().Msg("OpenTelemetry tracer provider shutdown complete")
 	return nil
 }
-
