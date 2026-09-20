@@ -21,7 +21,7 @@ type OTLPHook struct {
 	ctx    context.Context
 }
 
-func NewOTLPHook(endpoint, environment, serviceName, serviceVersion string) (zerolog.Hook, error) {
+func NewOTLPHook(endpoint, environment, serviceName, serviceVersion, authHeader string) (zerolog.Hook, error) {
 	ctx := context.Background()
 
 	res, err := resource.New(ctx,
@@ -50,6 +50,9 @@ func NewOTLPHook(endpoint, environment, serviceName, serviceVersion string) (zer
 		otlploghttp.WithEndpoint(host),
 		otlploghttp.WithURLPath(path),
 		otlploghttp.WithTimeout(30 * time.Second),
+	}
+	if authHeader != "" {
+		opts = append(opts, otlploghttp.WithHeaders(map[string]string{"Authorization": authHeader}))
 	}
 
 	if parsedURL.Scheme == "http" {

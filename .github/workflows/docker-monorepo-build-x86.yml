@@ -357,6 +357,7 @@ jobs:
           ACCELERATOR_SERVER_CERT: ${{ secrets.ACCELERATOR_SERVER_CERT }}
           ACCELERATOR_SERVER_KEY: ${{ secrets.ACCELERATOR_SERVER_KEY }}
           ACCELERATOR_CA_CERT: ${{ secrets.ACCELERATOR_CA_CERT }}
+          GRAFANA_CLOUD_OTLP_TOKEN: ${{ secrets.GRAFANA_CLOUD_OTLP_TOKEN }}
         run: |
           set -euo pipefail
           : "${CLOUD_VM_HOST:?Missing CLOUD_VM_HOST secret}"
@@ -365,6 +366,7 @@ jobs:
           : "${ACCELERATOR_SERVER_CERT:?Missing ACCELERATOR_SERVER_CERT secret}"
           : "${ACCELERATOR_SERVER_KEY:?Missing ACCELERATOR_SERVER_KEY secret}"
           : "${ACCELERATOR_CA_CERT:?Missing ACCELERATOR_CA_CERT secret}"
+          : "${GRAFANA_CLOUD_OTLP_TOKEN:?Missing GRAFANA_CLOUD_OTLP_TOKEN secret}"
           echo "Cloud VM deploy target: ${CLOUD_VM_USER}@${CLOUD_VM_HOST}:${COMPOSE_WORKDIR} (port ${CLOUD_VM_SSH_PORT})"
 
       - name: Checkout repository
@@ -466,6 +468,7 @@ jobs:
           CLOUD_VM_USER: ${{ secrets.CLOUD_VM_USER }}
           APP_IMAGE: ${{ steps.tags.outputs.app_image }}
           CUDA_WEB_FRONTEND_IMAGE: ${{ steps.tags.outputs.fe_image }}
+          OTEL_EXPORTER_OTLP_TOKEN: ${{ secrets.GRAFANA_CLOUD_OTLP_TOKEN }}
         run: |
           set -euo pipefail
           SSH_OPTS="-i ~/.ssh/cloud_vm_key -p ${CLOUD_VM_SSH_PORT} -o StrictHostKeyChecking=yes"
@@ -474,10 +477,11 @@ jobs:
             "COMPOSE_WORKDIR='${COMPOSE_WORKDIR}' \
              APP_IMAGE='${APP_IMAGE}' \
              CUDA_WEB_FRONTEND_IMAGE='${CUDA_WEB_FRONTEND_IMAGE}' \
+             OTEL_EXPORTER_OTLP_TOKEN='${OTEL_EXPORTER_OTLP_TOKEN}' \
              bash -s" <<'EOF'
           set -euo pipefail
           cd "${COMPOSE_WORKDIR}"
-          export APP_IMAGE CUDA_WEB_FRONTEND_IMAGE
+          export APP_IMAGE CUDA_WEB_FRONTEND_IMAGE OTEL_EXPORTER_OTLP_TOKEN
 
           # Stop and remove existing containers if they exist outside of compose
           docker ps -q --filter "name=cuda-go-server" | xargs -r docker stop

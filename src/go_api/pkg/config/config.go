@@ -50,6 +50,15 @@ func (m *Manager) IsObservabilityEnabled(ctx context.Context) bool {
 	return m.Observability.Enabled
 }
 
+// Redacted returns a shallow copy with secret fields masked, safe to log.
+func (m *Manager) Redacted() *Manager {
+	c := *m
+	if c.Observability.OtelAuthToken != "" {
+		c.Observability.OtelAuthToken = "[redacted]"
+	}
+	return &c
+}
+
 func New(configFile string) *Manager {
 	v := viper.New()
 
@@ -64,6 +73,7 @@ func New(configFile string) *Manager {
 
 	_ = v.BindEnv("processor.keepalive_interval", "PROCESSOR_KEEPALIVE_INTERVAL")
 	_ = v.BindEnv("processor.keepalive_timeout", "PROCESSOR_KEEPALIVE_TIMEOUT")
+	_ = v.BindEnv("observability.otel_auth_token", "OTEL_EXPORTER_OTLP_TOKEN")
 
 	if err := v.ReadInConfig(); err != nil {
 		log.Printf("Warning: Config file not found: %v, using defaults", err)
@@ -92,6 +102,7 @@ func setDefaults(v *viper.Viper) {
 		"observability.enabled":                      false,
 		"observability.service_name":                 "cuda-image-processor",
 		"observability.service_version":              "1.0.0",
+		"observability.otel_exporter_protocol":       "grpc",
 		"observability.otel_collector_grpc_endpoint": "localhost:4317",
 		"observability.otel_collector_http_endpoint": "http://localhost:4318",
 		"observability.trace_sampling_rate":          1.0,

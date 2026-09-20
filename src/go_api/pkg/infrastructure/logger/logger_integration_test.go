@@ -92,7 +92,7 @@ func TestNewOTLPHook_TailscaleIntegration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
 			// Act
-			hook, err := NewOTLPHook(tt.endpoint, tt.environment, tt.serviceName, "test-1.0.0")
+			hook, err := NewOTLPHook(tt.endpoint, tt.environment, tt.serviceName, "test-1.0.0", "")
 
 			// Assert
 			if tt.expectError {

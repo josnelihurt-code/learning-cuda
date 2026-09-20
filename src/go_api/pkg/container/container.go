@@ -52,9 +52,10 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 		RemoteEnabled:     cfg.Logging.RemoteEnabled,
 		RemoteEndpoint:    cfg.Logging.RemoteEndpoint,
 		RemoteEnvironment: cfg.Logging.RemoteEnvironment,
+		RemoteAuthHeader:  cfg.Observability.AuthHeader(),
 		ServiceName:       cfg.Observability.ServiceName,
 	})
-	log.Info().Str("config_file", configFile).Any("config", cfg).Msg("Container initialized")
+	log.Info().Str("config_file", configFile).Any("config", cfg.Redacted()).Msg("Container initialized")
 
 	var featureFlagRepo featureFlagRepository
 

@@ -41,6 +41,31 @@ func main() {
 		log.Warn().Err(err).Msg("Failed to initialize telemetry")
 	}
 
+	meterProvider, err := telemetry.NewMeterProvider(
+		ctx,
+		di.Config.IsObservabilityEnabled(ctx),
+		&di.Config.Observability,
+	)
+	if err != nil {
+		log.Warn().Err(err).Msg("Failed to initialize meter provider")
+	}
+	shutdownTelemetry := func() {
+		if tracerProvider != nil {
+			shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			if err := tracerProvider.Shutdown(shutdownCtx); err != nil {
+				log.Error().Err(err).Msg("Error shutting down tracer provider")
+			}
+			cancel()
+		}
+		if meterProvider != nil {
+			shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+			if err := meterProvider.Shutdown(shutdownCtx); err != nil {
+				log.Error().Err(err).Msg("Error shutting down meter provider")
+			}
+			cancel()
+		}
+	}
+
 	acceleratorGateway := processor.NewAcceleratorGateway(processor.AcceleratorGatewayConfig{
 		Registry: di.AcceleratorRegistry,
 	})
@@ -76,13 +101,7 @@ func main() {
 		if err != nil {
 			log.Error().Err(err).Msg("Server error")
 			di.Close(ctx)
-			if tracerProvider != nil {
-				shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-				if shutdownErr := tracerProvider.Shutdown(shutdownCtx); shutdownErr != nil {
-					log.Error().Err(shutdownErr).Msg("Error shutting down tracer provider")
-				}
-				cancel()
-			}
+			shutdownTelemetry()
 			os.Exit(1)
 		}
 	case sig := <-sigChan:
@@ -90,11 +109,5 @@ func main() {
 	}
 
 	di.Close(ctx)
-	if tracerProvider != nil {
-		shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-		defer cancel()
-		if err := tracerProvider.Shutdown(shutdownCtx); err != nil {
-			log.Error().Err(err).Msg("Error shutting down tracer provider")
-		}
-	}
+	shutdownTelemetry()
 }

@@ -1,8 +1,12 @@
-services: 
+services:
   learning-cuda-go-api:
     image: "${APP_IMAGE:?APP_IMAGE is not set, provide versioned tag app:X.Y.Z-amd64}"
     container_name: cuda-go-server
     restart: unless-stopped
+
+    environment:
+      # Grafana Cloud OTLP ingestion token; injected by the deploy workflow.
+      - OTEL_EXPORTER_OTLP_TOKEN=${OTEL_EXPORTER_OTLP_TOKEN:-}
 
     volumes:
       - ./data/learning-cuda:/data:rw
