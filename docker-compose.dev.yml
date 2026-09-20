@@ -187,7 +187,7 @@ services:
       - lint
 
   lint-golang:
-    image: golang:1.24-alpine
+    image: golang:1.27-alpine
     container_name: lint-golang
     working_dir: /workspace
     volumes:
