@@ -170,7 +170,7 @@ func TestEvaluateFeatureFlagBooleanUseCase_Execute(t *testing.T) {
 			).Return(tt.mockResult, tt.mockError).Once()
 
 			sut := NewEvaluateFeatureFlagBooleanUseCase(mockRepo)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Act
 			result, err := sut.Execute(ctx, tt.input)
@@ -249,7 +249,7 @@ func TestEvaluateFeatureFlagUseCase_EvaluateString(t *testing.T) {
 			).Return(tt.mockResult, tt.mockError).Once()
 
 			sut := NewEvaluateFeatureFlagStringUseCase(mockRepo)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Act
 			result, err := sut.Execute(ctx, tt.input)

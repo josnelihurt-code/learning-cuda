@@ -2,7 +2,9 @@ package video
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -49,7 +51,7 @@ func (r *FileVideoRepository) List(ctx context.Context) ([]domain.Video, error) 
 
 	entries, err := os.ReadDir(r.videosDir)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			span.SetAttributes(attribute.Int("videos.count", 0))
 			return []domain.Video{}, nil
 		}
@@ -78,7 +80,7 @@ func (r *FileVideoRepository) List(ctx context.Context) ([]domain.Video, error) 
 		previewPath := filepath.Join(rootPath, dataDir, previewsSubDir, id+".png")
 		previewFsPath := filepath.Join(r.previewsDir, id+".png")
 
-		if _, err := os.Stat(previewFsPath); os.IsNotExist(err) {
+		if _, err := os.Stat(previewFsPath); errors.Is(err, fs.ErrNotExist) {
 			videoFsPath := filepath.Join(r.videosDir, name)
 			if err := GeneratePreview(ctx, videoFsPath, previewFsPath); err != nil {
 				span.AddEvent("preview_generation_failed")

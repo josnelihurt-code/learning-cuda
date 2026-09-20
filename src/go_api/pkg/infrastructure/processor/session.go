@@ -21,12 +21,12 @@ type AcceleratorSession struct {
 	SupportedTypes  []gen.AcceleratorType
 	Cameras         []*gen.RemoteCameraInfo
 
-	stream             grpc.BidiStreamingServer[gen.ConnectRequest, gen.ConnectResponse]
-	sendMu             sync.Mutex // gRPC bidi requires single-writer; serialize sends.
-	lastSeenMu         sync.RWMutex
-	lastSeen           time.Time
-	keepaliveInterval  time.Duration
-	keepaliveTimeout   time.Duration
+	stream            grpc.BidiStreamingServer[gen.ConnectRequest, gen.ConnectResponse]
+	sendMu            sync.Mutex // gRPC bidi requires single-writer; serialize sends.
+	lastSeenMu        sync.RWMutex
+	lastSeen          time.Time
+	keepaliveInterval time.Duration
+	keepaliveTimeout  time.Duration
 
 	pending      *pendingMap
 	signalingMu  sync.RWMutex
@@ -109,10 +109,7 @@ func (s *AcceleratorSession) runKeepaliveSender() {
 }
 
 func (s *AcceleratorSession) runStaleWatchdog() {
-	tick := s.keepaliveInterval / 2
-	if tick < time.Second {
-		tick = time.Second
-	}
+	tick := max(s.keepaliveInterval/2, time.Second)
 	ticker := time.NewTicker(tick)
 	defer ticker.Stop()
 

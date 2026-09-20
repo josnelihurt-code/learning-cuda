@@ -6,7 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"sort"
+	"slices"
 	"text/template"
 )
 
@@ -168,7 +168,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	sort.Strings(files)
+	slices.Sort(files)
 
 	frames, err := generateMetadata(files)
 	if err != nil {

@@ -100,7 +100,7 @@ func TestUploadImageUseCase_Execute(t *testing.T) {
 			mockImage: nil,
 			mockError: nil,
 			assertResult: func(t *testing.T, image *domain.StaticImage, err error) {
-				assert.ErrorIs(t, err, errFileTooLarge)
+				assert.ErrorIs(t, err, ErrFileTooLarge)
 				assert.Nil(t, image)
 			},
 		},
@@ -111,7 +111,7 @@ func TestUploadImageUseCase_Execute(t *testing.T) {
 			mockImage: nil,
 			mockError: nil,
 			assertResult: func(t *testing.T, image *domain.StaticImage, err error) {
-				assert.ErrorIs(t, err, errInvalidFormat)
+				assert.ErrorIs(t, err, ErrInvalidFormat)
 				assert.Nil(t, image)
 			},
 		},
@@ -164,7 +164,7 @@ func TestUploadImageUseCase_Execute(t *testing.T) {
 			}
 
 			sut := NewUploadImageUseCase(mockRepo)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Act
 			output, err := sut.Execute(ctx, UploadImageUseCaseInput{FileData: tt.fileData, Filename: tt.filename})

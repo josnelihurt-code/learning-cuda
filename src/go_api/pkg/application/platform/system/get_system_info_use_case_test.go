@@ -1,7 +1,6 @@
 package system
 
 import (
-	"context"
 	"testing"
 
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
@@ -150,7 +149,7 @@ func TestGetSystemInfoUseCase_Execute(t *testing.T) {
 			tt.setupMocks(mockConfig, mockBuildInfo, mockVersion)
 
 			sut := NewGetSystemInfoUseCase(mockConfig, mockBuildInfo, mockVersion)
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Act
 			output, err := sut.Execute(ctx, GetSystemInfoUseCaseInput{})

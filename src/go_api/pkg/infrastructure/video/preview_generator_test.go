@@ -1,7 +1,8 @@
 package video
 
 import (
-	"context"
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,12 +12,12 @@ import (
 )
 
 func TestGeneratePreview(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 
 	t.Run("generate preview for valid video", func(t *testing.T) {
 		// TODO: Use golden test data (add small test video <1MB to data/test-data/videos/ directory)
 		videoPath := "/data/videos/sample.mp4"
-		if _, err := os.Stat(videoPath); os.IsNotExist(err) {
+		if _, err := os.Stat(videoPath); errors.Is(err, fs.ErrNotExist) {
 			t.Skip("Sample video not found, skipping test")
 		}
 

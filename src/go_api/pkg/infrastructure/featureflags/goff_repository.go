@@ -2,7 +2,9 @@ package featureflags
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sync"
@@ -12,7 +14,7 @@ import (
 )
 
 type goffFlagConfig struct {
-	Variations  map[string]interface{} `yaml:"variations"`
+	Variations  map[string]any `yaml:"variations"`
 	DefaultRule struct {
 		Variation string `yaml:"variation"`
 	} `yaml:"defaultRule"`
@@ -161,7 +163,7 @@ func (r *GoffRepository) writeAll(flags map[string]domain.FeatureFlag) error {
 	configs := make(map[string]goffFlagConfig, len(flags))
 	for _, flag := range flags {
 		cfg := goffFlagConfig{
-			Variations: make(map[string]interface{}),
+			Variations: make(map[string]any),
 		}
 		switch flag.Type {
 		case domain.BooleanFlagType:
@@ -184,7 +186,7 @@ func (r *GoffRepository) writeAll(flags map[string]domain.FeatureFlag) error {
 
 func (r *GoffRepository) readConfig() (map[string]goffFlagConfig, error) {
 	if _, err := os.Stat(r.filePath); err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return nil, fmt.Errorf("goff file not found: %s", r.filePath)
 		}
 		return nil, fmt.Errorf("stat goff file: %w", err)
@@ -214,7 +216,7 @@ func (r *GoffRepository) writeConfig(config map[string]goffFlagConfig) error {
 	return nil
 }
 
-func extractDefault(cfg goffFlagConfig) (interface{}, domain.FeatureFlagType) {
+func extractDefault(cfg goffFlagConfig) (any, domain.FeatureFlagType) {
 	if value, ok := cfg.Variations[cfg.DefaultRule.Variation]; ok {
 		switch typed := value.(type) {
 		case bool:

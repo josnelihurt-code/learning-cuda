@@ -1,7 +1,6 @@
 package config
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,7 +34,7 @@ func TestManager_IsObservabilityEnabled(t *testing.T) {
 			manager := &Manager{
 				Observability: tt.observability,
 			}
-			ctx := context.Background()
+			ctx := t.Context()
 
 			// Act
 			result := manager.IsObservabilityEnabled(ctx)

@@ -5,7 +5,7 @@ type FeatureFlag struct {
 	Name         string
 	Type         FeatureFlagType
 	Enabled      bool
-	DefaultValue interface{}
+	DefaultValue any
 	Description  string
 }
 
@@ -19,7 +19,7 @@ const (
 type FeatureFlagEvaluation struct {
 	FlagKey      string
 	EntityID     string
-	Result       interface{}
+	Result       any
 	Success      bool
 	UsedFallback bool
 }
