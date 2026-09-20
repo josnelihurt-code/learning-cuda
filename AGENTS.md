@@ -26,9 +26,24 @@ Any PR that changes runtime code of a deployable component MUST also bump its
 repo's semver practice: user-visible features bump minor (or major on contract
 changes), fixes and toolchain churn bump patch.
 
-Intermediate images (`proto/VERSION`, `src/cpp_accelerator/docker-build-base/`,
-`docker-cpp-dependencies/`, `docker-cuda-runtime/`, `yolo-model-gen/`,
-`runtime/VERSION`, `test/integration/VERSION`) version their image tags but
-carry no deploy gate; bump them when that layer's inputs change so a published
-tag never silently points at different content. The full stage→VERSION mapping
-lives in `.github/workflows/README_x86.md` and `.github/workflows/README_arm.md`.
+The same rule applies layer by layer to the image chain (see
+`scripts/docker/build-local.sh` for the stage → Dockerfile → VERSION mapping):
+when a layer's Dockerfile or inputs change, bump that layer's `VERSION` in the
+same PR — `proto/docker-build-base`, `src/go_api/builder`, `proto`,
+`src/cpp_accelerator/docker-build-base`, `docker-cpp-dependencies`,
+`docker-cuda-runtime`, `yolo-model-gen`, `runtime`, `test/integration`.
+Two failure modes make this mandatory:
+
+- Not bumping: the merge re-pushes an existing versioned tag with different
+  content (silent tag mutation; consumers pinned to the tag get changed bits).
+- Bumping without the rebuild in the same merge:
+  `scripts/docker/pull-ghcr-cpp-intermediates.sh` pulls
+  `proto-generated-${proto/VERSION}` by versioned tag on ARM, so a bumped
+  VERSION whose image was never built+pushed fails the next ARM build.
+
+`proto/VERSION` also composes into the `cpp-accelerator` and `web-frontend`
+image tags (`...-proto${proto/VERSION}`); bump it when the proto stage's
+generated output changes, not for wire-compatible regenerations only when
+artifact bytes are identical. `scripts/hooks/pre-commit-version-check.sh`
+enforces module → VERSION co-movement locally; the full CI stage mapping lives
+in `.github/workflows/README_x86.md` and `.github/workflows/README_arm.md`.
