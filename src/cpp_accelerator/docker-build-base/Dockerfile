@@ -37,7 +37,7 @@ RUN apt-get update && apt-get install -y \
 ARG TENSORRT_VERSION=10.16.1.11-1+cuda13.2
 
 RUN apt-get update && \
-    TRT_PKGS="libnvinfer-dev=${TENSORRT_VERSION} libnvonnxparsers-dev=${TENSORRT_VERSION}" && \
+    TRT_PKGS="libnvinfer-dev=${TENSORRT_VERSION} libnvinfer-headers-dev=${TENSORRT_VERSION} libnvinfer-safe-headers-dev=${TENSORRT_VERSION} libnvonnxparsers-dev=${TENSORRT_VERSION}" && \
     if [ "$TARGETARCH" = "amd64" ]; then \
         apt-get install -y --no-install-recommends libnvinfer-bin=${TENSORRT_VERSION} ${TRT_PKGS} && \
         apt-get clean && \
