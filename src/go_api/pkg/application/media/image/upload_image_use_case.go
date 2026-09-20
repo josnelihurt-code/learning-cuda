@@ -15,8 +15,6 @@ import (
 const maxFileSize = 10 * 1024 * 1024
 
 var (
-	// ErrFileTooLarge and ErrInvalidFormat are matched by the connect handler
-	// to map validation failures to connect error codes.
 	ErrFileTooLarge  = errors.New("file too large")
 	ErrInvalidFormat = errors.New("invalid format")
 	errEmptyFilename = errors.New("empty filename")
