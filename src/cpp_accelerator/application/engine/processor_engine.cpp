@@ -14,6 +14,7 @@
 #include "src/cpp_accelerator/composition/platform/platform_support.h"
 #include "src/cpp_accelerator/application/pipeline/filter_pipeline.h"
 #include "src/cpp_accelerator/core/logger.h"
+#include "src/cpp_accelerator/core/otel_metrics.h"
 #include "src/cpp_accelerator/core/telemetry.h"
 #include "src/cpp_accelerator/domain/interfaces/image_buffer.h"
 
@@ -71,6 +72,7 @@ bool ProcessorEngine::Initialize(const InitRequest& request,
   static bool logger_initialized = false;
   if (!logger_initialized) {
     jrb::core::initialize_logger();
+    jrb::core::otel::InitializeMetrics();
     auto logger = spdlog::default_logger();
     if (logger) {
       logger->flush();

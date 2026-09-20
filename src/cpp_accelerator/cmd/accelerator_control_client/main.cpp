@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -18,6 +19,7 @@
 #include "src/cpp_accelerator/adapters/webrtc/webrtc_manager.h"
 #include "src/cpp_accelerator/application/bird_watch/bird_watcher.h"
 #include "src/cpp_accelerator/application/engine/processor_engine.h"
+#include "src/cpp_accelerator/core/otel_metrics.h"
 #include "src/cpp_accelerator/core/signal_handler.h"
 #include "src/cpp_accelerator/core/version.h"
 
@@ -187,5 +189,9 @@ int main(int argc, char** argv) {
   signal_handler.Shutdown();
 
   spdlog::info("Accelerator client exited gracefully");
-  return 0;
+  // Teardown of the OpenTelemetry SDK at static-destruction time segfaults
+  // after the providers are flushed; flush here and skip the destructors.
+  jrb::core::otel::ShutdownMetrics();
+  spdlog::default_logger()->flush();
+  std::_Exit(0);
 }

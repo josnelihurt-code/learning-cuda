@@ -6,6 +6,7 @@ cc_library(
     visibility = ["//visibility:public"],
     deps = [
         "//proto:image_processor_service_cc_proto",
+        "//src/cpp_accelerator/core:otel_metrics",
     ],
 )
 

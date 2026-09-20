@@ -13,6 +13,7 @@ cc_binary(
         "//src/cpp_accelerator/adapters/grpc_control:processor_engine_adapter",
         "//src/cpp_accelerator/adapters/webrtc:webrtc_manager",
         "//src/cpp_accelerator/application/engine:engine",
+        "//src/cpp_accelerator/core:otel_metrics",
         "//src/cpp_accelerator/core:signal_handler",
         "//src/cpp_accelerator/core:version",
         "//proto:image_processor_service_cc_proto",

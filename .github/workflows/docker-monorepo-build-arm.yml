@@ -212,11 +212,13 @@ jobs:
           ACCELERATOR_CLIENT_CERT: ${{ secrets.ACCELERATOR_CLIENT_CERT }}
           ACCELERATOR_CLIENT_KEY: ${{ secrets.ACCELERATOR_CLIENT_KEY }}
           ACCELERATOR_CA_CERT: ${{ secrets.ACCELERATOR_CA_CERT }}
+          GRAFANA_CLOUD_OTLP_TOKEN: ${{ secrets.GRAFANA_CLOUD_OTLP_TOKEN }}
         run: |
           set -euo pipefail
           missing=()
           for var in JETSON_HOST JETSON_APP_DIRECTORY JETSON_USER \
-                     ACCELERATOR_CLIENT_CERT ACCELERATOR_CLIENT_KEY ACCELERATOR_CA_CERT; do
+                     ACCELERATOR_CLIENT_CERT ACCELERATOR_CLIENT_KEY ACCELERATOR_CA_CERT \
+                     GRAFANA_CLOUD_OTLP_TOKEN; do
             if [ -z "${!var:-}" ]; then
               missing+=("$var")
             fi
@@ -273,7 +275,8 @@ jobs:
 
           rsync -az -e "ssh ${SSH_OPTS}" \
             src/cpp_accelerator/docker-compose.yml \
-            "${REMOTE}:${JETSON_APP_DIRECTORY}/docker-compose.yml"
+            src/cpp_accelerator/otel-collector-config.yaml \
+            "${REMOTE}:${JETSON_APP_DIRECTORY}/"
 
       - name: Sync accelerator mTLS secrets to Jetson
         env:
@@ -320,6 +323,7 @@ jobs:
           JETSON_HOST: ${{ secrets.JETSON_HOST }}
           JETSON_APP_DIRECTORY: ${{ vars.JETSON_APP_DIRECTORY }}
           JETSON_USER: ${{ secrets.JETSON_USER }}
+          GRAFANA_CLOUD_OTLP_TOKEN: ${{ secrets.GRAFANA_CLOUD_OTLP_TOKEN }}
         run: |
           set -euo pipefail
           SSH_OPTS="-i ~/.ssh/jetson_key -o StrictHostKeyChecking=yes"
@@ -329,14 +333,20 @@ jobs:
           cpp_version=$(tr -d '[:space:]' < src/cpp_accelerator/VERSION)
           cpp_accelerator_image="${REGISTRY}/${BASE_IMAGE_PREFIX}/cpp-accelerator:cpp-accelerator-${cpp_version}-proto${proto_version}-arm64"
 
+          # grafana_instance_id: routing username for the OTLP gateway (not
+          # secret). base64 -w0: no line wrapping inside the header value.
+          grafana_instance_id="1836703"
+          otel_auth_header_basic="Basic $(printf '%s:%s' "${grafana_instance_id}" "${GRAFANA_CLOUD_OTLP_TOKEN}" | base64 -w0)"
+
           echo "Deploying cpp-accelerator image: ${cpp_accelerator_image}"
 
           ssh ${SSH_OPTS} "${REMOTE}" \
             "JETSON_APP_DIRECTORY='${JETSON_APP_DIRECTORY}' \
-             ACCELERATOR_IMAGE='${cpp_accelerator_image}' bash -s" <<'EOF'
+             ACCELERATOR_IMAGE='${cpp_accelerator_image}' \
+             OTEL_AUTH_HEADER_BASIC='${otel_auth_header_basic}' bash -s" <<'EOF'
           set -euo pipefail
           cd "${JETSON_APP_DIRECTORY}"
-          export ACCELERATOR_IMAGE
+          export ACCELERATOR_IMAGE OTEL_AUTH_HEADER_BASIC
           export ACCELERATOR_SECRETS_DIR="${JETSON_APP_DIRECTORY}/secrets"
           docker compose pull
           docker compose up -d --remove-orphans
@@ -344,8 +354,9 @@ jobs:
           timeout=60
           while [ "${timeout}" -gt 0 ]; do
             running=$(docker ps --filter 'name=^cuda-accelerator-client$' --filter 'status=running' --format '{{.Names}}')
-            if [ "${running}" = "cuda-accelerator-client" ]; then
-              echo "accelerator-client is running"
+            collector=$(docker ps --filter 'name=^cuda-otel-collector$' --filter 'status=running' --format '{{.Names}}')
+            if [ "${running}" = "cuda-accelerator-client" ] && [ "${collector}" = "cuda-otel-collector" ]; then
+              echo "accelerator-client and otel-collector are running"
               break
             fi
             sleep 1
