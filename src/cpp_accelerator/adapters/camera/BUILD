@@ -83,6 +83,13 @@ cc_library(
         "//bazel/flags:nvidia_argus_camera_enabled": [
             "//third_party/glib-config:glibconfig",
             "//third_party/gstreamer:gstreamer",
+            "//third_party/nvbufsurface:nvbufsurface",
+        ],
+        "//conditions:default": [],
+    }),
+    linkopts = select({
+        "//bazel/flags:nvidia_argus_camera_enabled": [
+            "-lEGL",
         ],
         "//conditions:default": [],
     }),
