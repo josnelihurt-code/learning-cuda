@@ -55,6 +55,85 @@ static EGLDisplay AcquireEglDisplay() {
   return display;
 }
 
+// Owns the per-frame EGL import chain (NvBufSurface handle, EGLImage mapping,
+// CUDA registration) and unwinds exactly the steps that succeeded.
+namespace {
+
+class EglFrameImport {
+ public:
+  explicit EglFrameImport(GstBuffer* buf) : buf_(buf) { ok_ = Import(); }
+
+  ~EglFrameImport() {
+    if (resource_ != nullptr) {
+      cudaGraphicsUnregisterResource(resource_);
+    }
+    if (egl_mapped_) {
+      NvBufSurfaceUnMapEglImage(surface_, 0);
+    }
+    if (surface_ != nullptr) {
+      gst_buffer_unmap(buf_, &map_info_);
+    }
+  }
+
+  EglFrameImport(const EglFrameImport&) = delete;
+  EglFrameImport& operator=(const EglFrameImport&) = delete;
+
+  bool ok() const { return ok_; }
+  const cudaEglFrame& frame() const { return frame_; }
+  int width() const { return width_; }
+  int height() const { return height_; }
+
+ private:
+  bool Import() {
+    surface_ = GetNvmmSurface(buf_, &map_info_);
+    if (surface_ == nullptr) {
+      return false;
+    }
+    if (NvBufSurfaceMapEglImage(surface_, 0) != 0) {
+      spdlog::warn("{} NvBufSurfaceMapEglImage failed; dropping frame", kLogPrefix);
+      return false;
+    }
+    egl_mapped_ = true;
+
+    const EGLImageKHR egl_image =
+        reinterpret_cast<EGLImageKHR>(surface_->surfaceList[0].mappedAddr.eglImage);
+    if (cudaGraphicsEGLRegisterImage(&resource_, egl_image,
+                                     cudaGraphicsRegisterFlagsNone) != cudaSuccess) {
+      spdlog::warn("{} cudaGraphicsEGLRegisterImage failed; dropping frame", kLogPrefix);
+      return false;
+    }
+    if (cudaGraphicsResourceGetMappedEglFrame(&frame_, resource_, 0, 0) != cudaSuccess) {
+      spdlog::warn("{} cudaGraphicsResourceGetMappedEglFrame failed", kLogPrefix);
+      return false;
+    }
+
+    width_ = static_cast<int>(surface_->surfaceList[0].width);
+    height_ = static_cast<int>(surface_->surfaceList[0].height);
+    return true;
+  }
+
+  GstBuffer* buf_;
+  GstMapInfo map_info_{};
+  NvBufSurface* surface_ = nullptr;
+  bool egl_mapped_ = false;
+  cudaGraphicsResource_t resource_ = nullptr;
+  cudaEglFrame frame_{};
+  int width_ = 0;
+  int height_ = 0;
+  bool ok_ = false;
+};
+
+}  // namespace
+
+static void InvokeCallback(const GpuFrameProcessor::RgbCallback& cb,
+                           const std::vector<uint8_t>& rgba, int width, int height) {
+  try {
+    cb(rgba, width, height);
+  } catch (const std::exception& e) {
+    spdlog::warn("{} RgbCallback threw: {}", kLogPrefix, e.what());
+  }
+}
+
 struct GpuFrameProcessor::Impl {
   std::atomic<bool> running{false};
 
@@ -75,6 +154,11 @@ struct GpuFrameProcessor::Impl {
   int alloc_height = 0;
 
   std::vector<uint8_t> h_rgba;
+
+  RgbCallback SnapshotCallback() {
+    std::lock_guard<std::mutex> lk(rgb_cb_mutex);
+    return rgb_cb;
+  }
 
   bool EnsureScratch(int w, int h) {
     if (d_rgba && w == alloc_width && h == alloc_height) {
@@ -123,17 +207,12 @@ struct GpuFrameProcessor::Impl {
   bool CopyPlanesToDevice(const cudaEglFrame& frame, int w, int h) {
     cudaError_t err = cudaSuccess;
     if (frame.frameType == cudaEglFrameTypePitch) {
-      const unsigned char* y_src = static_cast<const unsigned char*>(frame.frame.pPitch[0].ptr);
-      const unsigned char* uv_src = static_cast<const unsigned char*>(frame.frame.pPitch[1].ptr);
-      const size_t y_pitch = frame.frame.pPitch[0].pitch;
-      const size_t uv_pitch = frame.frame.pPitch[1].pitch;
-      for (int r = 0; r < h && err == cudaSuccess; r++) {
-        err = cudaMemcpy(d_y_in + static_cast<size_t>(r) * w, y_src + r * y_pitch, w,
-                         cudaMemcpyDeviceToDevice);
-      }
-      for (int r = 0; r < h / 2 && err == cudaSuccess; r++) {
-        err = cudaMemcpy(d_uv_in + static_cast<size_t>(r) * w, uv_src + r * uv_pitch, w,
-                         cudaMemcpyDeviceToDevice);
+      err = cudaMemcpy2D(d_y_in, w, frame.frame.pPitch[0].ptr,
+                         frame.frame.pPitch[0].pitch, w, h, cudaMemcpyDeviceToDevice);
+      if (err == cudaSuccess) {
+        err = cudaMemcpy2D(d_uv_in, w, frame.frame.pPitch[1].ptr,
+                           frame.frame.pPitch[1].pitch, w, h / 2,
+                           cudaMemcpyDeviceToDevice);
       }
     } else {
       err = cudaMemcpy2DFromArray(d_y_in, w, frame.frame.pArray[0], 0, 0, w, h,
@@ -146,6 +225,22 @@ struct GpuFrameProcessor::Impl {
     if (err != cudaSuccess) {
       spdlog::error("{} NV12 plane copy from EGL frame failed: {}", kLogPrefix,
                     cudaGetErrorString(err));
+      return false;
+    }
+    return true;
+  }
+
+  // NV12 scratch -> RGBA scratch -> host buffer.
+  bool ConvertToRgba(int w, int h) {
+    const cudaError_t conv_err = cuda_nv12_to_rgba_device(d_y_in, d_uv_in, w, d_rgba, w, h);
+    if (conv_err != cudaSuccess) {
+      spdlog::error("{} cuda_nv12_to_rgba_device: {}", kLogPrefix,
+                    cudaGetErrorString(conv_err));
+      return false;
+    }
+    if (cudaMemcpy(h_rgba.data(), d_rgba, static_cast<size_t>(w) * h * 4,
+                   cudaMemcpyDeviceToHost) != cudaSuccess) {
+      spdlog::error("{} RGBA D->H copy failed", kLogPrefix);
       return false;
     }
     return true;
@@ -185,85 +280,31 @@ void GpuFrameProcessor::SetRgbCallback(RgbCallback cb) {
 }
 
 void GpuFrameProcessor::Process(GstBuffer* nvmm_buf, uint32_t /*rtp_ts*/) {
-  if (!impl_->running.load())
+  if (!impl_->running.load()) {
     return;
-
-  // Snapshot the callback so we can drop the lock before doing CUDA work.
-  RgbCallback cb_snapshot;
-  {
-    std::lock_guard<std::mutex> lk(impl_->rgb_cb_mutex);
-    cb_snapshot = impl_->rgb_cb;
   }
-  if (!cb_snapshot) {
+  const RgbCallback cb = impl_->SnapshotCallback();
+  if (!cb) {
     // Nothing consumes RGBA right now; skip the entire pipeline so the
     // streaming path pays no GPU/CPU tax.
     return;
   }
-
-  const EGLDisplay display = AcquireEglDisplay();
-  if (display == EGL_NO_DISPLAY) {
+  if (AcquireEglDisplay() == EGL_NO_DISPLAY) {
     return;
   }
 
-  GstMapInfo map_info{};
-  NvBufSurface* surface = GetNvmmSurface(nvmm_buf, &map_info);
-  if (surface == nullptr) {
+  EglFrameImport imported(nvmm_buf);
+  if (!imported.ok()) {
     return;
   }
 
-  // Import the NVMM buffer into CUDA through its EGLImage.  This never CPU-maps
-  // the planes: tiled (block-linear) memory is only readable by the GPU.
-  if (NvBufSurfaceMapEglImage(surface, 0) != 0) {
-    spdlog::warn("{} NvBufSurfaceMapEglImage failed; dropping frame", kLogPrefix);
-    gst_buffer_unmap(nvmm_buf, &map_info);
+  const int w = imported.width();
+  const int h = imported.height();
+  if (!impl_->EnsureScratch(w, h) || !impl_->CopyPlanesToDevice(imported.frame(), w, h) ||
+      !impl_->ConvertToRgba(w, h)) {
     return;
   }
-
-  cudaGraphicsResource_t resource = nullptr;
-  const EGLImageKHR egl_image =
-      reinterpret_cast<EGLImageKHR>(surface->surfaceList[0].mappedAddr.eglImage);
-  if (cudaGraphicsEGLRegisterImage(&resource, egl_image,
-                                   cudaGraphicsRegisterFlagsNone) != cudaSuccess) {
-    spdlog::warn("{} cudaGraphicsEGLRegisterImage failed; dropping frame", kLogPrefix);
-    NvBufSurfaceUnMapEglImage(surface, 0);
-    gst_buffer_unmap(nvmm_buf, &map_info);
-    return;
-  }
-
-  cudaEglFrame frame{};
-  bool ok = cudaGraphicsResourceGetMappedEglFrame(&frame, resource, 0, 0) == cudaSuccess;
-  if (ok) {
-    const int w = static_cast<int>(surface->surfaceList[0].width);
-    const int h = static_cast<int>(surface->surfaceList[0].height);
-    if (impl_->EnsureScratch(w, h) && impl_->CopyPlanesToDevice(frame, w, h)) {
-      const cudaError_t conv_err =
-          cuda_nv12_to_rgba_device(impl_->d_y_in, impl_->d_uv_in, w, impl_->d_rgba, w, h);
-      if (conv_err != cudaSuccess) {
-        spdlog::error("{} cuda_nv12_to_rgba_device: {}", kLogPrefix,
-                      cudaGetErrorString(conv_err));
-        ok = false;
-      } else {
-        const size_t rgba_bytes = static_cast<size_t>(w) * h * 4;
-        ok = cudaMemcpy(impl_->h_rgba.data(), impl_->d_rgba, rgba_bytes,
-                        cudaMemcpyDeviceToHost) == cudaSuccess;
-        if (ok) {
-          try {
-            cb_snapshot(impl_->h_rgba, w, h);
-          } catch (const std::exception& e) {
-            spdlog::warn("{} RgbCallback threw: {}", kLogPrefix, e.what());
-          }
-        }
-      }
-    } else {
-      ok = false;
-    }
-  } else {
-    spdlog::warn("{} cudaGraphicsResourceGetMappedEglFrame failed", kLogPrefix);
-  }
-
-  cudaGraphicsUnregisterResource(resource);
-  NvBufSurfaceUnMapEglImage(surface, 0);
-  gst_buffer_unmap(nvmm_buf, &map_info);
+  InvokeCallback(cb, impl_->h_rgba, w, h);
 }
 
 }  // namespace jrb::adapters::camera
