@@ -56,8 +56,12 @@ func (m *MockVersionRepository) GetProtoVersion() string {
 	return args.String(0)
 }
 
-func assertSystemInfo(t *testing.T, result *domain.SystemInfo, goVersion, protoVersion, branch, buildTime, commitHash, environment string) {
+// assertSystemInfo compares the use case output against the expected values.
+// CppVersion is expected to be empty: the use case never populates it today
+// because GetCppVersion is not implemented on the version repository (backlog).
+func assertSystemInfo(t *testing.T, result *domain.SystemInfo, goVersion, cppVersion, protoVersion, branch, buildTime, commitHash, environment string) {
 	assert.Equal(t, goVersion, result.Version.GoVersion)
+	assert.Equal(t, cppVersion, result.Version.CppVersion)
 	assert.Equal(t, protoVersion, result.Version.ProtoVersion)
 	assert.Equal(t, branch, result.Version.Branch)
 	assert.Equal(t, buildTime, result.Version.BuildTime)
@@ -100,7 +104,7 @@ func TestGetSystemInfoUseCase_Execute(t *testing.T) {
 			assertResult: func(t *testing.T, result *domain.SystemInfo, err error) {
 				assert.NoError(t, err)
 				require.NotNil(t, result)
-				assertSystemInfo(t, result, "1.0.8", "1.0.0", "main", "2024-10-25T12:00:00Z", "abc123", "development")
+				assertSystemInfo(t, result, "1.0.8", "", "1.0.0", "main", "2024-10-25T12:00:00Z", "abc123", "development")
 			},
 		},
 		{
@@ -111,13 +115,12 @@ func TestGetSystemInfoUseCase_Execute(t *testing.T) {
 				buildInfo.On("GetBuildTime").Return("2024-10-25T12:00:00Z")
 				buildInfo.On("GetCommitHash").Return("abc123")
 				version.On("GetGoVersion").Return("1.0.8")
-				version.On("GetCppVersion").Return("2.1.6")
 				version.On("GetProtoVersion").Return("1.0.0")
 			},
 			assertResult: func(t *testing.T, result *domain.SystemInfo, err error) {
 				assert.NoError(t, err)
 				require.NotNil(t, result)
-				assertSystemInfo(t, result, "1.0.8", "2.1.6", "1.0.0", "main", "2024-10-25T12:00:00Z", "abc123", "production")
+				assertSystemInfo(t, result, "1.0.8", "", "1.0.0", "main", "2024-10-25T12:00:00Z", "abc123", "production")
 			},
 		},
 		{
@@ -128,13 +131,12 @@ func TestGetSystemInfoUseCase_Execute(t *testing.T) {
 				buildInfo.On("GetBuildTime").Return("2024-11-01T10:30:00Z")
 				buildInfo.On("GetCommitHash").Return("xyz789")
 				version.On("GetGoVersion").Return("2.0.0")
-				version.On("GetCppVersion").Return("3.0.0")
 				version.On("GetProtoVersion").Return("2.0.0")
 			},
 			assertResult: func(t *testing.T, result *domain.SystemInfo, err error) {
 				assert.NoError(t, err)
 				require.NotNil(t, result)
-				assertSystemInfo(t, result, "2.0.0", "3.0.0", "2.0.0", "develop", "2024-11-01T10:30:00Z", "xyz789", "staging")
+				assertSystemInfo(t, result, "2.0.0", "", "2.0.0", "develop", "2024-11-01T10:30:00Z", "xyz789", "staging")
 			},
 		},
 	}

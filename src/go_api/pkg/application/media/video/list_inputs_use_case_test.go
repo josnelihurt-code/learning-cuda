@@ -32,8 +32,8 @@ func TestListInputsUseCase_Execute(t *testing.T) {
 				require.NotNil(t, result)
 				assert.Len(t, result, 2)
 
-				assert.Equal(t, "lena", result[0].ID)
-				assert.Equal(t, "Lena", result[0].DisplayName)
+				assert.Equal(t, "gallery", result[0].ID)
+				assert.Equal(t, "Gallery", result[0].DisplayName)
 				assert.Equal(t, "static", result[0].Type)
 				assert.Equal(t, "/data/static_images/lena.png", result[0].ImagePath)
 				assert.False(t, result[0].IsDefault)
