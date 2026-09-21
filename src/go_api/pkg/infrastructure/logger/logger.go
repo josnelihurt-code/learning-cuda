@@ -123,9 +123,8 @@ func Global() *zerolog.Logger {
 	return log.Global()
 }
 
-// LocalOnly returns a logger that writes only to local outputs (stdout/file).
-// Use this when remote logging would create a feedback loop, such as in the
-// OTLP proxy handler that forwards logs to the collector.
+// LocalOnly writes to local outputs only; the OTLP proxy uses it to avoid
+// a feedback loop with the collector.
 func LocalOnly() *zerolog.Logger {
 	return &globalLocalLogger
 }
