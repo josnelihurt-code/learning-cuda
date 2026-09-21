@@ -4,6 +4,13 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
+# Toolchain versions for the bufgen image come from the repo-wide source of truth.
+if [ ! -f "$PROJECT_ROOT/versions.env" ]; then
+    echo "FAILED: versions.env not found at repo root"
+    exit 1
+fi
+. "$PROJECT_ROOT/versions.env"
+
 cd "$PROJECT_ROOT"
 
 CONTAINER_CMD="podman"
@@ -16,7 +23,10 @@ echo "Building Protocol Buffers..."
 
 if ! $CONTAINER_CMD image exists "$IMAGE_NAME" 2>/dev/null; then
     echo "Building bufgen Docker image..."
-    $CONTAINER_CMD build -t "$IMAGE_NAME" -f "$DOCKERFILE" . || {
+    $CONTAINER_CMD build \
+        --build-arg "GO_VERSION=${GO_VERSION}" \
+        --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
+        -t "$IMAGE_NAME" -f "$DOCKERFILE" . || {
         echo "FAILED: Could not build bufgen image"
         exit 1
     }

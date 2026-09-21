@@ -63,6 +63,7 @@ jobs:
               - 'buf.lock'
               - 'buf.gen.yaml'
               - 'buf.gen.backend.yaml'
+              - 'versions.env'
             app_version:
               - 'src/go_api/VERSION'
             web_frontend:

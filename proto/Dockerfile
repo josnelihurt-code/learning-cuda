@@ -1,7 +1,7 @@
 ARG BASE_REGISTRY=ghcr.io/josnelihurt-code/learning-cuda
 ARG BASE_TAG=latest
 ARG TARGETARCH=amd64
-ARG ALPINE_VERSION=3.24
+ARG ALPINE_VERSION
 
 FROM ${BASE_REGISTRY}/base:proto-tools-${BASE_TAG}-${TARGETARCH} AS proto-gen-builder
 
