@@ -1,11 +1,5 @@
 package system
 
-import (
-	"context"
-
-	gen "github.com/jrb/cuda-learning/proto/gen"
-)
-
 type configRepository interface {
 	GetEnvironment() string
 }
@@ -20,8 +14,4 @@ type buildInfoRepository interface {
 type versionRepository interface {
 	GetGoVersion() string
 	GetProtoVersion() string
-}
-
-type processorCapabilitiesRepository interface {
-	GetCapabilities(ctx context.Context) (*gen.LibraryCapabilities, error)
 }
