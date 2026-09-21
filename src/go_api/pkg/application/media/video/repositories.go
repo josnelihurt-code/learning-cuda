@@ -16,19 +16,14 @@ type cameraRepository interface {
 	ListCameras(ctx context.Context) ([]domain.RemoteCamera, error)
 }
 
-// VideoStorage persists uploaded video bytes and returns the public path
-// under which the stored video is served. It is a consumer-owned port:
-// the application layer defines it and infrastructure implements it, so
-// storage details (directories, permissions, public path mapping) stay
-// out of the use cases.
-type VideoStorage interface {
+// VideoStorageRepository persists uploaded video bytes and returns the
+// public path under which the stored video is served.
+type VideoStorageRepository interface {
 	Save(ctx context.Context, filename string, data []byte) (videoPath string, err error)
 }
 
-// PreviewGenerator generates a preview image for an already-stored video —
-// identified by its ID and public path — and returns the public path of
-// the generated preview. It is a consumer-owned port: the application
-// layer defines it and infrastructure implements it.
-type PreviewGenerator interface {
+// PreviewGeneratorRepository generates a preview image for a stored video
+// and returns the public path of the generated preview.
+type PreviewGeneratorRepository interface {
 	Generate(ctx context.Context, videoID, videoPath string) (previewPath string, err error)
 }

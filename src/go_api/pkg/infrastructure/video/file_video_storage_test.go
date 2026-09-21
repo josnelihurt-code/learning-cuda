@@ -10,10 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSuccess_FileVideoStorageSaveWritesFileAndReturnsPublicPath(t *testing.T) {
+func TestSuccess_FileVideoStorageRepositorySaveWritesFileAndReturnsPublicPath(t *testing.T) {
 	// Arrange
 	diskDir := t.TempDir()
-	sut := NewFileVideoStorage(diskDir, "/data/videos")
+	sut := NewFileVideoStorageRepository(diskDir, "/data/videos")
 	ctx := t.Context()
 	data := []byte("fake video data")
 
@@ -34,10 +34,10 @@ func TestSuccess_FileVideoStorageSaveWritesFileAndReturnsPublicPath(t *testing.T
 	assert.Equal(t, fs.FileMode(0o600), info.Mode().Perm())
 }
 
-func TestError_FileVideoStorageSaveFailsWhenDirectoryMissing(t *testing.T) {
+func TestError_FileVideoStorageRepositorySaveFailsWhenDirectoryMissing(t *testing.T) {
 	// Arrange
 	missingDir := filepath.Join(t.TempDir(), "missing")
-	sut := NewFileVideoStorage(missingDir, "/data/videos")
+	sut := NewFileVideoStorageRepository(missingDir, "/data/videos")
 
 	// Act
 	publicPath, err := sut.Save(t.Context(), "test.mp4", []byte("fake video data"))

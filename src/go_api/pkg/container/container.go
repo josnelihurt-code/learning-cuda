@@ -111,9 +111,9 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 	uploadImageUseCase := imageapp.NewUploadImageUseCase(staticImageRepo)
 
 	listVideosUseCase := videoapp.NewListVideosUseCase(videoRepo)
-	videoStorage := video.NewFileVideoStorage("data/videos", "/data/videos")
-	videoPreviewGenerator := video.NewFilePreviewGenerator("data/video_previews", "/data/video_previews")
-	uploadVideoUseCase := videoapp.NewUploadVideoUseCase(videoRepo, videoStorage, videoPreviewGenerator)
+	videoStorageRepository := video.NewFileVideoStorageRepository("data/videos", "/data/videos")
+	videoPreviewGeneratorRepository := video.NewFilePreviewGeneratorRepository("data/video_previews", "/data/video_previews")
+	uploadVideoUseCase := videoapp.NewUploadVideoUseCase(videoRepo, videoStorageRepository, videoPreviewGeneratorRepository)
 
 	deviceMonitor := mqtt.NewDeviceMonitor(ctx, cfg.MQTT)
 

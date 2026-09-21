@@ -32,11 +32,11 @@ type UploadVideoUseCaseOutput struct {
 
 type UploadVideoUseCase struct {
 	repository videoRepository
-	storage    VideoStorage
-	previews   PreviewGenerator
+	storage    VideoStorageRepository
+	previews   PreviewGeneratorRepository
 }
 
-func NewUploadVideoUseCase(repository videoRepository, storage VideoStorage, previews PreviewGenerator) *UploadVideoUseCase {
+func NewUploadVideoUseCase(repository videoRepository, storage VideoStorageRepository, previews PreviewGeneratorRepository) *UploadVideoUseCase {
 	return &UploadVideoUseCase{
 		repository: repository,
 		storage:    storage,

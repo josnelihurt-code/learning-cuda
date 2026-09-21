@@ -10,33 +10,30 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// FilePreviewGenerator generates preview images for stored videos via
-// ffmpeg (see GeneratePreview). It implements the application layer's
-// PreviewGenerator port: previews are written under diskDir and exposed
-// under publicBase.
-type FilePreviewGenerator struct {
+// FilePreviewGeneratorRepository generates preview images for stored
+// videos via ffmpeg into diskDir, exposed under publicBase.
+type FilePreviewGeneratorRepository struct {
 	diskDir    string
 	publicBase string
 }
 
-func NewFilePreviewGenerator(diskDir, publicBase string) *FilePreviewGenerator {
-	return &FilePreviewGenerator{
+func NewFilePreviewGeneratorRepository(diskDir, publicBase string) *FilePreviewGeneratorRepository {
+	return &FilePreviewGeneratorRepository{
 		diskDir:    diskDir,
 		publicBase: publicBase,
 	}
 }
 
-func (g *FilePreviewGenerator) Generate(ctx context.Context, videoID, videoPath string) (string, error) {
+func (g *FilePreviewGeneratorRepository) Generate(ctx context.Context, videoID, videoPath string) (string, error) {
 	tracer := otel.Tracer("video-preview-generator")
-	_, span := tracer.Start(ctx, "FilePreviewGenerator.Generate",
+	_, span := tracer.Start(ctx, "FilePreviewGeneratorRepository.Generate",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()
 
 	span.SetAttributes(attribute.String("video.id", videoID))
 
-	// Public paths are served from the filesystem root, so the on-disk
-	// location of a video is its public path without the leading slash.
+	// Public paths are served from the filesystem root, so the disk path drops the leading slash.
 	diskVideoPath := strings.TrimPrefix(videoPath, "/")
 	previewDiskPath := filepath.Join(g.diskDir, videoID+".png")
 

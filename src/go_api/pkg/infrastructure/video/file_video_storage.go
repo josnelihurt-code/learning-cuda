@@ -10,24 +10,23 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// FileVideoStorage stores uploaded videos on the local filesystem. It
-// implements the application layer's VideoStorage port: files are written
-// under diskDir (with 0o600 permissions) and exposed under publicBase.
-type FileVideoStorage struct {
+// FileVideoStorageRepository stores uploaded videos under diskDir with
+// 0o600 permissions and returns their public path under publicBase.
+type FileVideoStorageRepository struct {
 	diskDir    string
 	publicBase string
 }
 
-func NewFileVideoStorage(diskDir, publicBase string) *FileVideoStorage {
-	return &FileVideoStorage{
+func NewFileVideoStorageRepository(diskDir, publicBase string) *FileVideoStorageRepository {
+	return &FileVideoStorageRepository{
 		diskDir:    diskDir,
 		publicBase: publicBase,
 	}
 }
 
-func (s *FileVideoStorage) Save(ctx context.Context, filename string, data []byte) (string, error) {
+func (s *FileVideoStorageRepository) Save(ctx context.Context, filename string, data []byte) (string, error) {
 	tracer := otel.Tracer("video-storage")
-	_, span := tracer.Start(ctx, "FileVideoStorage.Save",
+	_, span := tracer.Start(ctx, "FileVideoStorageRepository.Save",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()
