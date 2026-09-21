@@ -9,11 +9,10 @@ import (
 	"time"
 
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/version"
+	"github.com/jrb/cuda-learning/src/go_api/pkg/log"
 	"github.com/rs/zerolog"
-	"go.opentelemetry.io/otel/trace"
 )
 
-var globalLogger zerolog.Logger
 var globalLocalLogger zerolog.Logger
 
 type Config struct {
@@ -57,10 +56,12 @@ func New(cfg *Config) zerolog.Logger {
 	loggerCtx := configureCaller(&logger, cfg)
 
 	globalLocalLogger = loggerCtx.Logger()
-	globalLogger = globalLocalLogger
+	globalLogger := globalLocalLogger
 	if otlpHook != nil {
 		globalLogger = globalLogger.Hook(otlpHook)
 	}
+
+	log.SetGlobal(globalLogger)
 
 	return globalLogger
 }
@@ -119,7 +120,7 @@ func configureCaller(loggerCtx *zerolog.Context, cfg *Config) zerolog.Context {
 }
 
 func Global() *zerolog.Logger {
-	return &globalLogger
+	return log.Global()
 }
 
 // LocalOnly returns a logger that writes only to local outputs (stdout/file).
@@ -130,17 +131,5 @@ func LocalOnly() *zerolog.Logger {
 }
 
 func FromContext(ctx context.Context) *zerolog.Logger {
-	spanContext := trace.SpanContextFromContext(ctx)
-
-	if !spanContext.IsValid() {
-		return &globalLogger
-	}
-
-	logger := globalLogger.With().
-		Str("trace_id", spanContext.TraceID().String()).
-		Str("span_id", spanContext.SpanID().String()).
-		Logger()
-
-	return &logger
+	return log.FromContext(ctx)
 }
-
