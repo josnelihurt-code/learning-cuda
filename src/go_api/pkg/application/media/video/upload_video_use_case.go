@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
-	videoinfra "github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/video"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -19,7 +17,6 @@ import (
 var (
 	ErrInvalidFormat = errors.New("invalid format, only MP4 is supported")
 	ErrFileTooLarge  = errors.New("file too large, maximum size is 100MB")
-	rootPath         = "/"
 )
 
 const maxVideoSize = 100 * 1024 * 1024
@@ -34,22 +31,22 @@ type UploadVideoUseCaseOutput struct {
 }
 
 type UploadVideoUseCase struct {
-	repository  videoRepository
-	videosDir   string
-	previewsDir string
+	repository videoRepository
+	storage    VideoStorage
+	previews   PreviewGenerator
 }
 
-func NewUploadVideoUseCase(repository videoRepository, videosDir, previewsDir string) *UploadVideoUseCase {
+func NewUploadVideoUseCase(repository videoRepository, storage VideoStorage, previews PreviewGenerator) *UploadVideoUseCase {
 	return &UploadVideoUseCase{
-		repository:  repository,
-		videosDir:   videosDir,
-		previewsDir: previewsDir,
+		repository: repository,
+		storage:    storage,
+		previews:   previews,
 	}
 }
 
 func (uc *UploadVideoUseCase) Execute(ctx context.Context, input UploadVideoUseCaseInput) (UploadVideoUseCaseOutput, error) {
 	tracer := otel.Tracer("upload-video")
-	_, span := tracer.Start(ctx, "UploadVideo",
+	ctx, span := tracer.Start(ctx, "UploadVideo",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()
@@ -70,28 +67,27 @@ func (uc *UploadVideoUseCase) Execute(ctx context.Context, input UploadVideoUseC
 	}
 
 	id := strings.TrimSuffix(input.Filename, filepath.Ext(input.Filename))
-	videoPath := filepath.Join(uc.videosDir, input.Filename)
-	previewPath := filepath.Join(uc.previewsDir, id+".png")
 
-	if err := os.WriteFile(videoPath, input.FileData, 0o600); err != nil {
+	videoPath, err := uc.storage.Save(ctx, input.Filename, input.FileData)
+	if err != nil {
 		span.SetAttributes(attribute.Bool("error", true))
 		return UploadVideoUseCaseOutput{}, fmt.Errorf("failed to save video: %w", err)
 	}
 
 	previewImagePath := ""
-	if err := videoinfra.GeneratePreview(ctx, videoPath, previewPath); err != nil {
+	if previewPath, err := uc.previews.Generate(ctx, id, videoPath); err != nil {
 		log.FromContext(ctx).Warn().Err(err).Str("video_id", id).Msg("Failed to generate preview for uploaded video")
 		span.AddEvent("preview_generation_failed")
 		span.SetAttributes(attribute.String("preview.error", err.Error()))
 	} else {
-		previewImagePath = filepath.Join(rootPath, "data", "video_previews", id+".png")
+		previewImagePath = previewPath
 		span.SetAttributes(attribute.Bool("preview.generated", true))
 	}
 
 	vid := &domain.Video{
 		ID:               id,
 		DisplayName:      strings.ReplaceAll(id, "-", " "),
-		Path:             filepath.Join(rootPath, "data", "videos", input.Filename),
+		Path:             videoPath,
 		PreviewImagePath: previewImagePath,
 		IsDefault:        false,
 	}

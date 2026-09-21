@@ -5,79 +5,187 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
-func TestUploadVideoUseCase_Execute(t *testing.T) {
-	tests := []struct {
-		name        string
-		filename    string
-		fileData    []byte
-		setup       func(*MockVideoRepository, string, string)
-		expectError error
-	}{
-		{
-			name:     "successfully uploads valid MP4",
-			filename: "test.mp4",
-			fileData: []byte("fake video data"),
-			setup: func(repo *MockVideoRepository, videosDir, previewsDir string) {
-				repo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Video")).Return(nil)
-			},
-			expectError: nil,
-		},
-		{
-			name:     "returns error for invalid format",
-			filename: "test.avi",
-			fileData: []byte("fake video"),
-			setup: func(repo *MockVideoRepository, videosDir, previewsDir string) {
-			},
-			expectError: ErrInvalidFormat,
-		},
-		{
-			name:     "returns error for file too large",
-			filename: "test.mp4",
-			fileData: make([]byte, 101*1024*1024),
-			setup: func(repo *MockVideoRepository, videosDir, previewsDir string) {
-			},
-			expectError: ErrFileTooLarge,
-		},
-		{
-			name:     "returns error when repository save fails",
-			filename: "test.mp4",
-			fileData: []byte("fake video"),
-			setup: func(repo *MockVideoRepository, videosDir, previewsDir string) {
-				repo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Video")).
-					Return(errors.New("save failed"))
-			},
-			expectError: errors.New("save failed"),
-		},
+// fakeVideoStorage is an in-memory VideoStorage fake that records the
+// saved file and returns a canned public path.
+type fakeVideoStorage struct {
+	err        error
+	savedName  string
+	savedData  []byte
+	publicPath string
+}
+
+func (f *fakeVideoStorage) Save(_ context.Context, filename string, data []byte) (string, error) {
+	if f.err != nil {
+		return "", f.err
 	}
+	f.savedName = filename
+	f.savedData = data
+	return f.publicPath, nil
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			repo := new(MockVideoRepository)
-			videosDir := t.TempDir()
-			previewsDir := t.TempDir()
-			tt.setup(repo, videosDir, previewsDir)
-			sut := NewUploadVideoUseCase(repo, videosDir, previewsDir)
+// fakePreviewGenerator is a PreviewGenerator fake that records the
+// generation request and returns a canned public path.
+type fakePreviewGenerator struct {
+	err        error
+	videoID    string
+	videoPath  string
+	publicPath string
+}
 
-			output, err := sut.Execute(context.Background(), UploadVideoUseCaseInput{FileData: tt.fileData, Filename: tt.filename})
-
-			if tt.expectError != nil {
-				assert.Error(t, err)
-				assert.Nil(t, output.Video)
-				if errors.Is(tt.expectError, ErrInvalidFormat) {
-					assert.ErrorIs(t, err, ErrInvalidFormat)
-				} else if errors.Is(tt.expectError, ErrFileTooLarge) {
-					assert.ErrorIs(t, err, ErrFileTooLarge)
-				}
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, output.Video)
-			}
-		})
+func (f *fakePreviewGenerator) Generate(_ context.Context, videoID, videoPath string) (string, error) {
+	if f.err != nil {
+		return "", f.err
 	}
+	f.videoID = videoID
+	f.videoPath = videoPath
+	return f.publicPath, nil
+}
+
+func TestNewUploadVideoUseCase(t *testing.T) {
+	// Arrange
+	repo := new(MockVideoRepository)
+	storage := &fakeVideoStorage{}
+	previews := &fakePreviewGenerator{}
+
+	// Act
+	sut := NewUploadVideoUseCase(repo, storage, previews)
+
+	// Assert
+	require.NotNil(t, sut)
+	assert.Equal(t, repo, sut.repository)
+	assert.Equal(t, storage, sut.storage)
+	assert.Equal(t, previews, sut.previews)
+}
+
+func TestSuccess_UploadsVideoWithPathsFromPorts(t *testing.T) {
+	// Arrange
+	repo := new(MockVideoRepository)
+	repo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Video")).Return(nil).Once()
+	storage := &fakeVideoStorage{publicPath: "/data/videos/my-cool-video.mp4"}
+	previews := &fakePreviewGenerator{publicPath: "/data/video_previews/my-cool-video.png"}
+	sut := NewUploadVideoUseCase(repo, storage, previews)
+	ctx := t.Context()
+	data := []byte("fake video data")
+
+	// Act
+	output, err := sut.Execute(ctx, UploadVideoUseCaseInput{FileData: data, Filename: "my-cool-video.mp4"})
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, output.Video)
+	assert.Equal(t, "my-cool-video", output.Video.ID)
+	assert.Equal(t, "my cool video", output.Video.DisplayName)
+	assert.Equal(t, "/data/videos/my-cool-video.mp4", output.Video.Path)
+	assert.Equal(t, "/data/video_previews/my-cool-video.png", output.Video.PreviewImagePath)
+	assert.False(t, output.Video.IsDefault)
+
+	assert.Equal(t, "my-cool-video.mp4", storage.savedName)
+	assert.Equal(t, data, storage.savedData)
+	assert.Equal(t, "my-cool-video", previews.videoID)
+	assert.Equal(t, "/data/videos/my-cool-video.mp4", previews.videoPath)
+	repo.AssertExpectations(t)
+}
+
+func TestSuccess_PreviewFailureStillUploadsVideo(t *testing.T) {
+	// Arrange
+	var saved *domain.Video
+	repo := new(MockVideoRepository)
+	repo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Video")).Return(nil).Once().
+		Run(func(args mock.Arguments) { saved = args.Get(1).(*domain.Video) })
+	storage := &fakeVideoStorage{publicPath: "/data/videos/test.mp4"}
+	previews := &fakePreviewGenerator{err: errors.New("ffmpeg preview generation failed")}
+	sut := NewUploadVideoUseCase(repo, storage, previews)
+	ctx := t.Context()
+
+	// Act
+	output, err := sut.Execute(ctx, UploadVideoUseCaseInput{FileData: []byte("fake video"), Filename: "test.mp4"})
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, output.Video)
+	assert.Equal(t, "/data/videos/test.mp4", output.Video.Path)
+	assert.Empty(t, output.Video.PreviewImagePath)
+	require.NotNil(t, saved)
+	assert.Empty(t, saved.PreviewImagePath)
+	repo.AssertExpectations(t)
+}
+
+func TestError_InvalidFormat(t *testing.T) {
+	// Arrange
+	repo := new(MockVideoRepository)
+	storage := &fakeVideoStorage{}
+	previews := &fakePreviewGenerator{}
+	sut := NewUploadVideoUseCase(repo, storage, previews)
+	ctx := t.Context()
+
+	// Act
+	output, err := sut.Execute(ctx, UploadVideoUseCaseInput{FileData: []byte("fake video"), Filename: "test.avi"})
+
+	// Assert
+	assert.ErrorIs(t, err, ErrInvalidFormat)
+	assert.Nil(t, output.Video)
+	assert.Empty(t, storage.savedName, "storage port must not be called for invalid format")
+	assert.Empty(t, previews.videoID, "preview port must not be called for invalid format")
+}
+
+func TestError_FileTooLarge(t *testing.T) {
+	// Arrange
+	repo := new(MockVideoRepository)
+	storage := &fakeVideoStorage{}
+	previews := &fakePreviewGenerator{}
+	sut := NewUploadVideoUseCase(repo, storage, previews)
+	ctx := t.Context()
+
+	// Act
+	output, err := sut.Execute(ctx, UploadVideoUseCaseInput{FileData: make([]byte, maxVideoSize+1), Filename: "test.mp4"})
+
+	// Assert
+	assert.ErrorIs(t, err, ErrFileTooLarge)
+	assert.Nil(t, output.Video)
+	assert.Empty(t, storage.savedName, "storage port must not be called for oversized files")
+	assert.Empty(t, previews.videoID, "preview port must not be called for oversized files")
+}
+
+func TestError_StorageSaveFails(t *testing.T) {
+	// Arrange
+	repo := new(MockVideoRepository)
+	storage := &fakeVideoStorage{err: errors.New("disk full")}
+	previews := &fakePreviewGenerator{}
+	sut := NewUploadVideoUseCase(repo, storage, previews)
+	ctx := t.Context()
+
+	// Act
+	output, err := sut.Execute(ctx, UploadVideoUseCaseInput{FileData: []byte("fake video"), Filename: "test.mp4"})
+
+	// Assert
+	assert.ErrorContains(t, err, "failed to save video")
+	assert.Nil(t, output.Video)
+	assert.Empty(t, previews.videoID, "preview port must not be called when storage fails")
+}
+
+func TestError_RepositorySaveFails(t *testing.T) {
+	// Arrange
+	errSaveFailed := errors.New("save failed")
+	repo := new(MockVideoRepository)
+	repo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Video")).Return(errSaveFailed).Once()
+	storage := &fakeVideoStorage{publicPath: "/data/videos/test.mp4"}
+	previews := &fakePreviewGenerator{}
+	sut := NewUploadVideoUseCase(repo, storage, previews)
+	ctx := t.Context()
+
+	// Act
+	output, err := sut.Execute(ctx, UploadVideoUseCaseInput{FileData: []byte("fake video"), Filename: "test.mp4"})
+
+	// Assert
+	assert.ErrorIs(t, err, errSaveFailed)
+	assert.Nil(t, output.Video)
+	repo.AssertExpectations(t)
 }
 
 func TestUploadVideoUseCase_validateFormat(t *testing.T) {
