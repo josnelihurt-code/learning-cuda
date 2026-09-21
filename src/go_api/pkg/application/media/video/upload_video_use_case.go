@@ -10,7 +10,7 @@ import (
 
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
 	videoinfra "github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/video"
-	"github.com/rs/zerolog/log"
+	"github.com/jrb/cuda-learning/src/go_api/pkg/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -80,7 +80,7 @@ func (uc *UploadVideoUseCase) Execute(ctx context.Context, input UploadVideoUseC
 
 	previewImagePath := ""
 	if err := videoinfra.GeneratePreview(ctx, videoPath, previewPath); err != nil {
-		log.Warn().Err(err).Str("video_id", id).Msg("Failed to generate preview for uploaded video")
+		log.FromContext(ctx).Warn().Err(err).Str("video_id", id).Msg("Failed to generate preview for uploaded video")
 		span.AddEvent("preview_generation_failed")
 		span.SetAttributes(attribute.String("preview.error", err.Error()))
 	} else {

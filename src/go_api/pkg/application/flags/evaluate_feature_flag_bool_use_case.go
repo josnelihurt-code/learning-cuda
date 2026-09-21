@@ -3,7 +3,7 @@ package flags
 import (
 	"context"
 
-	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
+	"github.com/jrb/cuda-learning/src/go_api/pkg/log"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -45,7 +45,7 @@ func (uc *EvaluateFeatureFlagBooleanUseCase) Execute(
 
 	eval, err := uc.repository.EvaluateBoolean(ctx, input.FlagKey, input.EntityID)
 	if err != nil || !eval.Success {
-		logger.FromContext(ctx).Warn().
+		log.FromContext(ctx).Warn().
 			Str("flag_key", input.FlagKey).
 			Bool("fallback_value", input.FallbackValue).
 			Err(err).
@@ -57,7 +57,7 @@ func (uc *EvaluateFeatureFlagBooleanUseCase) Execute(
 
 	result, ok := eval.Result.(bool)
 	if !ok {
-		logger.FromContext(ctx).Warn().
+		log.FromContext(ctx).Warn().
 			Str("flag_key", input.FlagKey).
 			Msg("Type assertion failed for flag result, using fallback value")
 		span.SetAttributes(attribute.Bool("flag.used_fallback", true))
@@ -67,6 +67,6 @@ func (uc *EvaluateFeatureFlagBooleanUseCase) Execute(
 	span.SetAttributes(attribute.Bool("flag.used_fallback", false))
 	span.SetAttributes(attribute.Bool("flag.fallback_value", input.FallbackValue))
 
-	logger.FromContext(ctx).Debug().Str("flag_key", input.FlagKey).Bool("result", result).Msg("Feature flag evaluated")
+	log.FromContext(ctx).Debug().Str("flag_key", input.FlagKey).Bool("result", result).Msg("Feature flag evaluated")
 	return EvaluateFeatureFlagBooleanUseCaseOutput{Result: result}, nil
 }

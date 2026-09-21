@@ -10,6 +10,15 @@ documentation, and PR descriptions — is written in English.
 Tool/session artifacts (plans, drafts, local state under `.zcode/plans/`)
 are never committed; only intentional project files are.
 
+## Comments are sparse and explain why
+
+Comments explain why, never what. Do not narrate code or restate
+identifier names in prose. Doc comments on exported identifiers state the
+contract in at most three lines. A non-obvious constraint (ordering trap,
+protocol quirk, deliberately preserved behavior) gets one focused
+sentence, not a paragraph. Comment noise is a blocking review defect:
+when in doubt, delete the comment.
+
 ## Version files gate deploys
 
 Production deploys are triggered by `VERSION` file bumps, not by code changes.
