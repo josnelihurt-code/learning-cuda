@@ -13,5 +13,5 @@ type videoRepository interface {
 }
 
 type cameraRepository interface {
-	ListCameras(ctx context.Context) ([]RemoteCamera, error)
+	ListCameras(ctx context.Context) ([]domain.RemoteCamera, error)
 }

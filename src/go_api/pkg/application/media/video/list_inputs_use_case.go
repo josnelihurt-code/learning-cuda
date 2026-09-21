@@ -20,13 +20,6 @@ type InputSource struct {
 	SensorID         int32
 }
 
-// RemoteCamera holds camera info for use by the ListInputsUseCase.
-type RemoteCamera struct {
-	SensorID    int32
-	DisplayName string
-	Model       string
-}
-
 type ListInputsUseCaseInput struct{}
 
 type ListInputsUseCaseOutput struct {
