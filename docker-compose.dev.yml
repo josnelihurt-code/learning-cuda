@@ -187,7 +187,8 @@ services:
       - lint
 
   lint-golang:
-    image: golang:1.27-alpine
+    # mirrors versions.env (compose has no env-file default here)
+    image: golang:${GO_VERSION:-1.27}-alpine
     container_name: lint-golang
     working_dir: /workspace
     volumes:

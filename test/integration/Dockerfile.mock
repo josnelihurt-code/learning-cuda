@@ -1,10 +1,10 @@
 ARG UBUNTU_VERSION=24.04
 ARG TARGETARCH=amd64
-ARG GO_VERSION=1.27.1
+ARG GO_RELEASE
 
 FROM scratch AS integration-tests-base
 LABEL mock.component="integration-tests-base" \
-      mock.go_version="${GO_VERSION}" \
+      mock.go_version="${GO_RELEASE}" \
       mock.targetarch="${TARGETARCH}" \
       mock.ubuntu="${UBUNTU_VERSION}"
 

@@ -4,6 +4,15 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+# Toolchain versions (GO_VERSION, GO_RELEASE, ALPINE_VERSION) come from the
+# single source of truth at the repo root and are passed to every build below.
+if [[ ! -f "${REPO_ROOT}/versions.env" ]]; then
+  echo "Required file 'versions.env' not found at repo root" >&2
+  exit 1
+fi
+# shellcheck source=/dev/null
+source "${REPO_ROOT}/versions.env"
+
 REGISTRY="${REGISTRY:-local}"
 BASE_IMAGE_PREFIX="${BASE_IMAGE_PREFIX:-josnelihurt-code/learning-cuda}"
 ARCH_DEFAULT="$(uname -m)"
@@ -206,6 +215,9 @@ build_and_tag() {
   docker build \
     "${docker_build_args[@]}" \
     --build-arg "TARGETARCH=${TARGETARCH}" \
+    --build-arg "GO_VERSION=${GO_VERSION}" \
+    --build-arg "GO_RELEASE=${GO_RELEASE}" \
+    --build-arg "ALPINE_VERSION=${ALPINE_VERSION}" \
     --label "org.opencontainers.image.source=${SOURCE_REPO_URL}" \
     --label "org.opencontainers.image.url=${SOURCE_REPO_URL}" \
     --label "org.opencontainers.image.title=learning-cuda" \
