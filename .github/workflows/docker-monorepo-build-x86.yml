@@ -135,11 +135,15 @@ jobs:
       # via the bufgen image.
       - name: Build bufgen image
         if: needs.detect-changes.outputs.app == 'true'
-        run: docker build -t cuda-learning-bufgen:ci -f bufgen.dockerfile .
+        run: |
+          set -a; . ./versions.env; set +a
+          docker build --build-arg GO_VERSION=$GO_VERSION --build-arg ALPINE_VERSION=$ALPINE_VERSION -t cuda-learning-bufgen:ci -f bufgen.dockerfile .
 
       - name: Build Go unit test image
         if: needs.detect-changes.outputs.app == 'true'
-        run: docker build -t cuda-learning-go-test:ci -f test/unit/Dockerfile .
+        run: |
+          set -a; . ./versions.env; set +a
+          docker build --build-arg GO_VERSION=$GO_VERSION --build-arg BUFGEN_IMAGE=cuda-learning-bufgen:ci -t cuda-learning-go-test:ci -f test/unit/Dockerfile .
 
       - name: Run Go unit tests (race, in Docker)
         if: needs.detect-changes.outputs.app == 'true'

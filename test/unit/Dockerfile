@@ -6,7 +6,7 @@
 #   docker build -t cuda-learning-go-test:ci -f test/unit/Dockerfile .
 
 ARG BUFGEN_IMAGE=cuda-learning-bufgen:ci
-ARG GO_VERSION=1.27
+ARG GO_VERSION
 
 FROM ${BUFGEN_IMAGE} AS proto-stubs
 
