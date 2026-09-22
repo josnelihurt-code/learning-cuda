@@ -13,6 +13,10 @@ on:
         description: Force full rebuild regardless of changed paths
         type: boolean
         default: false
+      scope:
+        description: Build only this component on manual runs (app | web_frontend | yolo_model); empty builds everything
+        type: string
+        default: ''
 
 env:
   REGISTRY: ghcr.io
@@ -86,6 +90,7 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           FORCE_ALL: ${{ inputs.force_all }}
+          SCOPE: ${{ inputs.scope }}
           LABEL_FORCE: ${{ contains(github.event.pull_request.labels.*.name, 'ci:full-build') }}
           FILTER_APP: ${{ steps.filter.outputs.app }}
           FILTER_APP_VERSION: ${{ steps.filter.outputs.app_version }}
@@ -96,7 +101,14 @@ jobs:
           set -euo pipefail
           out() { printf '%s\n' "$1" >> "$GITHUB_OUTPUT"; }
 
-          if [ "${EVENT_NAME}" = "workflow_dispatch" ] \
+          if [ "${EVENT_NAME}" = "workflow_dispatch" ] && [ -n "${SCOPE}" ]; then
+            out "app=$([ "${SCOPE}" = "app" ] && echo true || echo false)"
+            out "web_frontend=$([ "${SCOPE}" = "web_frontend" ] && echo true || echo false)"
+            out "yolo_model=$([ "${SCOPE}" = "yolo_model" ] && echo true || echo false)"
+            out "app_version_changed=false"
+            out "web_frontend_version_changed=false"
+            out "deployable=false"
+          elif [ "${EVENT_NAME}" = "workflow_dispatch" ] \
              || [ "${FORCE_ALL}" = "true" ] \
              || [ "${LABEL_FORCE}" = "true" ]; then
             out "app=true"
@@ -121,7 +133,7 @@ jobs:
 
   go-test-race:
     name: Go tests (race)
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || inputs.scope == 'app'
     needs: detect-changes
     runs-on: ["self-hosted", "Linux", "X64"]
     timeout-minutes: 20
