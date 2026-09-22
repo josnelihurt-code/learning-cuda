@@ -14,7 +14,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type FileHandler struct {
+type fileHandler struct {
 	listAvailableImagesUseCase application.UseCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput]
 	uploadImageUseCase         application.UseCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput]
 	listAvailableVideosUseCase application.UseCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput]
@@ -26,8 +26,8 @@ func NewFileHandler(
 	uploadImageUC application.UseCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput],
 	listAvailableVideosUC application.UseCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput],
 	uploadVideoUC application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput],
-) *FileHandler {
-	return &FileHandler{
+) *fileHandler {
+	return &fileHandler{
 		listAvailableImagesUseCase: listAvailableImagesUC,
 		uploadImageUseCase:         uploadImageUC,
 		listAvailableVideosUseCase: listAvailableVideosUC,
@@ -35,7 +35,7 @@ func NewFileHandler(
 	}
 }
 
-func (h *FileHandler) ListAvailableImages(
+func (h *fileHandler) ListAvailableImages(
 	ctx context.Context,
 	req *connect.Request[pb.ListAvailableImagesRequest],
 ) (*connect.Response[pb.ListAvailableImagesResponse], error) {
@@ -67,7 +67,7 @@ func (h *FileHandler) ListAvailableImages(
 	}), nil
 }
 
-func (h *FileHandler) UploadImage(
+func (h *fileHandler) UploadImage(
 	ctx context.Context,
 	req *connect.Request[pb.UploadImageRequest],
 ) (*connect.Response[pb.UploadImageResponse], error) {
@@ -112,7 +112,7 @@ func (h *FileHandler) UploadImage(
 	}), nil
 }
 
-func (h *FileHandler) ListAvailableVideos(
+func (h *fileHandler) ListAvailableVideos(
 	ctx context.Context,
 	req *connect.Request[pb.ListAvailableVideosRequest],
 ) (*connect.Response[pb.ListAvailableVideosResponse], error) {
@@ -145,7 +145,7 @@ func (h *FileHandler) ListAvailableVideos(
 	}), nil
 }
 
-func (h *FileHandler) UploadVideo(
+func (h *fileHandler) UploadVideo(
 	ctx context.Context,
 	req *connect.Request[pb.UploadVideoRequest],
 ) (*connect.Response[pb.UploadVideoResponse], error) {

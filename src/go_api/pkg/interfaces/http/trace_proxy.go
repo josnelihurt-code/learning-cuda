@@ -10,19 +10,19 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 )
 
-type TraceProxyHandler struct {
+type traceProxyHandler struct {
 	collectorEndpoint string
 	enabled           bool
 }
 
-func NewTraceProxyHandler(collectorEndpoint string, enabled bool) *TraceProxyHandler {
-	return &TraceProxyHandler{
+func NewTraceProxyHandler(collectorEndpoint string, enabled bool) *traceProxyHandler {
+	return &traceProxyHandler{
 		collectorEndpoint: collectorEndpoint,
 		enabled:           enabled,
 	}
 }
 
-func (h *TraceProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *traceProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")

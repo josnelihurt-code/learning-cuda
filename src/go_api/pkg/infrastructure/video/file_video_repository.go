@@ -22,14 +22,14 @@ const (
 
 var rootPath = "/"
 
-type FileVideoRepository struct {
+type fileVideoRepository struct {
 	videosDir      string
 	previewsDir    string
 	defaultVideoID string
 }
 
-func NewFileVideoRepository(ctx context.Context, videosDir, previewsDir string) *FileVideoRepository {
-	repo := &FileVideoRepository{
+func NewFileVideoRepository(ctx context.Context, videosDir, previewsDir string) *fileVideoRepository {
+	repo := &fileVideoRepository{
 		videosDir:      videosDir,
 		previewsDir:    previewsDir,
 		defaultVideoID: "sample",
@@ -44,9 +44,9 @@ func NewFileVideoRepository(ctx context.Context, videosDir, previewsDir string) 
 	return repo
 }
 
-func (r *FileVideoRepository) List(ctx context.Context) ([]domain.Video, error) {
+func (r *fileVideoRepository) List(ctx context.Context) ([]domain.Video, error) {
 	tracer := otel.Tracer("video-repository")
-	_, span := tracer.Start(ctx, "FileVideoRepository.List")
+	_, span := tracer.Start(ctx, "fileVideoRepository.List")
 	defer span.End()
 
 	entries, err := os.ReadDir(r.videosDir)
@@ -82,7 +82,7 @@ func (r *FileVideoRepository) List(ctx context.Context) ([]domain.Video, error) 
 
 		if _, err := os.Stat(previewFsPath); errors.Is(err, fs.ErrNotExist) {
 			videoFsPath := filepath.Join(r.videosDir, name)
-			if err := GeneratePreview(ctx, videoFsPath, previewFsPath); err != nil {
+			if err := generatePreview(ctx, videoFsPath, previewFsPath); err != nil {
 				span.AddEvent("preview_generation_failed")
 				span.SetAttributes(
 					attribute.String("video.id", id),
@@ -111,9 +111,9 @@ func (r *FileVideoRepository) List(ctx context.Context) ([]domain.Video, error) 
 	return videos, nil
 }
 
-func (r *FileVideoRepository) GetByID(ctx context.Context, id string) (*domain.Video, error) {
+func (r *fileVideoRepository) GetByID(ctx context.Context, id string) (*domain.Video, error) {
 	tracer := otel.Tracer("video-repository")
-	_, span := tracer.Start(ctx, "FileVideoRepository.GetByID")
+	_, span := tracer.Start(ctx, "fileVideoRepository.GetByID")
 	defer span.End()
 
 	span.SetAttributes(attribute.String("video.id", id))
@@ -132,9 +132,9 @@ func (r *FileVideoRepository) GetByID(ctx context.Context, id string) (*domain.V
 	return nil, fmt.Errorf("video not found: %s", id)
 }
 
-func (r *FileVideoRepository) Save(ctx context.Context, video *domain.Video) error {
+func (r *fileVideoRepository) Save(ctx context.Context, video *domain.Video) error {
 	tracer := otel.Tracer("video-repository")
-	_, span := tracer.Start(ctx, "FileVideoRepository.Save")
+	_, span := tracer.Start(ctx, "fileVideoRepository.Save")
 	defer span.End()
 
 	span.SetAttributes(
@@ -145,7 +145,7 @@ func (r *FileVideoRepository) Save(ctx context.Context, video *domain.Video) err
 	return nil
 }
 
-func (r *FileVideoRepository) generatePreviewsForExistingVideos(ctx context.Context) {
+func (r *fileVideoRepository) generatePreviewsForExistingVideos(ctx context.Context) {
 	entries, err := os.ReadDir(r.videosDir)
 	if err != nil {
 		return
@@ -168,7 +168,7 @@ func (r *FileVideoRepository) generatePreviewsForExistingVideos(ctx context.Cont
 		videoPath := filepath.Join(r.videosDir, name)
 
 		if _, err := os.Stat(previewPath); os.IsNotExist(err) {
-			if err := GeneratePreview(ctx, videoPath, previewPath); err != nil {
+			if err := generatePreview(ctx, videoPath, previewPath); err != nil {
 				otel.GetTracerProvider().Tracer("video-repository").Start(ctx, "generatePreview.error")
 			}
 		}

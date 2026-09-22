@@ -15,7 +15,7 @@ type GetSystemInfoUseCaseOutput struct {
 	SystemInfo *domain.SystemInfo
 }
 
-type GetSystemInfoUseCase struct {
+type getSystemInfoUseCase struct {
 	configRepo    configRepository
 	buildInfoRepo buildInfoRepository
 	versionRepo   versionRepository
@@ -25,15 +25,15 @@ func NewGetSystemInfoUseCase(
 	configRepo configRepository,
 	buildInfoRepo buildInfoRepository,
 	versionRepo versionRepository,
-) *GetSystemInfoUseCase {
-	return &GetSystemInfoUseCase{
+) *getSystemInfoUseCase {
+	return &getSystemInfoUseCase{
 		configRepo:    configRepo,
 		buildInfoRepo: buildInfoRepo,
 		versionRepo:   versionRepo,
 	}
 }
 
-func (uc *GetSystemInfoUseCase) Execute(ctx context.Context, _ GetSystemInfoUseCaseInput) (GetSystemInfoUseCaseOutput, error) {
+func (uc *getSystemInfoUseCase) Execute(ctx context.Context, _ GetSystemInfoUseCaseInput) (GetSystemInfoUseCaseOutput, error) {
 	tracer := otel.Tracer("get-system-info")
 	_, span := tracer.Start(ctx, "GetSystemInfo",
 		trace.WithSpanKind(trace.SpanKindInternal),

@@ -9,7 +9,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type InputSource struct {
+type inputSource struct {
 	ID               string
 	DisplayName      string
 	Type             string
@@ -23,29 +23,29 @@ type InputSource struct {
 type ListInputsUseCaseInput struct{}
 
 type ListInputsUseCaseOutput struct {
-	Inputs []InputSource
+	Inputs []inputSource
 }
 
-type ListInputsUseCase struct {
-	videoRepository  videoRepository
-	cameraSource cameraSource
+type listInputsUseCase struct {
+	videoRepository videoRepository
+	cameraSource    cameraSource
 }
 
-func NewListInputsUseCase(videoRepository videoRepository, cameraSource cameraSource) *ListInputsUseCase {
-	return &ListInputsUseCase{
-		videoRepository:  videoRepository,
-		cameraSource: cameraSource,
+func NewListInputsUseCase(videoRepository videoRepository, cameraSource cameraSource) *listInputsUseCase {
+	return &listInputsUseCase{
+		videoRepository: videoRepository,
+		cameraSource:    cameraSource,
 	}
 }
 
-func (uc *ListInputsUseCase) Execute(ctx context.Context, _ ListInputsUseCaseInput) (ListInputsUseCaseOutput, error) {
+func (uc *listInputsUseCase) Execute(ctx context.Context, _ ListInputsUseCaseInput) (ListInputsUseCaseOutput, error) {
 	tracer := otel.Tracer("list-inputs")
 	_, span := tracer.Start(ctx, "ListInputs",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()
 
-	sources := []InputSource{
+	sources := []inputSource{
 		{
 			ID:          "gallery",
 			DisplayName: "Gallery",
@@ -65,7 +65,7 @@ func (uc *ListInputsUseCase) Execute(ctx context.Context, _ ListInputsUseCaseInp
 	videos, err := uc.videoRepository.List(ctx)
 	if err == nil {
 		for _, vid := range videos {
-			sources = append(sources, InputSource{
+			sources = append(sources, inputSource{
 				ID:               vid.ID,
 				DisplayName:      vid.DisplayName,
 				Type:             "video",
@@ -80,7 +80,7 @@ func (uc *ListInputsUseCase) Execute(ctx context.Context, _ ListInputsUseCaseInp
 		cameras, camErr := uc.cameraSource.ListCameras(ctx)
 		if camErr == nil {
 			for _, cam := range cameras {
-				sources = append(sources, InputSource{
+				sources = append(sources, inputSource{
 					ID:          fmt.Sprintf("remote-camera-%d", cam.SensorID),
 					DisplayName: cam.DisplayName,
 					Type:        "remote_camera",

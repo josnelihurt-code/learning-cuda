@@ -13,15 +13,15 @@ import (
 // (aliased as gen.WebRTCSignalingService_SignalingStreamClient) by routing through the
 // registered accelerator's bidi control stream.
 type signalingStreamAdapter struct {
-	sess    *AcceleratorSession
-	subID   string
-	inCh    <-chan *gen.AcceleratorMessage
-	unsub   func()
-	ctx     context.Context
-	cancel  context.CancelFunc
+	sess   *acceleratorSession
+	subID  string
+	inCh   <-chan *gen.AcceleratorMessage
+	unsub  func()
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
-func newSignalingStreamAdapter(ctx context.Context, sess *AcceleratorSession) *signalingStreamAdapter {
+func newSignalingStreamAdapter(ctx context.Context, sess *acceleratorSession) *signalingStreamAdapter {
 	adapterCtx, cancel := context.WithCancel(ctx)
 	subID := uuid.NewString()
 	inCh, unsub := sess.SubscribeSignaling(subID)

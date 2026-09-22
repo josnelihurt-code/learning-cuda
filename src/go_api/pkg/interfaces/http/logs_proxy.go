@@ -10,19 +10,19 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 )
 
-type LogsProxyHandler struct {
+type logsProxyHandler struct {
 	enabled           bool
 	collectorEndpoint string
 }
 
-func NewLogsProxyHandler(collectorEndpoint string, enabled bool) *LogsProxyHandler {
-	return &LogsProxyHandler{
+func NewLogsProxyHandler(collectorEndpoint string, enabled bool) *logsProxyHandler {
+	return &logsProxyHandler{
 		enabled:           enabled,
 		collectorEndpoint: collectorEndpoint,
 	}
 }
 
-func (h *LogsProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *logsProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// All logging in this handler MUST use logger.LocalOnly() to avoid a feedback
 	// loop: this handler forwards logs to the OTLP collector, so using the remote
 	// logger here would cause those log entries to be re-forwarded indefinitely.

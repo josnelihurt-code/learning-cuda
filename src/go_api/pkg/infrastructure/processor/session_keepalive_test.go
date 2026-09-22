@@ -12,7 +12,7 @@ import (
 //  2. Kill Go API — client backs off and reconnects when API returns.
 //  3. SIGTERM client — process exits within a few seconds (not stuck on Read).
 func TestAcceleratorSession_touchAndStale(t *testing.T) {
-	s := &AcceleratorSession{
+	s := &acceleratorSession{
 		lastSeen:          time.Now(),
 		keepaliveTimeout:  45 * time.Second,
 		keepaliveInterval: 15 * time.Second,
@@ -38,7 +38,7 @@ func TestAcceleratorSession_touchAndStale(t *testing.T) {
 }
 
 func TestAcceleratorSession_timeSinceLastSeen(t *testing.T) {
-	s := &AcceleratorSession{
+	s := &acceleratorSession{
 		lastSeen: time.Now().Add(-2 * time.Second),
 		log:      zerolog.Nop(),
 	}

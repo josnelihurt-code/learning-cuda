@@ -7,9 +7,9 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func makeSession(deviceID, assignedID string) *AcceleratorSession {
+func makeSession(deviceID, assignedID string) *acceleratorSession {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &AcceleratorSession{
+	return &acceleratorSession{
 		DeviceID:        deviceID,
 		AssignedSession: assignedID,
 		ctx:             ctx,

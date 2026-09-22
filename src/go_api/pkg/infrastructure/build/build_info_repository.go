@@ -1,43 +1,43 @@
 package build
 
 const (
-	UnknownValue = "unknown"
+	unknownValue = "unknown"
 )
 
-type InfoRepositoryImpl struct {
-	buildInfo *Info
+type infoRepositoryImpl struct {
+	buildInfo *info
 }
 
-func NewBuildInfoRepository(buildInfo *Info) *InfoRepositoryImpl {
-	return &InfoRepositoryImpl{
+func NewBuildInfoRepository(buildInfo *info) *infoRepositoryImpl {
+	return &infoRepositoryImpl{
 		buildInfo: buildInfo,
 	}
 }
 
-func (r *InfoRepositoryImpl) GetVersion() string {
+func (r *infoRepositoryImpl) GetVersion() string {
 	if r.buildInfo == nil {
-		return UnknownValue
+		return unknownValue
 	}
 	return r.buildInfo.Version
 }
 
-func (r *InfoRepositoryImpl) GetBranch() string {
+func (r *infoRepositoryImpl) GetBranch() string {
 	if r.buildInfo == nil {
-		return UnknownValue
+		return unknownValue
 	}
 	return r.buildInfo.Branch
 }
 
-func (r *InfoRepositoryImpl) GetBuildTime() string {
+func (r *infoRepositoryImpl) GetBuildTime() string {
 	if r.buildInfo == nil {
-		return UnknownValue
+		return unknownValue
 	}
 	return r.buildInfo.BuildTime
 }
 
-func (r *InfoRepositoryImpl) GetCommitHash() string {
+func (r *infoRepositoryImpl) GetCommitHash() string {
 	if r.buildInfo == nil {
-		return UnknownValue
+		return unknownValue
 	}
 	return r.buildInfo.CommitHash
 }

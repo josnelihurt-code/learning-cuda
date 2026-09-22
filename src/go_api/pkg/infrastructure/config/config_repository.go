@@ -4,17 +4,17 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 )
 
-type RepositoryImpl struct {
+type repositoryImpl struct {
 	configManager *config.Manager
 }
 
-func NewConfigRepository(configManager *config.Manager) *RepositoryImpl {
-	return &RepositoryImpl{
+func NewConfigRepository(configManager *config.Manager) *repositoryImpl {
+	return &repositoryImpl{
 		configManager: configManager,
 	}
 }
 
-func (r *RepositoryImpl) GetEnvironment() string {
+func (r *repositoryImpl) GetEnvironment() string {
 	if r.configManager == nil {
 		return "production"
 	}

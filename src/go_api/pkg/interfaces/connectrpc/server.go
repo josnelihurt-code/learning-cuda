@@ -7,12 +7,12 @@ import (
 	"github.com/jrb/cuda-learning/proto/gen/genconnect"
 )
 
-// RegisterConfigService registers an already-constructed ConfigHandler on mux.
+// RegisterConfigService registers an already-constructed configHandler on mux.
 // Handlers are built once by the composition root and shared with the
 // Vanguard transcoder (see SetupVanguardTranscoder).
 func RegisterConfigService(
 	mux *http.ServeMux,
-	handler *ConfigHandler,
+	handler *configHandler,
 	interceptors ...connect.Interceptor,
 ) {
 	var opts []connect.HandlerOption
@@ -24,10 +24,10 @@ func RegisterConfigService(
 	mux.Handle(path, rpcHandler)
 }
 
-// RegisterFileService registers an already-constructed FileHandler on mux.
+// RegisterFileService registers an already-constructed fileHandler on mux.
 func RegisterFileService(
 	mux *http.ServeMux,
-	handler *FileHandler,
+	handler *fileHandler,
 	interceptors ...connect.Interceptor,
 ) {
 	var opts []connect.HandlerOption
@@ -40,10 +40,10 @@ func RegisterFileService(
 }
 
 // RegisterWebRTCSignalingService registers an already-constructed
-// WebRTCSignalingHandler on mux.
+// webRTCSignalingHandler on mux.
 func RegisterWebRTCSignalingService(
 	mux *http.ServeMux,
-	handler *WebRTCSignalingHandler,
+	handler *webRTCSignalingHandler,
 	interceptors ...connect.Interceptor,
 ) {
 	var opts []connect.HandlerOption
@@ -56,10 +56,10 @@ func RegisterWebRTCSignalingService(
 }
 
 // RegisterRemoteManagementService registers an already-constructed
-// RemoteManagementHandler on mux.
+// remoteManagementHandler on mux.
 func RegisterRemoteManagementService(
 	mux *http.ServeMux,
-	handler *RemoteManagementHandler,
+	handler *remoteManagementHandler,
 	interceptors ...connect.Interceptor,
 ) {
 	var opts []connect.HandlerOption

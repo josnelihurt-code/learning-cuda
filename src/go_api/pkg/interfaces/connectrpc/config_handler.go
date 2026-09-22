@@ -19,11 +19,11 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type ConfigHandler struct {
+type configHandler struct {
 	ConfigHandlerDeps
 }
 
-// ConfigHandlerDeps groups all dependencies needed to create a ConfigHandler.
+// ConfigHandlerDeps groups all dependencies needed to create a configHandler.
 type ConfigHandlerDeps struct {
 	// Use Cases
 	ListInputsUC        application.UseCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
@@ -36,13 +36,13 @@ type ConfigHandlerDeps struct {
 	ConfigManager *config.Manager
 }
 
-func NewConfigHandler(deps ConfigHandlerDeps) *ConfigHandler {
-	return &ConfigHandler{
+func NewConfigHandler(deps ConfigHandlerDeps) *configHandler {
+	return &configHandler{
 		ConfigHandlerDeps: deps,
 	}
 }
 
-func (h *ConfigHandler) GetStreamConfig(
+func (h *configHandler) GetStreamConfig(
 	ctx context.Context,
 	req *connect.Request[pb.GetStreamConfigRequest],
 ) (*connect.Response[pb.GetStreamConfigResponse], error) {
@@ -116,7 +116,7 @@ func (h *ConfigHandler) GetStreamConfig(
 	}), nil
 }
 
-func (h *ConfigHandler) ListFeatureFlags(
+func (h *configHandler) ListFeatureFlags(
 	ctx context.Context,
 	req *connect.Request[pb.ListFeatureFlagsRequest],
 ) (*connect.Response[pb.ListFeatureFlagsResponse], error) {
@@ -142,7 +142,7 @@ func (h *ConfigHandler) ListFeatureFlags(
 	return connect.NewResponse(&pb.ListFeatureFlagsResponse{Flags: result}), nil
 }
 
-func (h *ConfigHandler) UpsertFeatureFlag(
+func (h *configHandler) UpsertFeatureFlag(
 	ctx context.Context,
 	req *connect.Request[pb.UpsertFeatureFlagRequest],
 ) (*connect.Response[pb.UpsertFeatureFlagResponse], error) {
@@ -176,7 +176,7 @@ func (h *ConfigHandler) UpsertFeatureFlag(
 	return connect.NewResponse(&pb.UpsertFeatureFlagResponse{Message: "Flag updated successfully"}), nil
 }
 
-func (h *ConfigHandler) ListInputs(
+func (h *configHandler) ListInputs(
 	ctx context.Context,
 	req *connect.Request[pb.ListInputsRequest],
 ) (*connect.Response[pb.ListInputsResponse], error) {
@@ -212,7 +212,7 @@ func (h *ConfigHandler) ListInputs(
 	}), nil
 }
 
-func (h *ConfigHandler) GetAvailableTools(
+func (h *configHandler) GetAvailableTools(
 	ctx context.Context,
 	req *connect.Request[pb.GetAvailableToolsRequest],
 ) (*connect.Response[pb.GetAvailableToolsResponse], error) {
@@ -266,7 +266,7 @@ func (h *ConfigHandler) GetAvailableTools(
 	}), nil
 }
 
-func (h *ConfigHandler) buildTools(toolDefs []config.ToolDefinition) []*pb.Tool {
+func (h *configHandler) buildTools(toolDefs []config.ToolDefinition) []*pb.Tool {
 	tools := make([]*pb.Tool, 0, len(toolDefs))
 
 	for _, toolDef := range toolDefs {
@@ -289,7 +289,7 @@ func (h *ConfigHandler) buildTools(toolDefs []config.ToolDefinition) []*pb.Tool 
 	return tools
 }
 
-func (h *ConfigHandler) GetSystemInfo(
+func (h *configHandler) GetSystemInfo(
 	ctx context.Context,
 	req *connect.Request[pb.GetSystemInfoRequest],
 ) (*connect.Response[pb.GetSystemInfoResponse], error) {
@@ -340,7 +340,7 @@ func (h *ConfigHandler) GetSystemInfo(
 // version information flow directly from the C++ accelerator to the browser
 // over the WebRTC "control" data channel. We keep the RPC so the existing
 // frontend client doesn't break, but it returns an empty payload.
-func (h *ConfigHandler) GetProcessorStatus(
+func (h *configHandler) GetProcessorStatus(
 	ctx context.Context,
 	req *connect.Request[pb.GetProcessorStatusRequest],
 ) (*connect.Response[pb.GetProcessorStatusResponse], error) {

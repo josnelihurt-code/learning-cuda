@@ -10,23 +10,23 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// FilePreviewGenerator generates preview images for stored
+// filePreviewGenerator generates preview images for stored
 // videos via ffmpeg into diskDir, exposed under publicBase.
-type FilePreviewGenerator struct {
+type filePreviewGenerator struct {
 	diskDir    string
 	publicBase string
 }
 
-func NewFilePreviewGenerator(diskDir, publicBase string) *FilePreviewGenerator {
-	return &FilePreviewGenerator{
+func NewFilePreviewGenerator(diskDir, publicBase string) *filePreviewGenerator {
+	return &filePreviewGenerator{
 		diskDir:    diskDir,
 		publicBase: publicBase,
 	}
 }
 
-func (g *FilePreviewGenerator) Generate(ctx context.Context, videoID, videoPath string) (string, error) {
+func (g *filePreviewGenerator) Generate(ctx context.Context, videoID, videoPath string) (string, error) {
 	tracer := otel.Tracer("video-preview-generator")
-	_, span := tracer.Start(ctx, "FilePreviewGenerator.Generate",
+	_, span := tracer.Start(ctx, "filePreviewGenerator.Generate",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()
@@ -37,7 +37,7 @@ func (g *FilePreviewGenerator) Generate(ctx context.Context, videoID, videoPath 
 	diskVideoPath := strings.TrimPrefix(videoPath, "/")
 	previewDiskPath := filepath.Join(g.diskDir, videoID+".png")
 
-	if err := GeneratePreview(ctx, diskVideoPath, previewDiskPath); err != nil {
+	if err := generatePreview(ctx, diskVideoPath, previewDiskPath); err != nil {
 		span.RecordError(err)
 		span.SetAttributes(attribute.String("error.type", "preview_generation_failed"))
 		return "", err

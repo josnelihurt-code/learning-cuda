@@ -59,9 +59,9 @@ func (dm *DeviceMonitor) Start(ctx context.Context) error {
 		return nil
 	}
 
-	sensorChan := make(chan SensorData, 10)
-	info1Chan := make(chan Info1Data, 10)
-	info2Chan := make(chan Info2Data, 10)
+	sensorChan := make(chan sensorData, 10)
+	info1Chan := make(chan info1Data, 10)
+	info2Chan := make(chan info2Data, 10)
 	lwtChan := make(chan string, 10)
 
 	if err := dm.link.subscribeSensorWithRaw(dropPump(sensorChan)); err != nil {
@@ -111,7 +111,7 @@ func dropPump[T any](out chan<- T) func(T) error {
 	}
 }
 
-func (dm *DeviceMonitor) monitorLoop(sensorChan <-chan SensorData, info1Chan <-chan Info1Data, info2Chan <-chan Info2Data, lwtChan <-chan string) {
+func (dm *DeviceMonitor) monitorLoop(sensorChan <-chan sensorData, info1Chan <-chan info1Data, info2Chan <-chan info2Data, lwtChan <-chan string) {
 	for {
 		select {
 		case <-dm.ctx.Done():
@@ -128,7 +128,7 @@ func (dm *DeviceMonitor) monitorLoop(sensorChan <-chan SensorData, info1Chan <-c
 	}
 }
 
-func (dm *DeviceMonitor) handleSensorData(data SensorData) {
+func (dm *DeviceMonitor) handleSensorData(data sensorData) {
 	timestamp, err := time.Parse("2006-01-02T15:04:05", data.Time)
 	if err != nil {
 		timestamp = time.Now()
@@ -143,7 +143,7 @@ func (dm *DeviceMonitor) handleSensorData(data SensorData) {
 	dm.notify(snapshot)
 }
 
-func (dm *DeviceMonitor) handleInfo1Data(data Info1Data) {
+func (dm *DeviceMonitor) handleInfo1Data(data info1Data) {
 	dm.mu.Lock()
 	dm.status.UpdateInfo1(data.Info1.Version, data.Info1.Module)
 	snapshot := dm.status.Clone()
@@ -152,7 +152,7 @@ func (dm *DeviceMonitor) handleInfo1Data(data Info1Data) {
 	dm.notify(snapshot)
 }
 
-func (dm *DeviceMonitor) handleInfo2Data(data Info2Data) {
+func (dm *DeviceMonitor) handleInfo2Data(data info2Data) {
 	dm.mu.Lock()
 	dm.status.UpdateInfo2(data.Info2.Hostname, data.Info2.IPAddress)
 	snapshot := dm.status.Clone()

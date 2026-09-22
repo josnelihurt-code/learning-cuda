@@ -53,7 +53,7 @@ func blockingRecv(dieErr error) (recv func() (*pb.SignalingMessage, error), ente
 	return recv, entered, released
 }
 
-func managerSessionEntry(m *WebRTCSignalingSessionManager, sessionID string) (*webRTCSignalingSession, bool) {
+func managerSessionEntry(m *webRTCSignalingSessionManager, sessionID string) (*webRTCSignalingSession, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	session, ok := m.sessions[sessionID]
@@ -64,7 +64,7 @@ func TestSuccess_SessionEvictedWhenStreamDies(t *testing.T) {
 	// Arrange:
 	streamErr := errors.New("connection reset by peer")
 	recv, entered, released := blockingRecv(streamErr)
-	sut := NewWebRTCSignalingSessionManager(&scriptedSignalingClient{
+	sut := newWebRTCSignalingSessionManager(&scriptedSignalingClient{
 		streams: []*scriptedSignalingStream{newScriptedSignalingStream(recv)},
 	})
 
@@ -98,7 +98,7 @@ func TestSuccess_LateTerminationDoesNotEvictReplacement(t *testing.T) {
 	streamErrA := errors.New("connection reset by peer")
 	recvA, _, releasedA := blockingRecv(streamErrA)
 	recvB, _, releasedB := blockingRecv(errors.New("connection reset by peer"))
-	sut := NewWebRTCSignalingSessionManager(&scriptedSignalingClient{
+	sut := newWebRTCSignalingSessionManager(&scriptedSignalingClient{
 		streams: []*scriptedSignalingStream{
 			newScriptedSignalingStream(recvA),
 			newScriptedSignalingStream(recvB),

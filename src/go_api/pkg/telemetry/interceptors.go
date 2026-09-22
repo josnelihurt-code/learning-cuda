@@ -18,7 +18,7 @@ func TraceContextInterceptor() connect.UnaryInterceptorFunc {
 			if msg := req.Any(); msg != nil {
 				if v, ok := msg.(interface{ GetTraceContext() *pb.TraceContext }); ok {
 					if tc := v.GetTraceContext(); tc != nil {
-						ctx = ExtractFromProtobuf(ctx, tc)
+						ctx = extractFromProtobuf(ctx, tc)
 					}
 				}
 			}

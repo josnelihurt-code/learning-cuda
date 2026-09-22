@@ -10,12 +10,12 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-type Client struct {
+type client struct {
 	client mqtt.Client
 	config config.MQTTConfig
 }
 
-type SensorData struct {
+type sensorData struct {
 	Time   string `json:"Time"`
 	ENERGY struct {
 		Power   float64 `json:"Power"`
@@ -23,21 +23,21 @@ type SensorData struct {
 	} `json:"ENERGY"`
 }
 
-type Info1Data struct {
+type info1Data struct {
 	Info1 struct {
 		Module  string `json:"Module"`
 		Version string `json:"Version"`
 	} `json:"Info1"`
 }
 
-type Info2Data struct {
+type info2Data struct {
 	Info2 struct {
 		Hostname  string `json:"Hostname"`
 		IPAddress string `json:"IPAddress"`
 	} `json:"Info2"`
 }
 
-func NewClient(cfg config.MQTTConfig) (*Client, error) {
+func newClient(cfg config.MQTTConfig) (*client, error) {
 	brokerURL := fmt.Sprintf("tcp://%s:%d", cfg.Broker, cfg.Port)
 
 	opts := mqtt.NewClientOptions()
@@ -50,26 +50,26 @@ func NewClient(cfg config.MQTTConfig) (*Client, error) {
 	opts.SetConnectTimeout(10 * time.Second)
 	opts.SetWriteTimeout(10 * time.Second)
 
-	client := mqtt.NewClient(opts)
+	pahoClient := mqtt.NewClient(opts)
 
-	if token := client.Connect(); token.Wait() && token.Error() != nil {
+	if token := pahoClient.Connect(); token.Wait() && token.Error() != nil {
 		return nil, fmt.Errorf("failed to connect to MQTT broker: %w", token.Error())
 	}
 
-	if !client.IsConnected() {
+	if !pahoClient.IsConnected() {
 		return nil, fmt.Errorf("MQTT client not connected after Connect()")
 	}
 
 	log.Info().Str("broker", cfg.Broker).Int("port", cfg.Port).Str("client_id", cfg.ClientID).Msg("MQTT client connected")
 	time.Sleep(500 * time.Millisecond)
 
-	return &Client{
-		client: client,
+	return &client{
+		client: pahoClient,
 		config: cfg,
 	}, nil
 }
 
-func (c *Client) PublishPowerCommand(on bool) error {
+func (c *client) PublishPowerCommand(on bool) error {
 	if !on {
 		return nil //DISABLED
 	}
@@ -91,7 +91,7 @@ func (c *Client) PublishPowerCommand(on bool) error {
 	return nil
 }
 
-func (c *Client) SubscribeToSensorWithRaw(callback func(data SensorData) error) error {
+func (c *client) SubscribeToSensorWithRaw(callback func(data sensorData) error) error {
 	if !c.client.IsConnected() {
 		return fmt.Errorf("MQTT client not connected")
 	}
@@ -99,7 +99,7 @@ func (c *Client) SubscribeToSensorWithRaw(callback func(data SensorData) error) 
 	topic := fmt.Sprintf("tele/%s/SENSOR", c.config.Topic)
 
 	messageHandler := func(client mqtt.Client, msg mqtt.Message) {
-		var sensorData SensorData
+		var sensorData sensorData
 		if err := json.Unmarshal(msg.Payload(), &sensorData); err != nil {
 			return
 		}
@@ -123,11 +123,11 @@ func (c *Client) SubscribeToSensorWithRaw(callback func(data SensorData) error) 
 	return nil
 }
 
-func (c *Client) SubscribeToInfo1(callback func(data Info1Data) error) error {
+func (c *client) SubscribeToInfo1(callback func(data info1Data) error) error {
 	topic := fmt.Sprintf("tele/%s/INFO1", c.config.Topic)
 
 	messageHandler := func(client mqtt.Client, msg mqtt.Message) {
-		var info1Data Info1Data
+		var info1Data info1Data
 		if err := json.Unmarshal(msg.Payload(), &info1Data); err != nil {
 			return
 		}
@@ -149,11 +149,11 @@ func (c *Client) SubscribeToInfo1(callback func(data Info1Data) error) error {
 	return nil
 }
 
-func (c *Client) SubscribeToInfo2(callback func(data Info2Data) error) error {
+func (c *client) SubscribeToInfo2(callback func(data info2Data) error) error {
 	topic := fmt.Sprintf("tele/%s/INFO2", c.config.Topic)
 
 	messageHandler := func(client mqtt.Client, msg mqtt.Message) {
-		var info2Data Info2Data
+		var info2Data info2Data
 		if err := json.Unmarshal(msg.Payload(), &info2Data); err != nil {
 			return
 		}
@@ -175,7 +175,7 @@ func (c *Client) SubscribeToInfo2(callback func(data Info2Data) error) error {
 	return nil
 }
 
-func (c *Client) SubscribeToLWT(callback func(status string) error) error {
+func (c *client) SubscribeToLWT(callback func(status string) error) error {
 	topic := fmt.Sprintf("tele/%s/LWT", c.config.Topic)
 
 	messageHandler := func(client mqtt.Client, msg mqtt.Message) {
@@ -197,11 +197,11 @@ func (c *Client) SubscribeToLWT(callback func(status string) error) error {
 	return nil
 }
 
-func (c *Client) RestartDevice() error {
+func (c *client) RestartDevice() error {
 	return nil //DISABLED
 }
 
-func (c *Client) Disconnect() {
+func (c *client) Disconnect() {
 	if c == nil || c.client == nil {
 		return
 	}

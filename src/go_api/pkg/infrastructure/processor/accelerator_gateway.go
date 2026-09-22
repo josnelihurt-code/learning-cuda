@@ -9,11 +9,11 @@ import (
 )
 
 type AcceleratorGateway struct {
-	registry *Registry
+	registry *registry
 }
 
 type AcceleratorGatewayConfig struct {
-	Registry *Registry
+	Registry *registry
 }
 
 func NewAcceleratorGateway(cfg AcceleratorGatewayConfig) *AcceleratorGateway {

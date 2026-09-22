@@ -19,15 +19,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-type TracerProvider struct {
+type tracerProvider struct {
 	provider *sdktrace.TracerProvider
 	enabled  bool
 }
 
-func New(ctx context.Context, enabled bool, config *config.ObservabilityConfig) (*TracerProvider, error) {
+func New(ctx context.Context, enabled bool, config *config.ObservabilityConfig) (*tracerProvider, error) {
 	if !enabled {
 		logger.Global().Info().Msg("Observability disabled by feature flag")
-		return &TracerProvider{enabled: false}, nil
+		return &tracerProvider{enabled: false}, nil
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
@@ -94,7 +94,7 @@ func New(ctx context.Context, enabled bool, config *config.ObservabilityConfig) 
 		Float64("sampling_rate", config.TraceSamplingRate).
 		Msg("OpenTelemetry tracer initialized")
 
-	return &TracerProvider{
+	return &tracerProvider{
 		provider: provider,
 		enabled:  true,
 	}, nil
@@ -125,7 +125,7 @@ func newHTTPTraceExporter(ctx context.Context, config *config.ObservabilityConfi
 	return exporter, nil
 }
 
-func (tp *TracerProvider) Shutdown(ctx context.Context) error {
+func (tp *tracerProvider) Shutdown(ctx context.Context) error {
 	if !tp.enabled || tp.provider == nil {
 		return nil
 	}

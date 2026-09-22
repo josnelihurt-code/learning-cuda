@@ -12,23 +12,23 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 )
 
-type WebRTCSignalingClient interface {
+type webRTCSignalingClient interface {
 	SignalingStream(ctx context.Context) (pb.WebRTCSignalingService_SignalingStreamClient, error)
 }
 
-type WebRTCSignalingHandler struct {
-	client  WebRTCSignalingClient
-	manager *WebRTCSignalingSessionManager
+type webRTCSignalingHandler struct {
+	client  webRTCSignalingClient
+	manager *webRTCSignalingSessionManager
 }
 
-func NewWebRTCSignalingHandler(client WebRTCSignalingClient) *WebRTCSignalingHandler {
-	return &WebRTCSignalingHandler{
+func NewWebRTCSignalingHandler(client webRTCSignalingClient) *webRTCSignalingHandler {
+	return &webRTCSignalingHandler{
 		client:  client,
-		manager: NewWebRTCSignalingSessionManager(client),
+		manager: newWebRTCSignalingSessionManager(client),
 	}
 }
 
-func (h *WebRTCSignalingHandler) StartSession(
+func (h *webRTCSignalingHandler) StartSession(
 	ctx context.Context,
 	req *connect.Request[pb.StartSessionRequest],
 ) (*connect.Response[pb.StartSessionResponse], error) {
@@ -40,7 +40,7 @@ func (h *WebRTCSignalingHandler) StartSession(
 	return connect.NewResponse(resp), nil
 }
 
-func (h *WebRTCSignalingHandler) SendIceCandidate(
+func (h *webRTCSignalingHandler) SendIceCandidate(
 	ctx context.Context,
 	req *connect.Request[pb.SendIceCandidateRequest],
 ) (*connect.Response[pb.SendIceCandidateResponse], error) {
@@ -55,7 +55,7 @@ func (h *WebRTCSignalingHandler) SendIceCandidate(
 	return connect.NewResponse(resp), nil
 }
 
-func (h *WebRTCSignalingHandler) PollEvents(
+func (h *webRTCSignalingHandler) PollEvents(
 	ctx context.Context,
 	req *connect.Request[pb.PollEventsRequest],
 ) (*connect.Response[pb.PollEventsResponse], error) {
@@ -74,7 +74,7 @@ func (h *WebRTCSignalingHandler) PollEvents(
 	return connect.NewResponse(resp), nil
 }
 
-func (h *WebRTCSignalingHandler) CloseSession(
+func (h *webRTCSignalingHandler) CloseSession(
 	ctx context.Context,
 	req *connect.Request[pb.CloseSessionRequest],
 ) (*connect.Response[pb.CloseSessionResponse], error) {
@@ -115,7 +115,7 @@ func getMessageTypeString(msg *pb.SignalingMessage) string {
 // - Frontend → C++: Via goroutine that reads from Connect-RPC stream and sends to gRPC stream
 // - C++ → Frontend: Via main loop that reads from gRPC stream and sends to Connect-RPC stream
 // Uses context cancellation and WaitGroups for proper cleanup of goroutines.
-func (h *WebRTCSignalingHandler) SignalingStream(
+func (h *webRTCSignalingHandler) SignalingStream(
 	ctx context.Context,
 	stream *connect.BidiStream[pb.SignalingMessage, pb.SignalingMessage],
 ) error {
@@ -184,7 +184,7 @@ func (h *WebRTCSignalingHandler) SignalingStream(
 	return nil
 }
 
-func (h *WebRTCSignalingHandler) forwardFrontendToGRPC(
+func (h *webRTCSignalingHandler) forwardFrontendToGRPC(
 	stream *connect.BidiStream[pb.SignalingMessage, pb.SignalingMessage],
 	grpcStream pb.WebRTCSignalingService_SignalingStreamClient,
 	cancel context.CancelFunc,
@@ -222,4 +222,4 @@ func (h *WebRTCSignalingHandler) forwardFrontendToGRPC(
 	}
 }
 
-var _ genconnect.WebRTCSignalingServiceHandler = (*WebRTCSignalingHandler)(nil)
+var _ genconnect.WebRTCSignalingServiceHandler = (*webRTCSignalingHandler)(nil)

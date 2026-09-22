@@ -25,7 +25,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-type App struct {
+type app struct {
 	// Context
 	appContext context.Context
 
@@ -36,25 +36,25 @@ type App struct {
 	interceptors []connect.Interceptor
 }
 
-// AcceleratorControl is the lifecycle slice of the accelerator control server
+// acceleratorControl is the lifecycle slice of the accelerator control server
 // that app.Run owns: the control listener must be up before slow init starts.
-type AcceleratorControl interface {
+type acceleratorControl interface {
 	Start() error
 }
 
-// AcceleratorGateway is what the Connect layer consumes from the accelerator
+// acceleratorGateway is what the Connect layer consumes from the accelerator
 // gateway: signaling streams for WebRTC sessions and availability for
 // accelerator health checks. Declared here because app is the wiring point
 // that hands one gateway to several handlers.
-type AcceleratorGateway interface {
+type acceleratorGateway interface {
 	IsAvailable() bool
 	SignalingStream(ctx context.Context) (pb.WebRTCSignalingService_SignalingStreamClient, error)
 }
 
-// DeviceMonitor is what the app consumes from the MQTT device monitor: the
+// deviceMonitor is what the app consumes from the MQTT device monitor: the
 // Start/Stop lifecycle driven by Run plus the power and subscription surface
 // used by the remote-management Connect handler.
-type DeviceMonitor interface {
+type deviceMonitor interface {
 	Start(ctx context.Context) error
 	Stop() error
 	PowerOn() error
@@ -75,15 +75,15 @@ type Deps struct {
 	UploadVideoUC         application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
 
 	// Infrastructure
-	AcceleratorControl AcceleratorControl
-	AcceleratorGateway AcceleratorGateway
-	DeviceMonitor      DeviceMonitor
+	AcceleratorControl acceleratorControl
+	AcceleratorGateway acceleratorGateway
+	DeviceMonitor      deviceMonitor
 
 	// Repositories
 	FeatureFlagRepo *featureflags.GoffRepository
 }
 
-func New(ctx context.Context, deps Deps) (*App, error) {
+func New(ctx context.Context, deps Deps) (*app, error) {
 	if deps.Config == nil {
 		return nil, errors.New("config is required")
 	}
@@ -121,15 +121,15 @@ func New(ctx context.Context, deps Deps) (*App, error) {
 		return nil, errors.New("MQTT device monitor is required")
 	}
 
-	app := &App{
+	instance := &app{
 		appContext: ctx,
 		Deps:       deps,
 	}
 
-	return app, nil
+	return instance, nil
 }
 
-func (a *App) makeTelemetryMiddleware(handler http.Handler) http.Handler {
+func (a *app) makeTelemetryMiddleware(handler http.Handler) http.Handler {
 	if !a.Config.IsObservabilityEnabled(a.appContext) {
 		return handler
 	}
@@ -146,7 +146,7 @@ func (a *App) makeTelemetryMiddleware(handler http.Handler) http.Handler {
 	return instrumentedHandler
 }
 
-func (a *App) setupObservability(mux *http.ServeMux) {
+func (a *app) setupObservability(mux *http.ServeMux) {
 	log := logger.Global()
 	if !a.Config.IsObservabilityEnabled(a.appContext) {
 		log.Info().Msg("OpenTelemetry HTTP instrumentation disabled")
@@ -168,7 +168,7 @@ func (a *App) setupObservability(mux *http.ServeMux) {
 	log.Info().Msg("Logs proxy endpoint registered at /api/logs")
 }
 
-func (a *App) setupConnectRPCServices(mux *http.ServeMux) {
+func (a *app) setupConnectRPCServices(mux *http.ServeMux) {
 	// Handlers are constructed once and shared by the mux registrations and
 	// the Vanguard transcoder, so the Connect and REST/gRPC surfaces can
 	// never diverge.
@@ -200,7 +200,7 @@ func (a *App) setupConnectRPCServices(mux *http.ServeMux) {
 	logger.Global().Info().Msg("Connect-RPC handlers and Vanguard transcoder registered (REST + Connect + gRPC)")
 }
 
-func (a *App) setupHealthEndpoint(mux *http.ServeMux) {
+func (a *app) setupHealthEndpoint(mux *http.ServeMux) {
 	// Health endpoint uses plain HTTP instead of ConnectRPC because:
 	// 1. Load balancers (k8s, Docker) require simple HTTP 200/503
 	// 2. No protobuf complexity needed for basic health checks
@@ -252,7 +252,7 @@ func serveWithGracefulShutdown(ctx context.Context, servers ...gracefulServer) e
 	return g.Wait()
 }
 
-func (a *App) Run() error {
+func (a *app) Run() error {
 	log := logger.Global()
 	defer func() {
 		if err := a.DeviceMonitor.Stop(); err != nil {

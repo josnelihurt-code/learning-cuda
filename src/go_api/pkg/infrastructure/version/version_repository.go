@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	UnknownValue = "unknown"
+	unknownValue = "unknown"
 )
 
-type RepositoryImpl struct {
+type repositoryImpl struct {
 	goVersionPath    string
 	cppVersionPath   string
 	protoVersionPath string
@@ -39,27 +39,27 @@ func findProjectRoot() string {
 	return wd
 }
 
-func NewVersionRepository() *RepositoryImpl {
+func NewVersionRepository() *repositoryImpl {
 	projectRoot := findProjectRoot()
-	return &RepositoryImpl{
+	return &repositoryImpl{
 		goVersionPath:    filepath.Join(projectRoot, "src", "go_api", "VERSION"),
 		cppVersionPath:   filepath.Join(projectRoot, "src", "cpp_accelerator", "VERSION"),
 		protoVersionPath: filepath.Join(projectRoot, "proto", "VERSION"),
 	}
 }
 
-func (r *RepositoryImpl) readVersionFile(filePath string) string {
+func (r *repositoryImpl) readVersionFile(filePath string) string {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return UnknownValue
+		return unknownValue
 	}
 	return strings.TrimSpace(string(data))
 }
 
-func (r *RepositoryImpl) GetGoVersion() string {
+func (r *repositoryImpl) GetGoVersion() string {
 	return r.readVersionFile(r.goVersionPath)
 }
 
-func (r *RepositoryImpl) GetProtoVersion() string {
+func (r *repositoryImpl) GetProtoVersion() string {
 	return r.readVersionFile(r.protoVersionPath)
 }

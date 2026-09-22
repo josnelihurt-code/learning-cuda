@@ -7,23 +7,23 @@ import (
 )
 
 const (
-	paramTypeSelect   = "select"
-	paramTypeCheckbox = "checkbox"
-	paramTypeText     = "text"
-	filterIDBlur      = "blur"
+	paramTypeSelect        = "select"
+	paramTypeCheckbox      = "checkbox"
+	paramTypeText          = "text"
+	filterIDBlur           = "blur"
 	filterIDModelInference = "model_inference"
 )
 
-// FilterCodec provides bidirectional conversion between FilterDefinition and GenericFilterDefinition
-type FilterCodec struct{}
+// filterCodec provides bidirectional conversion between FilterDefinition and GenericFilterDefinition
+type filterCodec struct{}
 
-// NewFilterCodec creates a new FilterCodec instance
-func NewFilterCodec() *FilterCodec {
-	return &FilterCodec{}
+// newFilterCodec creates a new filterCodec instance
+func newFilterCodec() *filterCodec {
+	return &filterCodec{}
 }
 
 // ToGenericFilterDefinition converts a FilterDefinition to a GenericFilterDefinition
-func (c *FilterCodec) ToGenericFilterDefinition(def *pb.FilterDefinition) *pb.GenericFilterDefinition {
+func (c *filterCodec) ToGenericFilterDefinition(def *pb.FilterDefinition) *pb.GenericFilterDefinition {
 	if def == nil {
 		return nil
 	}
@@ -48,7 +48,7 @@ func (c *FilterCodec) ToGenericFilterDefinition(def *pb.FilterDefinition) *pb.Ge
 }
 
 // ToFilterDefinition converts a GenericFilterDefinition to a FilterDefinition
-func (c *FilterCodec) ToFilterDefinition(genericDef *pb.GenericFilterDefinition) *pb.FilterDefinition {
+func (c *filterCodec) ToFilterDefinition(genericDef *pb.GenericFilterDefinition) *pb.FilterDefinition {
 	if genericDef == nil {
 		return nil
 	}
@@ -73,7 +73,7 @@ func (c *FilterCodec) ToFilterDefinition(genericDef *pb.GenericFilterDefinition)
 }
 
 // ToGenericFilterParameter converts a FilterParameter to a GenericFilterParameter
-func (c *FilterCodec) ToGenericFilterParameter(filterID string, param *pb.FilterParameter) *pb.GenericFilterParameter {
+func (c *filterCodec) ToGenericFilterParameter(filterID string, param *pb.FilterParameter) *pb.GenericFilterParameter {
 	if param == nil {
 		return nil
 	}
@@ -97,7 +97,7 @@ func (c *FilterCodec) ToGenericFilterParameter(filterID string, param *pb.Filter
 }
 
 // ToFilterParameter converts a GenericFilterParameter to a FilterParameter
-func (c *FilterCodec) ToFilterParameter(genericParam *pb.GenericFilterParameter) *pb.FilterParameter {
+func (c *filterCodec) ToFilterParameter(genericParam *pb.GenericFilterParameter) *pb.FilterParameter {
 	if genericParam == nil {
 		return nil
 	}
@@ -123,7 +123,7 @@ func (c *FilterCodec) ToFilterParameter(genericParam *pb.GenericFilterParameter)
 }
 
 // MapParameterTypeToGeneric converts a string parameter type to GenericFilterParameterType enum
-func (c *FilterCodec) MapParameterTypeToGeneric(paramType string) pb.GenericFilterParameterType {
+func (c *filterCodec) MapParameterTypeToGeneric(paramType string) pb.GenericFilterParameterType {
 	switch strings.ToLower(paramType) {
 	case paramTypeSelect:
 		return pb.GenericFilterParameterType_GENERIC_FILTER_PARAMETER_TYPE_SELECT
@@ -141,7 +141,7 @@ func (c *FilterCodec) MapParameterTypeToGeneric(paramType string) pb.GenericFilt
 }
 
 // MapGenericParameterTypeToString converts GenericFilterParameterType enum to string
-func (c *FilterCodec) MapGenericParameterTypeToString(paramType pb.GenericFilterParameterType) string {
+func (c *filterCodec) MapGenericParameterTypeToString(paramType pb.GenericFilterParameterType) string {
 	switch paramType {
 	case pb.GenericFilterParameterType_GENERIC_FILTER_PARAMETER_TYPE_SELECT:
 		return paramTypeSelect
@@ -161,7 +161,7 @@ func (c *FilterCodec) MapGenericParameterTypeToString(paramType pb.GenericFilter
 }
 
 // BuildParameterMetadata builds metadata map for filter parameters
-func (c *FilterCodec) BuildParameterMetadata(filterID string, param *pb.FilterParameter) map[string]string {
+func (c *filterCodec) BuildParameterMetadata(filterID string, param *pb.FilterParameter) map[string]string {
 	if param == nil {
 		return nil
 	}
@@ -197,7 +197,7 @@ func (c *FilterCodec) BuildParameterMetadata(filterID string, param *pb.FilterPa
 }
 
 // FormatParameterLabel formats parameter option labels for display
-func (c *FilterCodec) FormatParameterLabel(value string) string {
+func (c *filterCodec) FormatParameterLabel(value string) string {
 	switch strings.ToLower(value) {
 	case "bt601":
 		return "ITU-R BT.601 (SDTV)"

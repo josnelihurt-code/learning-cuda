@@ -15,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-
 type acceleratorGateway interface {
 	IsAvailable() bool
 }
@@ -27,21 +26,21 @@ type deviceMonitor interface {
 	Subscribe(callback func(status *domain.DeviceStatus)) func()
 }
 
-type RemoteManagementHandler struct {
+type remoteManagementHandler struct {
 	gateway       acceleratorGateway
 	config        *config.Manager
 	deviceMonitor deviceMonitor
 }
 
-func NewRemoteManagementHandler(gateway acceleratorGateway, configManager *config.Manager, dm deviceMonitor) *RemoteManagementHandler {
-	return &RemoteManagementHandler{
+func NewRemoteManagementHandler(gateway acceleratorGateway, configManager *config.Manager, dm deviceMonitor) *remoteManagementHandler {
+	return &remoteManagementHandler{
 		gateway:       gateway,
 		config:        configManager,
 		deviceMonitor: dm,
 	}
 }
 
-func (h *RemoteManagementHandler) StartJetsonNano(
+func (h *remoteManagementHandler) StartJetsonNano(
 	ctx context.Context,
 	req *connect.Request[pb.StartJetsonNanoRequest],
 ) (*connect.Response[pb.StartJetsonNanoResponse], error) {
@@ -81,7 +80,7 @@ type healthCheckResult struct {
 	libraryVersion string
 }
 
-func (h *RemoteManagementHandler) checkAcceleratorHealth(ctx context.Context) healthCheckResult {
+func (h *remoteManagementHandler) checkAcceleratorHealth(ctx context.Context) healthCheckResult {
 	span := trace.SpanFromContext(ctx)
 
 	if h.gateway == nil || !h.gateway.IsAvailable() {
@@ -99,7 +98,7 @@ func (h *RemoteManagementHandler) checkAcceleratorHealth(ctx context.Context) he
 	}
 }
 
-func (h *RemoteManagementHandler) CheckAcceleratorHealth(
+func (h *remoteManagementHandler) CheckAcceleratorHealth(
 	ctx context.Context,
 	req *connect.Request[pb.CheckAcceleratorHealthRequest],
 ) (*connect.Response[pb.CheckAcceleratorHealthResponse], error) {
@@ -114,7 +113,7 @@ func (h *RemoteManagementHandler) CheckAcceleratorHealth(
 	}), nil
 }
 
-func (h *RemoteManagementHandler) MonitorJetsonNano(
+func (h *remoteManagementHandler) MonitorJetsonNano(
 	ctx context.Context,
 	req *connect.Request[pb.MonitorJetsonNanoRequest],
 	stream *connect.ServerStream[pb.MonitorJetsonNanoResponse],
@@ -189,4 +188,4 @@ func (h *RemoteManagementHandler) MonitorJetsonNano(
 	}
 }
 
-var _ genconnect.RemoteManagementServiceHandler = (*RemoteManagementHandler)(nil)
+var _ genconnect.RemoteManagementServiceHandler = (*remoteManagementHandler)(nil)
