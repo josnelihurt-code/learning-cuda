@@ -3,10 +3,6 @@ package video
 import (
 	"context"
 	"fmt"
-
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type inputSource struct {
@@ -39,12 +35,6 @@ func NewListInputsUseCase(videoRepository videoRepository, cameraSource cameraSo
 }
 
 func (uc *listInputsUseCase) Execute(ctx context.Context, _ ListInputsUseCaseInput) (ListInputsUseCaseOutput, error) {
-	tracer := otel.Tracer("list-inputs")
-	_, span := tracer.Start(ctx, "ListInputs",
-		trace.WithSpanKind(trace.SpanKindInternal),
-	)
-	defer span.End()
-
 	sources := []inputSource{
 		{
 			ID:          "gallery",
@@ -90,31 +80,6 @@ func (uc *listInputsUseCase) Execute(ctx context.Context, _ ListInputsUseCaseInp
 			}
 		}
 	}
-
-	staticCount := 0
-	cameraCount := 0
-	videoCount := 0
-	remoteCameraCount := 0
-	for _, src := range sources {
-		switch src.Type {
-		case "static":
-			staticCount++
-		case "camera":
-			cameraCount++
-		case "video":
-			videoCount++
-		case "remote_camera":
-			remoteCameraCount++
-		}
-	}
-
-	span.SetAttributes(
-		attribute.Int("input_sources.count", len(sources)),
-		attribute.Int("input_sources.static_count", staticCount),
-		attribute.Int("input_sources.camera_count", cameraCount),
-		attribute.Int("input_sources.video_count", videoCount),
-		attribute.Int("input_sources.remote_camera_count", remoteCameraCount),
-	)
 
 	return ListInputsUseCaseOutput{Inputs: sources}, nil
 }

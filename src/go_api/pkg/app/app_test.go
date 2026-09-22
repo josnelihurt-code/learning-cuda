@@ -104,3 +104,34 @@ func TestError_ServeWithGracefulShutdownReturnsServeError(t *testing.T) {
 	// Assert
 	require.ErrorIs(t, err, serveErr)
 }
+
+func TestSuccess_GracefulShutdownDrainsMultipleServers(t *testing.T) {
+	// Arrange
+	ctx, cancel := context.WithCancel(t.Context())
+
+	first := &http.Server{Handler: http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})}
+	second := &http.Server{Handler: http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})}
+
+	firstListener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	secondListener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	runErr := make(chan error, 1)
+	go func() {
+		runErr <- serveWithGracefulShutdown(ctx,
+			gracefulServer{server: first, serve: func() error { return first.Serve(firstListener) }},
+			gracefulServer{server: second, serve: func() error { return second.Serve(secondListener) }},
+		)
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-runErr:
+		require.NoError(t, err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out waiting for multi-server graceful shutdown")
+	}
+}
