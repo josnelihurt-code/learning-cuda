@@ -62,6 +62,14 @@ func main() {
 			shutdownWithTimeout("meter provider", meterProvider.Shutdown)
 		}
 	}
+	// Always release container + telemetry after they exist, including early Run() failures
+	// (accelerator control / MQTT start) that return before HTTP serve.
+	defer shutdownTelemetry()
+	defer func() {
+		if err := di.Close(rootCtx); err != nil {
+			log.Error().Err(err).Msg("Error closing container")
+		}
+	}()
 
 	server, err := app.New(ctx, app.Deps{
 		Config:                di.Config,
@@ -79,7 +87,8 @@ func main() {
 		DeviceMonitor:         di.DeviceMonitor,
 	})
 	if err != nil {
-		logger.Global().Fatal().Err(err).Msg("Failed to initialize app")
+		log.Error().Err(err).Msg("Failed to initialize app")
+		os.Exit(1)
 	}
 
 	go func() {
@@ -89,11 +98,6 @@ func main() {
 
 	if err := server.Run(); err != nil {
 		log.Error().Err(err).Msg("Server error")
-		di.Close(rootCtx)
-		shutdownTelemetry()
 		os.Exit(1)
 	}
-
-	di.Close(rootCtx)
-	shutdownTelemetry()
 }

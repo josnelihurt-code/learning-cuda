@@ -4,9 +4,6 @@ import (
 	"context"
 
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 type GetSystemInfoUseCaseInput struct{}
@@ -34,12 +31,6 @@ func NewGetSystemInfoUseCase(
 }
 
 func (uc *getSystemInfoUseCase) Execute(ctx context.Context, _ GetSystemInfoUseCaseInput) (GetSystemInfoUseCaseOutput, error) {
-	tracer := otel.Tracer("get-system-info")
-	_, span := tracer.Start(ctx, "GetSystemInfo",
-		trace.WithSpanKind(trace.SpanKindInternal),
-	)
-	defer span.End()
-
 	environment := uc.configRepo.GetEnvironment()
 
 	systemInfo := &domain.SystemInfo{
@@ -52,15 +43,6 @@ func (uc *getSystemInfoUseCase) Execute(ctx context.Context, _ GetSystemInfoUseC
 		},
 		Environment: environment,
 	}
-
-	span.SetAttributes(
-		attribute.String("version.go", systemInfo.Version.GoVersion),
-		attribute.String("version.proto", systemInfo.Version.ProtoVersion),
-		attribute.String("version.branch", systemInfo.Version.Branch),
-		attribute.String("version.build_time", systemInfo.Version.BuildTime),
-		attribute.String("version.commit_hash", systemInfo.Version.CommitHash),
-		attribute.String("environment", systemInfo.Environment),
-	)
 
 	return GetSystemInfoUseCaseOutput{SystemInfo: systemInfo}, nil
 }

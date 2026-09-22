@@ -9,9 +9,6 @@ import (
 
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/log"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 )
 
 var (
@@ -45,24 +42,11 @@ func NewUploadVideoUseCase(repository videoRepository, storage videoStorage, pre
 }
 
 func (uc *UploadVideoUseCase) Execute(ctx context.Context, input UploadVideoUseCaseInput) (UploadVideoUseCaseOutput, error) {
-	tracer := otel.Tracer("upload-video")
-	ctx, span := tracer.Start(ctx, "UploadVideo",
-		trace.WithSpanKind(trace.SpanKindInternal),
-	)
-	defer span.End()
-
-	span.SetAttributes(
-		attribute.String("filename", input.Filename),
-		attribute.Int("file_size", len(input.FileData)),
-	)
-
 	if err := uc.validateFormat(input.Filename); err != nil {
-		span.SetAttributes(attribute.Bool("error.invalid_format", true))
 		return UploadVideoUseCaseOutput{}, err
 	}
 
 	if err := uc.validateSize(input.FileData); err != nil {
-		span.SetAttributes(attribute.Bool("error.file_too_large", true))
 		return UploadVideoUseCaseOutput{}, err
 	}
 
@@ -70,18 +54,14 @@ func (uc *UploadVideoUseCase) Execute(ctx context.Context, input UploadVideoUseC
 
 	videoPath, err := uc.storage.Save(ctx, input.Filename, input.FileData)
 	if err != nil {
-		span.SetAttributes(attribute.Bool("error", true))
 		return UploadVideoUseCaseOutput{}, fmt.Errorf("failed to save video: %w", err)
 	}
 
 	previewImagePath := ""
 	if previewPath, err := uc.previews.Generate(ctx, id, videoPath); err != nil {
 		log.FromContext(ctx).Warn().Err(err).Str("video_id", id).Msg("Failed to generate preview for uploaded video")
-		span.AddEvent("preview_generation_failed")
-		span.SetAttributes(attribute.String("preview.error", err.Error()))
 	} else {
 		previewImagePath = previewPath
-		span.SetAttributes(attribute.Bool("preview.generated", true))
 	}
 
 	vid := &domain.Video{
@@ -93,14 +73,8 @@ func (uc *UploadVideoUseCase) Execute(ctx context.Context, input UploadVideoUseC
 	}
 
 	if err := uc.repository.Save(ctx, vid); err != nil {
-		span.SetAttributes(attribute.Bool("error", true))
 		return UploadVideoUseCaseOutput{}, err
 	}
-
-	span.SetAttributes(
-		attribute.String("video.id", vid.ID),
-		attribute.Bool("upload.success", true),
-	)
 
 	return UploadVideoUseCaseOutput{Video: vid}, nil
 }

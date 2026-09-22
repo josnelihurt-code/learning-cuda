@@ -194,7 +194,13 @@ func (a *app) setupConnectRPCServices(mux *http.ServeMux) {
 	connectrpc.RegisterWebRTCSignalingService(mux, webrtcSignalingHandler, a.interceptors...)
 	connectrpc.RegisterRemoteManagementService(mux, remoteManagementHandler, a.interceptors...)
 
-	transcoder := connectrpc.SetupVanguardTranscoder(configHandler, fileHandler, a.interceptors)
+	transcoder := connectrpc.SetupVanguardTranscoder(
+		configHandler,
+		fileHandler,
+		webrtcSignalingHandler,
+		remoteManagementHandler,
+		a.interceptors,
+	)
 	mux.Handle("/api/", transcoder)
 
 	logger.Global().Info().Msg("Connect-RPC handlers and Vanguard transcoder registered (REST + Connect + gRPC)")
@@ -240,13 +246,17 @@ func serveWithGracefulShutdown(ctx context.Context, servers ...gracefulServer) e
 		// Drain with a fresh bounded context — ctx is already cancelled.
 		drainCtx, cancel := context.WithTimeout(context.Background(), drainTimeout)
 		defer cancel()
+		var firstErr error
 		for _, s := range servers {
 			if err := s.server.Shutdown(drainCtx); err != nil {
 				logger.Global().Warn().Err(err).Msg("HTTP server drain failed or timed out")
-				return err
+				// Keep draining the rest so one failure cannot leave siblings open.
+				if firstErr == nil {
+					firstErr = err
+				}
 			}
 		}
-		return nil
+		return firstErr
 	})
 
 	return g.Wait()

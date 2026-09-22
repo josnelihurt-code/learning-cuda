@@ -15,6 +15,8 @@ import (
 func SetupVanguardTranscoder(
 	configHandler *configHandler,
 	fileHandler *fileHandler,
+	webrtcSignalingHandler *webRTCSignalingHandler,
+	remoteManagementHandler *remoteManagementHandler,
 	interceptors []connect.Interceptor,
 ) http.Handler {
 	log := logger.Global()
@@ -26,10 +28,14 @@ func SetupVanguardTranscoder(
 
 	_, configConnectHandler := genconnect.NewConfigServiceHandler(configHandler, opts...)
 	_, fileConnectHandler := genconnect.NewFileServiceHandler(fileHandler, opts...)
+	_, webrtcConnectHandler := genconnect.NewWebRTCSignalingServiceHandler(webrtcSignalingHandler, opts...)
+	_, remoteConnectHandler := genconnect.NewRemoteManagementServiceHandler(remoteManagementHandler, opts...)
 
 	services := []*vanguard.Service{
 		vanguard.NewService(genconnect.ConfigServiceName, configConnectHandler),
 		vanguard.NewService(genconnect.FileServiceName, fileConnectHandler),
+		vanguard.NewService(genconnect.WebRTCSignalingServiceName, webrtcConnectHandler),
+		vanguard.NewService(genconnect.RemoteManagementServiceName, remoteConnectHandler),
 	}
 
 	transcoder, err := vanguard.NewTranscoder(services)

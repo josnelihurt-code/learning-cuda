@@ -33,13 +33,12 @@ type DeviceMonitor struct {
 }
 
 // NewDeviceMonitor never fails; the returned monitor's mqttLink may not have
-// a live MQTT session yet.
-func NewDeviceMonitor(ctx context.Context, cfg config.MQTTConfig) *DeviceMonitor {
+// a live MQTT session yet. Lifecycle context is owned by Start, not New.
+func NewDeviceMonitor(_ context.Context, cfg config.MQTTConfig) *DeviceMonitor {
 	return &DeviceMonitor{
 		link:        newMQTTLink(cfg),
 		status:      domain.NewDeviceStatus(),
 		subscribers: make([]deviceSubscriber, 0),
-		ctx:         ctx,
 	}
 }
 
