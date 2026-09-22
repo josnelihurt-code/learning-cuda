@@ -20,10 +20,10 @@ type EvaluateFeatureFlagStringUseCaseOutput struct {
 }
 
 type EvaluateFeatureFlagStringUseCase struct {
-	repository featureFlagRepository
+	repository featureFlagEvaluator
 }
 
-func NewEvaluateFeatureFlagStringUseCase(repo featureFlagRepository) *EvaluateFeatureFlagStringUseCase {
+func NewEvaluateFeatureFlagStringUseCase(repo featureFlagEvaluator) *EvaluateFeatureFlagStringUseCase {
 	return &EvaluateFeatureFlagStringUseCase{repository: repo}
 }
 
