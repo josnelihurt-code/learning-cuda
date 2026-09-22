@@ -12,9 +12,8 @@ type featureFlagEvaluator interface {
 	EvaluateString(ctx context.Context, flagKey, entityID string) (*domain.FeatureFlagEvaluation, error)
 }
 
-// featureFlagAdmin is the feature-flag management port used by the config handler.
+// featureFlagAdmin is the feature-flag management port for list/upsert use cases.
 type featureFlagAdmin interface {
-	GetFlag(ctx context.Context, flagKey string) (*domain.FeatureFlag, error)
 	ListFlags(ctx context.Context) ([]domain.FeatureFlag, error)
 	UpsertFlag(ctx context.Context, flag domain.FeatureFlag) error
 }

@@ -16,7 +16,6 @@ import (
 	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
-	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/featureflags"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/interfaces/connectrpc"
 	httphandlers "github.com/jrb/cuda-learning/src/go_api/pkg/interfaces/http"
@@ -68,6 +67,8 @@ type Deps struct {
 	GetSystemInfoUC       application.UseCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
 	EvaluateFFBooleanUC   application.UseCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
 	EvaluateFFStringUC    application.UseCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
+	ListFeatureFlagsUC    application.UseCase[ffapp.ListFeatureFlagsUseCaseInput, ffapp.ListFeatureFlagsUseCaseOutput]
+	UpsertFeatureFlagUC   application.UseCase[ffapp.UpsertFeatureFlagUseCaseInput, ffapp.UpsertFeatureFlagUseCaseOutput]
 	ListInputsUC          application.UseCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
 	ListAvailableImagesUC application.UseCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput]
 	UploadImageUC         application.UseCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput]
@@ -78,9 +79,6 @@ type Deps struct {
 	AcceleratorControl acceleratorControl
 	AcceleratorGateway acceleratorGateway
 	DeviceMonitor      deviceMonitor
-
-	// Repositories
-	FeatureFlagRepo *featureflags.GoffRepository
 }
 
 func New(ctx context.Context, deps Deps) (*app, error) {
@@ -101,6 +99,12 @@ func New(ctx context.Context, deps Deps) (*app, error) {
 	}
 	if deps.EvaluateFFStringUC == nil {
 		return nil, errors.New("evaluate feature flag string use case is required")
+	}
+	if deps.ListFeatureFlagsUC == nil {
+		return nil, errors.New("list feature flags use case is required")
+	}
+	if deps.UpsertFeatureFlagUC == nil {
+		return nil, errors.New("upsert feature flag use case is required")
 	}
 	if deps.ListInputsUC == nil {
 		return nil, errors.New("list inputs use case is required")
@@ -173,11 +177,12 @@ func (a *app) setupConnectRPCServices(mux *http.ServeMux) {
 	// the Vanguard transcoder, so the Connect and REST/gRPC surfaces can
 	// never diverge.
 	configHandler := connectrpc.NewConfigHandler(connectrpc.ConfigHandlerDeps{
-		FeatureFlagRepo:     a.FeatureFlagRepo,
 		ListInputsUC:        a.ListInputsUC,
 		GetSystemInfoUC:     a.GetSystemInfoUC,
 		EvaluateFFBooleanUC: a.EvaluateFFBooleanUC,
 		EvaluateFFStringUC:  a.EvaluateFFStringUC,
+		ListFeatureFlagsUC:  a.ListFeatureFlagsUC,
+		UpsertFeatureFlagUC: a.UpsertFeatureFlagUC,
 		ConfigManager:       a.Config,
 	})
 	fileHandler := connectrpc.NewFileHandler(
