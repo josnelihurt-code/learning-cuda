@@ -2,6 +2,7 @@ package container
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -58,15 +59,14 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 	})
 	log.Info().Str("config_file", configFile).Any("config", cfg.Redacted()).Msg("Container initialized")
 
-	// featureFlagRepo stays nil when the backend is disabled so app.New
-	// fails fast on the missing dependency.
-	var featureFlagRepo *featureflags.GoffRepository
+	// Feature flags are a hard dependency of the wired handlers; there is no degraded mode.
+	if err := validateFeatureFlagConfig(cfg); err != nil {
+		return nil, err
+	}
 
-	if cfg.GoFeatureFlag.Enabled {
-		featureFlagRepo = featureflags.NewGoffRepository(cfg.GoFeatureFlag.FilePath)
-		if err := featureFlagRepo.ValidateConfig(); err != nil {
-			return nil, fmt.Errorf("invalid go feature flag config: %w", err)
-		}
+	featureFlagRepo := featureflags.NewGoffRepository(cfg.GoFeatureFlag.FilePath)
+	if err := featureFlagRepo.ValidateConfig(); err != nil {
+		return nil, fmt.Errorf("invalid go feature flag config: %w", err)
 	}
 
 	buildInfo := build.NewBuildInfo()
@@ -93,8 +93,7 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 	log.Info().
 		Str("listen_address", cfg.Processor.ListenAddress).
 		Msg("accelerator control server created")
-	// The control listener is started explicitly by app.Run (before the slow
-	// MQTT init) — construction here performs no side effects.
+	// Side-effect free by design: app.Run starts the listener before slow init.
 
 	acceleratorGateway := processor.NewAcceleratorGateway(processor.AcceleratorGatewayConfig{
 		Registry: registry,
@@ -135,6 +134,13 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 		AcceleratorControl:                controlServer,
 		DeviceMonitor:                     deviceMonitor,
 	}, nil
+}
+
+func validateFeatureFlagConfig(cfg *config.Manager) error {
+	if !cfg.GoFeatureFlag.Enabled {
+		return errors.New("feature flags are required by the API handlers but go_feature_flag.enabled is false; enable GoFeatureFlag in the config to boot")
+	}
+	return nil
 }
 
 func (c *Container) Close(ctx context.Context) error {

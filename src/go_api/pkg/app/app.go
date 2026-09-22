@@ -102,9 +102,6 @@ func New(ctx context.Context, deps Deps) (*App, error) {
 	if deps.EvaluateFFStringUC == nil {
 		return nil, errors.New("evaluate feature flag string use case is required")
 	}
-	if deps.FeatureFlagRepo == nil {
-		return nil, errors.New("feature flag repository is required")
-	}
 	if deps.ListInputsUC == nil {
 		return nil, errors.New("list inputs use case is required")
 	}
