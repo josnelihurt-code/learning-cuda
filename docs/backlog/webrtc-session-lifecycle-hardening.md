@@ -9,6 +9,11 @@ gaps that should be closed.
 
 ## Issue 1: Zombie Go Signaling Sessions
 
+**Status: resolved** by PR `stack/audit/11-webrtc-zombies` (Option 1): sessions now carry an
+`onTerminated` callback invoked exactly once when `receiveLoop` exits, and the manager evicts the
+map entry guarded by pointer identity, so a late termination never removes a replacement session
+created under the same ID.
+
 ### Problem
 
 The Go API keeps a per-session state machine at `src/go_api/pkg/interfaces/connectrpc/webrtc_session_manager.go`
