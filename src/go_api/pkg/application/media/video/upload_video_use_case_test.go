@@ -11,14 +11,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type fakeVideoStorageRepository struct {
+type fakeVideoStorage struct {
 	err        error
 	savedName  string
 	savedData  []byte
 	publicPath string
 }
 
-func (f *fakeVideoStorageRepository) Save(_ context.Context, filename string, data []byte) (string, error) {
+func (f *fakeVideoStorage) Save(_ context.Context, filename string, data []byte) (string, error) {
 	if f.err != nil {
 		return "", f.err
 	}
@@ -27,14 +27,14 @@ func (f *fakeVideoStorageRepository) Save(_ context.Context, filename string, da
 	return f.publicPath, nil
 }
 
-type fakePreviewGeneratorRepository struct {
+type fakePreviewGenerator struct {
 	err        error
 	videoID    string
 	videoPath  string
 	publicPath string
 }
 
-func (f *fakePreviewGeneratorRepository) Generate(_ context.Context, videoID, videoPath string) (string, error) {
+func (f *fakePreviewGenerator) Generate(_ context.Context, videoID, videoPath string) (string, error) {
 	if f.err != nil {
 		return "", f.err
 	}
@@ -46,8 +46,8 @@ func (f *fakePreviewGeneratorRepository) Generate(_ context.Context, videoID, vi
 func TestNewUploadVideoUseCase(t *testing.T) {
 	// Arrange
 	repo := new(MockVideoRepository)
-	storage := &fakeVideoStorageRepository{}
-	previews := &fakePreviewGeneratorRepository{}
+	storage := &fakeVideoStorage{}
+	previews := &fakePreviewGenerator{}
 
 	// Act
 	sut := NewUploadVideoUseCase(repo, storage, previews)
@@ -63,8 +63,8 @@ func TestSuccess_UploadsVideoWithPathsFromPorts(t *testing.T) {
 	// Arrange
 	repo := new(MockVideoRepository)
 	repo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Video")).Return(nil).Once()
-	storage := &fakeVideoStorageRepository{publicPath: "/data/videos/my-cool-video.mp4"}
-	previews := &fakePreviewGeneratorRepository{publicPath: "/data/video_previews/my-cool-video.png"}
+	storage := &fakeVideoStorage{publicPath: "/data/videos/my-cool-video.mp4"}
+	previews := &fakePreviewGenerator{publicPath: "/data/video_previews/my-cool-video.png"}
 	sut := NewUploadVideoUseCase(repo, storage, previews)
 	ctx := t.Context()
 	data := []byte("fake video data")
@@ -94,8 +94,8 @@ func TestSuccess_PreviewFailureStillUploadsVideo(t *testing.T) {
 	repo := new(MockVideoRepository)
 	repo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Video")).Return(nil).Once().
 		Run(func(args mock.Arguments) { saved = args.Get(1).(*domain.Video) })
-	storage := &fakeVideoStorageRepository{publicPath: "/data/videos/test.mp4"}
-	previews := &fakePreviewGeneratorRepository{err: errors.New("ffmpeg preview generation failed")}
+	storage := &fakeVideoStorage{publicPath: "/data/videos/test.mp4"}
+	previews := &fakePreviewGenerator{err: errors.New("ffmpeg preview generation failed")}
 	sut := NewUploadVideoUseCase(repo, storage, previews)
 	ctx := t.Context()
 
@@ -115,8 +115,8 @@ func TestSuccess_PreviewFailureStillUploadsVideo(t *testing.T) {
 func TestError_InvalidFormat(t *testing.T) {
 	// Arrange
 	repo := new(MockVideoRepository)
-	storage := &fakeVideoStorageRepository{}
-	previews := &fakePreviewGeneratorRepository{}
+	storage := &fakeVideoStorage{}
+	previews := &fakePreviewGenerator{}
 	sut := NewUploadVideoUseCase(repo, storage, previews)
 	ctx := t.Context()
 
@@ -133,8 +133,8 @@ func TestError_InvalidFormat(t *testing.T) {
 func TestError_FileTooLarge(t *testing.T) {
 	// Arrange
 	repo := new(MockVideoRepository)
-	storage := &fakeVideoStorageRepository{}
-	previews := &fakePreviewGeneratorRepository{}
+	storage := &fakeVideoStorage{}
+	previews := &fakePreviewGenerator{}
 	sut := NewUploadVideoUseCase(repo, storage, previews)
 	ctx := t.Context()
 
@@ -151,8 +151,8 @@ func TestError_FileTooLarge(t *testing.T) {
 func TestError_StorageSaveFails(t *testing.T) {
 	// Arrange
 	repo := new(MockVideoRepository)
-	storage := &fakeVideoStorageRepository{err: errors.New("disk full")}
-	previews := &fakePreviewGeneratorRepository{}
+	storage := &fakeVideoStorage{err: errors.New("disk full")}
+	previews := &fakePreviewGenerator{}
 	sut := NewUploadVideoUseCase(repo, storage, previews)
 	ctx := t.Context()
 
@@ -170,8 +170,8 @@ func TestError_RepositorySaveFails(t *testing.T) {
 	errSaveFailed := errors.New("save failed")
 	repo := new(MockVideoRepository)
 	repo.On("Save", mock.Anything, mock.AnythingOfType("*domain.Video")).Return(errSaveFailed).Once()
-	storage := &fakeVideoStorageRepository{publicPath: "/data/videos/test.mp4"}
-	previews := &fakePreviewGeneratorRepository{}
+	storage := &fakeVideoStorage{publicPath: "/data/videos/test.mp4"}
+	previews := &fakePreviewGenerator{}
 	sut := NewUploadVideoUseCase(repo, storage, previews)
 	ctx := t.Context()
 
