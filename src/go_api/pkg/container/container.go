@@ -36,9 +36,9 @@ type Container struct {
 	ListVideosUseCase                 application.UseCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput]
 	UploadVideoUseCase                application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
 
-	AcceleratorRegistry *processor.Registry
-	AcceleratorControl  *processor.ControlServer
-	DeviceMonitor       *mqtt.DeviceMonitor
+	AcceleratorGateway *processor.AcceleratorGateway
+	AcceleratorControl *processor.ControlServer
+	DeviceMonitor      *mqtt.DeviceMonitor
 }
 
 func New(ctx context.Context, configFile string) (*Container, error) {
@@ -93,11 +93,12 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 	log.Info().
 		Str("listen_address", cfg.Processor.ListenAddress).
 		Msg("accelerator control server created")
-	// Listen before MQTT and other slow init — otherwise accelerators dial :60062
-	// while the process is still blocked in container.New (e.g. broker connect retry).
-	if err := controlServer.Start(); err != nil {
-		return nil, fmt.Errorf("accelerator control server start: %w", err)
-	}
+	// The control listener is started explicitly by app.Run (before the slow
+	// MQTT init) — construction here performs no side effects.
+
+	acceleratorGateway := processor.NewAcceleratorGateway(processor.AcceleratorGatewayConfig{
+		Registry: registry,
+	})
 
 	evaluateFFBooleanUseCase := ffapp.NewEvaluateFeatureFlagBooleanUseCase(featureFlagRepo)
 	evaluateFFStringUseCase := ffapp.NewEvaluateFeatureFlagStringUseCase(featureFlagRepo)
@@ -130,7 +131,7 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 		UploadImageUseCase:                uploadImageUseCase,
 		ListVideosUseCase:                 listVideosUseCase,
 		UploadVideoUseCase:                uploadVideoUseCase,
-		AcceleratorRegistry:               registry,
+		AcceleratorGateway:                acceleratorGateway,
 		AcceleratorControl:                controlServer,
 		DeviceMonitor:                     deviceMonitor,
 	}, nil

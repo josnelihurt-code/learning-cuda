@@ -11,7 +11,6 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/app"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/container"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
-	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/processor"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/telemetry"
 )
 
@@ -27,10 +26,6 @@ func main() {
 	}
 
 	log := logger.Global()
-
-	if di.AcceleratorControl == nil {
-		log.Fatal().Msg("Accelerator control server is not initialized")
-	}
 
 	tracerProvider, err := telemetry.New(
 		ctx,
@@ -66,13 +61,10 @@ func main() {
 		}
 	}
 
-	acceleratorGateway := processor.NewAcceleratorGateway(processor.AcceleratorGatewayConfig{
-		Registry: di.AcceleratorRegistry,
-	})
-
 	server, err := app.New(ctx, app.Deps{
 		Config:                di.Config,
-		AcceleratorGateway:    acceleratorGateway,
+		AcceleratorControl:    di.AcceleratorControl,
+		AcceleratorGateway:    di.AcceleratorGateway,
 		GetSystemInfoUC:       di.GetSystemInfoUseCase,
 		EvaluateFFBooleanUC:   di.EvaluateFeatureFlagBooleanUseCase,
 		EvaluateFFStringUC:    di.EvaluateFeatureFlagStringUseCase,

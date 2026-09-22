@@ -5,54 +5,47 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/jrb/cuda-learning/proto/gen/genconnect"
-	"github.com/jrb/cuda-learning/src/go_api/pkg/application"
-	imageapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/image"
-	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
-	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 )
 
+// RegisterConfigService registers an already-constructed ConfigHandler on mux.
+// Handlers are built once by the composition root and shared with the
+// Vanguard transcoder (see SetupVanguardTranscoder).
 func RegisterConfigService(
 	mux *http.ServeMux,
-	deps ConfigHandlerDeps,
+	handler *ConfigHandler,
 	interceptors ...connect.Interceptor,
 ) {
-	configHandler := NewConfigHandler(deps)
-
 	var opts []connect.HandlerOption
 	if len(interceptors) > 0 {
 		opts = append(opts, connect.WithInterceptors(interceptors...))
 	}
 
-	path, rpcHandler := genconnect.NewConfigServiceHandler(configHandler, opts...)
+	path, rpcHandler := genconnect.NewConfigServiceHandler(handler, opts...)
 	mux.Handle(path, rpcHandler)
 }
 
+// RegisterFileService registers an already-constructed FileHandler on mux.
 func RegisterFileService(
 	mux *http.ServeMux,
-	listAvailableImagesUC application.UseCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput],
-	uploadImageUC application.UseCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput],
-	listVideosUC application.UseCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput],
-	uploadVideoUC application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput],
+	handler *FileHandler,
 	interceptors ...connect.Interceptor,
 ) {
-	fileHandler := NewFileHandler(listAvailableImagesUC, uploadImageUC, listVideosUC, uploadVideoUC)
-
 	var opts []connect.HandlerOption
 	if len(interceptors) > 0 {
 		opts = append(opts, connect.WithInterceptors(interceptors...))
 	}
 
-	path, rpcHandler := genconnect.NewFileServiceHandler(fileHandler, opts...)
+	path, rpcHandler := genconnect.NewFileServiceHandler(handler, opts...)
 	mux.Handle(path, rpcHandler)
 }
 
+// RegisterWebRTCSignalingService registers an already-constructed
+// WebRTCSignalingHandler on mux.
 func RegisterWebRTCSignalingService(
 	mux *http.ServeMux,
-	client WebRTCSignalingClient,
+	handler *WebRTCSignalingHandler,
 	interceptors ...connect.Interceptor,
 ) {
-	handler := NewWebRTCSignalingHandler(client)
-
 	var opts []connect.HandlerOption
 	if len(interceptors) > 0 {
 		opts = append(opts, connect.WithInterceptors(interceptors...))
@@ -62,15 +55,13 @@ func RegisterWebRTCSignalingService(
 	mux.Handle(path, rpcHandler)
 }
 
+// RegisterRemoteManagementService registers an already-constructed
+// RemoteManagementHandler on mux.
 func RegisterRemoteManagementService(
 	mux *http.ServeMux,
-	gateway acceleratorGateway,
-	configManager *config.Manager,
-	dm deviceMonitor,
+	handler *RemoteManagementHandler,
 	interceptors ...connect.Interceptor,
 ) {
-	handler := NewRemoteManagementHandler(gateway, configManager, dm)
-
 	var opts []connect.HandlerOption
 	if len(interceptors) > 0 {
 		opts = append(opts, connect.WithInterceptors(interceptors...))

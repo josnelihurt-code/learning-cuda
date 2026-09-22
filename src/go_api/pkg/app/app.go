@@ -6,16 +6,16 @@ import (
 	"net/http"
 
 	"connectrpc.com/connect"
+	pb "github.com/jrb/cuda-learning/proto/gen"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/application"
 	ffapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/flags"
 	imageapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/image"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
 	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
+	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/featureflags"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
-	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/mqtt"
-	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/processor"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/interfaces/connectrpc"
 	httphandlers "github.com/jrb/cuda-learning/src/go_api/pkg/interfaces/http"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/telemetry"
@@ -34,6 +34,31 @@ type App struct {
 	interceptors []connect.Interceptor
 }
 
+// AcceleratorControl is the lifecycle slice of the accelerator control server
+// that app.Run owns: the control listener must be up before slow init starts.
+type AcceleratorControl interface {
+	Start() error
+}
+
+// AcceleratorGateway is what the Connect layer consumes from the accelerator
+// gateway: signaling streams for WebRTC sessions and availability for
+// accelerator health checks. Declared here because app is the wiring point
+// that hands one gateway to several handlers.
+type AcceleratorGateway interface {
+	IsAvailable() bool
+	SignalingStream(ctx context.Context) (pb.WebRTCSignalingService_SignalingStreamClient, error)
+}
+
+// DeviceMonitor is what the app consumes from the MQTT device monitor: the
+// Start/Stop lifecycle driven by Run plus the power and subscription surface
+// used by the remote-management Connect handler.
+type DeviceMonitor interface {
+	Start(ctx context.Context) error
+	Stop() error
+	PowerOn() error
+	Subscribe(callback func(*domain.DeviceStatus)) func()
+}
+
 type Deps struct {
 	// Configuration
 	Config *config.Manager
@@ -48,8 +73,9 @@ type Deps struct {
 	UploadVideoUC         application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
 
 	// Infrastructure
-	AcceleratorGateway *processor.AcceleratorGateway
-	DeviceMonitor      *mqtt.DeviceMonitor
+	AcceleratorControl AcceleratorControl
+	AcceleratorGateway AcceleratorGateway
+	DeviceMonitor      DeviceMonitor
 
 	// Repositories
 	FeatureFlagRepo *featureflags.GoffRepository
@@ -58,6 +84,9 @@ type Deps struct {
 func New(ctx context.Context, deps Deps) (*App, error) {
 	if deps.Config == nil {
 		return nil, errors.New("config is required")
+	}
+	if deps.AcceleratorControl == nil {
+		return nil, errors.New("accelerator control server is required")
 	}
 	if deps.AcceleratorGateway == nil {
 		return nil, errors.New("accelerator gateway is required")
@@ -141,56 +170,32 @@ func (a *App) setupObservability(mux *http.ServeMux) {
 }
 
 func (a *App) setupConnectRPCServices(mux *http.ServeMux) {
-	connectrpc.RegisterConfigService(
-		mux,
-		connectrpc.ConfigHandlerDeps{
-			FeatureFlagRepo:     a.FeatureFlagRepo,
-			ListInputsUC:        a.ListInputsUC,
-			GetSystemInfoUC:     a.GetSystemInfoUC,
-			EvaluateFFBooleanUC: a.EvaluateFFBooleanUC,
-			EvaluateFFStringUC:  a.EvaluateFFStringUC,
-			ConfigManager:       a.Config,
-		},
-		a.interceptors...,
-	)
-
-	connectrpc.RegisterFileService(
-		mux,
+	// Handlers are constructed once and shared by the mux registrations and
+	// the Vanguard transcoder, so the Connect and REST/gRPC surfaces can
+	// never diverge.
+	configHandler := connectrpc.NewConfigHandler(connectrpc.ConfigHandlerDeps{
+		FeatureFlagRepo:     a.FeatureFlagRepo,
+		ListInputsUC:        a.ListInputsUC,
+		GetSystemInfoUC:     a.GetSystemInfoUC,
+		EvaluateFFBooleanUC: a.EvaluateFFBooleanUC,
+		EvaluateFFStringUC:  a.EvaluateFFStringUC,
+		ConfigManager:       a.Config,
+	})
+	fileHandler := connectrpc.NewFileHandler(
 		a.ListAvailableImagesUC,
 		a.UploadImageUC,
 		a.ListVideosUC,
 		a.UploadVideoUC,
-		a.interceptors...,
 	)
+	webrtcSignalingHandler := connectrpc.NewWebRTCSignalingHandler(a.AcceleratorGateway)
+	remoteManagementHandler := connectrpc.NewRemoteManagementHandler(a.AcceleratorGateway, a.Config, a.DeviceMonitor)
 
-	connectrpc.RegisterWebRTCSignalingService(
-		mux,
-		a.AcceleratorGateway,
-		a.interceptors...,
-	)
+	connectrpc.RegisterConfigService(mux, configHandler, a.interceptors...)
+	connectrpc.RegisterFileService(mux, fileHandler, a.interceptors...)
+	connectrpc.RegisterWebRTCSignalingService(mux, webrtcSignalingHandler, a.interceptors...)
+	connectrpc.RegisterRemoteManagementService(mux, remoteManagementHandler, a.interceptors...)
 
-	connectrpc.RegisterRemoteManagementService(
-		mux,
-		a.AcceleratorGateway,
-		a.Config,
-		a.DeviceMonitor,
-		a.interceptors...,
-	)
-
-	transcoder := connectrpc.SetupVanguardTranscoder(&connectrpc.VanguardConfig{
-		FeatureFlagRepo:       a.FeatureFlagRepo,
-		ListInputsUC:          a.ListInputsUC,
-		GetSystemInfoUC:       a.GetSystemInfoUC,
-		EvaluateFFBooleanUC:   a.EvaluateFFBooleanUC,
-		EvaluateFFStringUC:    a.EvaluateFFStringUC,
-		ConfigManager:         a.Config,
-		ListAvailableImagesUC: a.ListAvailableImagesUC,
-		UploadImageUC:         a.UploadImageUC,
-		ListVideosUC:          a.ListVideosUC,
-		UploadVideoUC:         a.UploadVideoUC,
-		Interceptors:          a.interceptors,
-	})
-
+	transcoder := connectrpc.SetupVanguardTranscoder(configHandler, fileHandler, a.interceptors)
 	mux.Handle("/api/", transcoder)
 
 	logger.Global().Info().Msg("Connect-RPC handlers and Vanguard transcoder registered (REST + Connect + gRPC)")
@@ -216,6 +221,14 @@ func (a *App) Run() error {
 
 	if a.DeviceMonitor == nil {
 		return errors.New("MQTT device monitor not initialized")
+	}
+
+	// Start the accelerator control listener before the slow MQTT init below —
+	// otherwise accelerators dial :60062 while the process is still blocked in
+	// startup (e.g. broker connect retry).
+	if err := a.AcceleratorControl.Start(); err != nil {
+		log.Err(err).Msg("Failed to start accelerator control server")
+		return err
 	}
 
 	if err := a.DeviceMonitor.Start(a.appContext); err != nil {
