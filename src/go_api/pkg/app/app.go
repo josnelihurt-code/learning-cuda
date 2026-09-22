@@ -13,6 +13,7 @@ import (
 	ffapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/flags"
 	imageapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/image"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
+	remoteapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/remote"
 	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
@@ -74,6 +75,8 @@ type Deps struct {
 	UploadImageUC         application.UseCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput]
 	ListVideosUC          application.UseCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput]
 	UploadVideoUC         application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
+	StartJetsonNanoUC     application.UseCase[remoteapp.StartJetsonNanoUseCaseInput, remoteapp.StartJetsonNanoUseCaseOutput]
+	CheckAcceleratorHealthUC application.UseCase[remoteapp.CheckAcceleratorHealthUseCaseInput, remoteapp.CheckAcceleratorHealthUseCaseOutput]
 
 	// Infrastructure
 	AcceleratorControl acceleratorControl
@@ -120,6 +123,12 @@ func New(ctx context.Context, deps Deps) (*app, error) {
 	}
 	if deps.UploadVideoUC == nil {
 		return nil, errors.New("upload video use case is required")
+	}
+	if deps.StartJetsonNanoUC == nil {
+		return nil, errors.New("start jetson nano use case is required")
+	}
+	if deps.CheckAcceleratorHealthUC == nil {
+		return nil, errors.New("check accelerator health use case is required")
 	}
 	if deps.DeviceMonitor == nil {
 		return nil, errors.New("MQTT device monitor is required")
@@ -192,7 +201,11 @@ func (a *app) setupConnectRPCServices(mux *http.ServeMux) {
 		a.UploadVideoUC,
 	)
 	webrtcSignalingHandler := connectrpc.NewWebRTCSignalingHandler(a.AcceleratorGateway)
-	remoteManagementHandler := connectrpc.NewRemoteManagementHandler(a.AcceleratorGateway, a.Config, a.DeviceMonitor)
+	remoteManagementHandler := connectrpc.NewRemoteManagementHandler(
+		a.StartJetsonNanoUC,
+		a.CheckAcceleratorHealthUC,
+		a.DeviceMonitor,
+	)
 
 	connectrpc.RegisterConfigService(mux, configHandler, a.interceptors...)
 	connectrpc.RegisterFileService(mux, fileHandler, a.interceptors...)

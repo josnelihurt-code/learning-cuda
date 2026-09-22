@@ -9,34 +9,32 @@ import (
 	"connectrpc.com/connect"
 	pb "github.com/jrb/cuda-learning/proto/gen"
 	"github.com/jrb/cuda-learning/proto/gen/genconnect"
-	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
+	"github.com/jrb/cuda-learning/src/go_api/pkg/application"
+	remoteapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/remote"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
-type acceleratorGateway interface {
-	IsAvailable() bool
-}
-
-type deviceMonitor interface {
-	Start(ctx context.Context) error
-	Stop() error
-	PowerOn() error
+type deviceStatusSource interface {
 	Subscribe(callback func(status *domain.DeviceStatus)) func()
 }
 
 type remoteManagementHandler struct {
-	gateway       acceleratorGateway
-	config        *config.Manager
-	deviceMonitor deviceMonitor
+	startUC      application.UseCase[remoteapp.StartJetsonNanoUseCaseInput, remoteapp.StartJetsonNanoUseCaseOutput]
+	healthUC     application.UseCase[remoteapp.CheckAcceleratorHealthUseCaseInput, remoteapp.CheckAcceleratorHealthUseCaseOutput]
+	statusSource deviceStatusSource
 }
 
-func NewRemoteManagementHandler(gateway acceleratorGateway, configManager *config.Manager, dm deviceMonitor) *remoteManagementHandler {
+func NewRemoteManagementHandler(
+	startUC application.UseCase[remoteapp.StartJetsonNanoUseCaseInput, remoteapp.StartJetsonNanoUseCaseOutput],
+	healthUC application.UseCase[remoteapp.CheckAcceleratorHealthUseCaseInput, remoteapp.CheckAcceleratorHealthUseCaseOutput],
+	statusSource deviceStatusSource,
+) *remoteManagementHandler {
 	return &remoteManagementHandler{
-		gateway:       gateway,
-		config:        configManager,
-		deviceMonitor: dm,
+		startUC:      startUC,
+		healthUC:     healthUC,
+		statusSource: statusSource,
 	}
 }
 
@@ -46,70 +44,48 @@ func (h *remoteManagementHandler) StartJetsonNano(
 ) (*connect.Response[pb.StartJetsonNanoResponse], error) {
 	span := trace.SpanFromContext(ctx)
 
-	if h.deviceMonitor == nil {
-		span.RecordError(fmt.Errorf("device monitor not available"))
-		return nil, connect.NewError(connect.CodeInternal, errors.New("device monitor not initialized"))
-	}
-
-	if err := h.deviceMonitor.PowerOn(); err != nil {
+	out, err := h.startUC.Execute(ctx, remoteapp.StartJetsonNanoUseCaseInput{})
+	if err != nil {
 		span.RecordError(err)
-		return connect.NewResponse(&pb.StartJetsonNanoResponse{
-			Status:       pb.StartJetsonNanoStatus_START_JETSON_NANO_STATUS_ERROR,
-			Step:         "error",
-			Message:      fmt.Sprintf("Failed to send power command: %v", err),
-			TraceContext: req.Msg.TraceContext,
-		}), nil
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	span.SetAttributes(
-		attribute.Bool("jetson.power_command_sent", true),
-	)
+	status := pb.StartJetsonNanoStatus_START_JETSON_NANO_STATUS_SUCCESS
+	if !out.Success {
+		status = pb.StartJetsonNanoStatus_START_JETSON_NANO_STATUS_ERROR
+	} else {
+		span.SetAttributes(attribute.Bool("jetson.power_command_sent", true))
+	}
 
 	return connect.NewResponse(&pb.StartJetsonNanoResponse{
-		Status:       pb.StartJetsonNanoStatus_START_JETSON_NANO_STATUS_SUCCESS,
-		Step:         "sent",
-		Message:      "POWER ON command sent successfully",
+		Status:       status,
+		Step:         out.Step,
+		Message:      out.Message,
 		TraceContext: req.Msg.TraceContext,
 	}), nil
 }
 
-type healthCheckResult struct {
-	status         pb.AcceleratorHealthStatus
-	message        string
-	serverVersion  string
-	libraryVersion string
-}
-
-func (h *remoteManagementHandler) checkAcceleratorHealth(ctx context.Context) healthCheckResult {
-	span := trace.SpanFromContext(ctx)
-
-	if h.gateway == nil || !h.gateway.IsAvailable() {
-		span.SetAttributes(attribute.Bool("accelerator.healthy", false))
-		return healthCheckResult{
-			status:  pb.AcceleratorHealthStatus_ACCELERATOR_HEALTH_STATUS_UNHEALTHY,
-			message: "no accelerator registered",
-		}
+func (h *remoteManagementHandler) mapHealth(out remoteapp.CheckAcceleratorHealthUseCaseOutput) (pb.AcceleratorHealthStatus, string) {
+	if out.Healthy {
+		return pb.AcceleratorHealthStatus_ACCELERATOR_HEALTH_STATUS_HEALTHY, out.Message
 	}
-
-	span.SetAttributes(attribute.Bool("accelerator.healthy", true))
-	return healthCheckResult{
-		status:  pb.AcceleratorHealthStatus_ACCELERATOR_HEALTH_STATUS_HEALTHY,
-		message: "Accelerator is healthy",
-	}
+	return pb.AcceleratorHealthStatus_ACCELERATOR_HEALTH_STATUS_UNHEALTHY, out.Message
 }
 
 func (h *remoteManagementHandler) CheckAcceleratorHealth(
 	ctx context.Context,
 	req *connect.Request[pb.CheckAcceleratorHealthRequest],
 ) (*connect.Response[pb.CheckAcceleratorHealthResponse], error) {
-	result := h.checkAcceleratorHealth(ctx)
+	out, err := h.healthUC.Execute(ctx, remoteapp.CheckAcceleratorHealthUseCaseInput{})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	status, message := h.mapHealth(out)
 
 	return connect.NewResponse(&pb.CheckAcceleratorHealthResponse{
-		Status:         result.status,
-		Message:        result.message,
-		ServerVersion:  result.serverVersion,
-		LibraryVersion: result.libraryVersion,
-		TraceContext:   req.Msg.TraceContext,
+		Status:       status,
+		Message:      message,
+		TraceContext: req.Msg.TraceContext,
 	}), nil
 }
 
@@ -118,9 +94,10 @@ func (h *remoteManagementHandler) MonitorJetsonNano(
 	req *connect.Request[pb.MonitorJetsonNanoRequest],
 	stream *connect.ServerStream[pb.MonitorJetsonNanoResponse],
 ) error {
+	_ = req
 	span := trace.SpanFromContext(ctx)
 
-	if h.deviceMonitor == nil {
+	if h.statusSource == nil {
 		span.RecordError(fmt.Errorf("device monitor not available"))
 		return connect.NewError(connect.CodeInternal, errors.New("device monitor not initialized"))
 	}
@@ -134,9 +111,9 @@ func (h *remoteManagementHandler) MonitorJetsonNano(
 	}
 
 	updateChan := make(chan *domain.DeviceStatus, 10)
-	healthChan := make(chan healthCheckResult, 10)
+	healthChan := make(chan remoteapp.CheckAcceleratorHealthUseCaseOutput, 10)
 
-	unsubscribe := h.deviceMonitor.Subscribe(func(status *domain.DeviceStatus) {
+	unsubscribe := h.statusSource.Subscribe(func(status *domain.DeviceStatus) {
 		select {
 		case updateChan <- status:
 		default:
@@ -153,9 +130,12 @@ func (h *remoteManagementHandler) MonitorJetsonNano(
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				result := h.checkAcceleratorHealth(ctx)
+				out, err := h.healthUC.Execute(ctx, remoteapp.CheckAcceleratorHealthUseCaseInput{})
+				if err != nil {
+					continue
+				}
 				select {
-				case healthChan <- result:
+				case healthChan <- out:
 				default:
 				}
 			}
@@ -174,10 +154,8 @@ func (h *remoteManagementHandler) MonitorJetsonNano(
 				return err
 			}
 		case health := <-healthChan:
-			healthMsg := fmt.Sprintf("Accelerator Health: %s - %s", health.status.String(), health.message)
-			if health.serverVersion != "" {
-				healthMsg += fmt.Sprintf(" (Server: %s, Library: %s)", health.serverVersion, health.libraryVersion)
-			}
+			pbStatus, message := h.mapHealth(health)
+			healthMsg := fmt.Sprintf("Accelerator Health: %s - %s", pbStatus.String(), message)
 			if err := stream.Send(&pb.MonitorJetsonNanoResponse{
 				Data: healthMsg,
 			}); err != nil {
