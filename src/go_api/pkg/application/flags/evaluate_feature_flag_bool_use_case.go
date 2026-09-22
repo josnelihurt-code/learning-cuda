@@ -20,10 +20,10 @@ type EvaluateFeatureFlagBooleanUseCaseOutput struct {
 }
 
 type EvaluateFeatureFlagBooleanUseCase struct {
-	repository featureFlagRepository
+	repository featureFlagEvaluator
 }
 
-func NewEvaluateFeatureFlagBooleanUseCase(repo featureFlagRepository) *EvaluateFeatureFlagBooleanUseCase {
+func NewEvaluateFeatureFlagBooleanUseCase(repo featureFlagEvaluator) *EvaluateFeatureFlagBooleanUseCase {
 	return &EvaluateFeatureFlagBooleanUseCase{repository: repo}
 }
 

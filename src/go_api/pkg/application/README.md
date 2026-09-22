@@ -1,13 +1,13 @@
 # Generic Use Case Pattern
 
-This document explains the generic `useCase[Input, Output]` pattern used throughout this codebase and the architectural decisions behind it.
+This document explains the generic `UseCase[Input, Output]` contract defined by this package and the architectural decisions behind it.
 
 ## What is the Generic Use Case Pattern?
 
-The generic use case pattern is a simple, consistent interface for all application use cases:
+The generic use case pattern is a simple, consistent interface for all application use cases. The canonical, exported definition lives in [`use_case.go`](use_case.go):
 
 ```go
-type useCase[Input any, Output any] interface {
+type UseCase[Input any, Output any] interface {
     Execute(ctx context.Context, input Input) (Output, error)
 }
 ```
@@ -58,28 +58,11 @@ func (s *Service) ProcessAndSave(ctx context.Context, img Image) error {
 }
 ```
 
-## Interface Duplication vs. Coupling
+## One Canonical Contract
 
-You may notice that the `useCase` interface is defined in multiple packages:
-- `pkg/app/use_cases.go`
-- `pkg/container/use_cases.go`
-- `pkg/interfaces/connectrpc/use_cases.go`
+Earlier revisions declared a private `useCase` copy in each consuming package (`pkg/app`, `pkg/container`, `pkg/interfaces/connectrpc`). The copies were identical and bought no decoupling — every consumer already depends on this package for the input/output types — so they were pure drift risk. The contract now lives once, in the exported `UseCase` type ([`use_case.go`](use_case.go)), and all layers reference `application.UseCase[...]`.
 
-**This is intentional.**
-
-### Why Duplicate Interfaces Instead of Importing?
-
-Following Go best practices and [Rob Pike's advice on "Accept Interfaces, Return Structs"](https://go.dev/doc/effective_go#interfaces_and_types), each layer defines its own interface rather than importing from another layer.
-
-This provides several benefits:
-
-1. **Decoupling**: The `app` package doesn't depend on the `container` package, and vice versa. Each owns its own abstractions.
-
-2. **Independence**: Layers can evolve independently. If the container needs additional functionality, it doesn't affect the app layer's interface.
-
-3. **Clear Ownership**: Each package defines what it needs from its dependencies, not what dependencies export.
-
-4. **No Package Cycles**: Defining interfaces locally prevents import cycles where package A imports B, B imports C, and C imports A.
+Consumers owning the interfaces they accept ([Rob Pike, "Accept Interfaces, Return Structs"](https://go.dev/doc/effective_go#interfaces_and_types)) still holds for the repository ports (e.g. `FeatureFlagEvaluator` and `FeatureFlagAdmin` in `pkg/application/flags`). The use-case contract's natural owner is the application layer itself, which defines every input and output type, so a single exported interface is the simplest drift-free option.
 
 ### The Go Philosophy
 

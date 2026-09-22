@@ -7,11 +7,13 @@ import (
 
 	"connectrpc.com/connect"
 	pb "github.com/jrb/cuda-learning/proto/gen"
+	"github.com/jrb/cuda-learning/src/go_api/pkg/application"
 	ffapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/flags"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
 	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
+	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/featureflags"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -24,12 +26,12 @@ type ConfigHandler struct {
 // ConfigHandlerDeps groups all dependencies needed to create a ConfigHandler.
 type ConfigHandlerDeps struct {
 	// Use Cases
-	ListInputsUC        useCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
-	EvaluateFFBooleanUC useCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
-	EvaluateFFStringUC  useCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
-	GetSystemInfoUC     useCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
+	ListInputsUC        application.UseCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
+	EvaluateFFBooleanUC application.UseCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
+	EvaluateFFStringUC  application.UseCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
+	GetSystemInfoUC     application.UseCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
 	// Repositories
-	FeatureFlagRepo featureFlagRepository
+	FeatureFlagRepo *featureflags.GoffRepository
 	// Managers
 	ConfigManager *config.Manager
 }

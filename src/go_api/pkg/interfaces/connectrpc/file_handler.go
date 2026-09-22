@@ -6,6 +6,7 @@ import (
 
 	"connectrpc.com/connect"
 	pb "github.com/jrb/cuda-learning/proto/gen"
+	"github.com/jrb/cuda-learning/src/go_api/pkg/application"
 	imageapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/image"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
@@ -14,17 +15,17 @@ import (
 )
 
 type FileHandler struct {
-	listAvailableImagesUseCase useCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput]
-	uploadImageUseCase         useCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput]
-	listAvailableVideosUseCase useCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput]
-	uploadVideoUseCase         useCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
+	listAvailableImagesUseCase application.UseCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput]
+	uploadImageUseCase         application.UseCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput]
+	listAvailableVideosUseCase application.UseCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput]
+	uploadVideoUseCase         application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
 }
 
 func NewFileHandler(
-	listAvailableImagesUC useCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput],
-	uploadImageUC useCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput],
-	listAvailableVideosUC useCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput],
-	uploadVideoUC useCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput],
+	listAvailableImagesUC application.UseCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput],
+	uploadImageUC application.UseCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput],
+	listAvailableVideosUC application.UseCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput],
+	uploadVideoUC application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput],
 ) *FileHandler {
 	return &FileHandler{
 		listAvailableImagesUseCase: listAvailableImagesUC,

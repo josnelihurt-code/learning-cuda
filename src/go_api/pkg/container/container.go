@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jrb/cuda-learning/src/go_api/pkg/application"
 	ffapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/flags"
 	imageapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/image"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
@@ -24,16 +25,16 @@ import (
 type Container struct {
 	Config *config.Manager
 
-	FeatureFlagRepo featureFlagRepository
+	FeatureFlagRepo *featureflags.GoffRepository
 
-	EvaluateFeatureFlagBooleanUseCase useCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
-	EvaluateFeatureFlagStringUseCase  useCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
-	GetSystemInfoUseCase              useCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
-	ListInputsUseCase                 useCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
-	ListAvailableImagesUseCase        useCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput]
-	UploadImageUseCase                useCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput]
-	ListVideosUseCase                 useCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput]
-	UploadVideoUseCase                useCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
+	EvaluateFeatureFlagBooleanUseCase application.UseCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
+	EvaluateFeatureFlagStringUseCase  application.UseCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
+	GetSystemInfoUseCase              application.UseCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
+	ListInputsUseCase                 application.UseCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
+	ListAvailableImagesUseCase        application.UseCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput]
+	UploadImageUseCase                application.UseCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput]
+	ListVideosUseCase                 application.UseCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput]
+	UploadVideoUseCase                application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
 
 	AcceleratorRegistry *processor.Registry
 	AcceleratorControl  *processor.ControlServer
@@ -57,14 +58,15 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 	})
 	log.Info().Str("config_file", configFile).Any("config", cfg.Redacted()).Msg("Container initialized")
 
-	var featureFlagRepo featureFlagRepository
+	// featureFlagRepo stays nil when the backend is disabled so app.New
+	// fails fast on the missing dependency.
+	var featureFlagRepo *featureflags.GoffRepository
 
 	if cfg.GoFeatureFlag.Enabled {
-		goffRepo := featureflags.NewGoffRepository(cfg.GoFeatureFlag.FilePath)
-		if err := goffRepo.ValidateConfig(); err != nil {
+		featureFlagRepo = featureflags.NewGoffRepository(cfg.GoFeatureFlag.FilePath)
+		if err := featureFlagRepo.ValidateConfig(); err != nil {
 			return nil, fmt.Errorf("invalid go feature flag config: %w", err)
 		}
-		featureFlagRepo = goffRepo
 	}
 
 	buildInfo := build.NewBuildInfo()
