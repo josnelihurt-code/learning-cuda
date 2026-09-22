@@ -48,6 +48,12 @@ func NewDeviceStatus() *DeviceStatus {
 	}
 }
 
+// Clone returns a deep copy; all fields are value types, so a struct copy suffices.
+func (ds *DeviceStatus) Clone() *DeviceStatus {
+	clone := *ds
+	return &clone
+}
+
 func (ds *DeviceStatus) UpdatePower(power float64, timestamp time.Time) {
 	ds.Power = power
 	ds.LastSeen = timestamp
