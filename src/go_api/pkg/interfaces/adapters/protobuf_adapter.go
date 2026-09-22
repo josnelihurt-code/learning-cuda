@@ -6,13 +6,13 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 )
 
-type ProtobufAdapter struct{}
+type protobufAdapter struct{}
 
-func NewProtobufAdapter() *ProtobufAdapter {
-	return &ProtobufAdapter{}
+func newProtobufAdapter() *protobufAdapter {
+	return &protobufAdapter{}
 }
 
-func (a *ProtobufAdapter) ToFilters(pbFilters []pb.FilterType) []domain.FilterType {
+func (a *protobufAdapter) ToFilters(pbFilters []pb.FilterType) []domain.FilterType {
 	filters := make([]domain.FilterType, 0, len(pbFilters))
 	for _, f := range pbFilters {
 		switch f {
@@ -33,7 +33,7 @@ func (a *ProtobufAdapter) ToFilters(pbFilters []pb.FilterType) []domain.FilterTy
 	return filters
 }
 
-func (a *ProtobufAdapter) ToAccelerator(pbAccel pb.AcceleratorType) domain.AcceleratorType {
+func (a *protobufAdapter) ToAccelerator(pbAccel pb.AcceleratorType) domain.AcceleratorType {
 	switch pbAccel {
 	case pb.AcceleratorType_ACCELERATOR_TYPE_CUDA:
 		return domain.AcceleratorCUDA
@@ -52,7 +52,7 @@ func (a *ProtobufAdapter) ToAccelerator(pbAccel pb.AcceleratorType) domain.Accel
 	}
 }
 
-func (a *ProtobufAdapter) ToGrayscaleType(pbType pb.GrayscaleType) domain.GrayscaleType {
+func (a *protobufAdapter) ToGrayscaleType(pbType pb.GrayscaleType) domain.GrayscaleType {
 	switch pbType {
 	case pb.GrayscaleType_GRAYSCALE_TYPE_BT601:
 		return domain.GrayscaleBT601
@@ -73,7 +73,7 @@ func (a *ProtobufAdapter) ToGrayscaleType(pbType pb.GrayscaleType) domain.Graysc
 	}
 }
 
-func (a *ProtobufAdapter) ToBorderMode(pbMode pb.BorderMode) domain.BorderMode {
+func (a *protobufAdapter) ToBorderMode(pbMode pb.BorderMode) domain.BorderMode {
 	switch pbMode {
 	case pb.BorderMode_BORDER_MODE_CLAMP:
 		return domain.BorderModeClamp
@@ -90,7 +90,7 @@ func (a *ProtobufAdapter) ToBorderMode(pbMode pb.BorderMode) domain.BorderMode {
 	}
 }
 
-func (a *ProtobufAdapter) ToBlurParameters(pbBlur *pb.GaussianBlurParameters) *domain.BlurParameters {
+func (a *protobufAdapter) ToBlurParameters(pbBlur *pb.GaussianBlurParameters) *domain.BlurParameters {
 	if pbBlur == nil {
 		return nil
 	}
@@ -103,7 +103,7 @@ func (a *ProtobufAdapter) ToBlurParameters(pbBlur *pb.GaussianBlurParameters) *d
 	}
 }
 
-func (a *ProtobufAdapter) ToProtobufBorderMode(mode domain.BorderMode) pb.BorderMode {
+func (a *protobufAdapter) ToProtobufBorderMode(mode domain.BorderMode) pb.BorderMode {
 	switch mode {
 	case domain.BorderModeClamp:
 		return pb.BorderMode_BORDER_MODE_CLAMP
@@ -117,7 +117,7 @@ func (a *ProtobufAdapter) ToProtobufBorderMode(mode domain.BorderMode) pb.Border
 	}
 }
 
-func (a *ProtobufAdapter) ToProtobufBlurParameters(blur *domain.BlurParameters) *pb.GaussianBlurParameters {
+func (a *protobufAdapter) ToProtobufBlurParameters(blur *domain.BlurParameters) *pb.GaussianBlurParameters {
 	if blur == nil {
 		return nil
 	}

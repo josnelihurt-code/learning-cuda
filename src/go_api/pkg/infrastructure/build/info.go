@@ -1,7 +1,7 @@
 package build
 
-// Info contains build-time information
-type Info struct {
+// info contains build-time information
+type info struct {
 	Version    string
 	Branch     string
 	BuildTime  string
@@ -16,10 +16,10 @@ var (
 	commitHash = "unknown"
 )
 
-// NewBuildInfo creates a new Info instance
+// NewBuildInfo creates a new info instance
 // It reads from build-time ldflags
-func NewBuildInfo() *Info {
-	return &Info{
+func NewBuildInfo() *info {
+	return &info{
 		Version:    version,
 		Branch:     branch,
 		BuildTime:  buildTime,

@@ -30,11 +30,11 @@ type ControlServer struct {
 	log         zerolog.Logger
 	grpcSrv     *grpc.Server
 	lis         net.Listener
-	registry    *Registry
+	registry    *registry
 	observedIps *observedIPTracker
 }
 
-func NewControlServer(cfg config.ProcessorConfig, registry *Registry) (*ControlServer, error) {
+func NewControlServer(cfg config.ProcessorConfig, registry *registry) (*ControlServer, error) {
 	if cfg.ListenAddress == "" {
 		return nil, fmt.Errorf("processor.listen_address is required")
 	}

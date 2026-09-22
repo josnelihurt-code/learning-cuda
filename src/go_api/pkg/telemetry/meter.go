@@ -14,9 +14,9 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 )
 
-// MeterProvider wraps the SDK meter provider so the caller can shut it
-// down cleanly, mirroring TracerProvider.
-type MeterProvider struct {
+// meterProvider wraps the SDK meter provider so the caller can shut it
+// down cleanly, mirroring tracerProvider.
+type meterProvider struct {
 	provider *metric.MeterProvider
 	enabled  bool
 }
@@ -26,10 +26,10 @@ type MeterProvider struct {
 // expose 4318 and hosted gateways (e.g. Grafana Cloud) are HTTP-only.
 // Setting the global provider makes net/http otelhttp instrumentation
 // report http.server.* metrics automatically.
-func NewMeterProvider(ctx context.Context, enabled bool, config *config.ObservabilityConfig) (*MeterProvider, error) {
+func NewMeterProvider(ctx context.Context, enabled bool, config *config.ObservabilityConfig) (*meterProvider, error) {
 	if !enabled {
 		logger.Global().Info().Msg("OpenTelemetry metrics disabled by feature flag")
-		return &MeterProvider{enabled: false}, nil
+		return &meterProvider{enabled: false}, nil
 	}
 
 	resAttrs := []attribute.KeyValue{
@@ -77,13 +77,13 @@ func NewMeterProvider(ctx context.Context, enabled bool, config *config.Observab
 		Str("http_endpoint", config.OtelCollectorHTTPEndpoint).
 		Msg("OpenTelemetry meter provider initialized")
 
-	return &MeterProvider{
+	return &meterProvider{
 		provider: provider,
 		enabled:  true,
 	}, nil
 }
 
-func (mp *MeterProvider) Shutdown(ctx context.Context) error {
+func (mp *meterProvider) Shutdown(ctx context.Context) error {
 	if !mp.enabled || mp.provider == nil {
 		return nil
 	}

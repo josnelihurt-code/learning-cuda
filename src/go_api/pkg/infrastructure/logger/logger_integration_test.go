@@ -92,19 +92,19 @@ func TestNewOTLPHook_TailscaleIntegration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Arrange
 			// Act
-			hook, err := NewOTLPHook(tt.endpoint, tt.environment, tt.serviceName, "test-1.0.0", "")
+			hook, err := newOTLPHook(tt.endpoint, tt.environment, tt.serviceName, "test-1.0.0", "")
 
 			// Assert
 			if tt.expectError {
-				assert.Error(t, err, "NewOTLPHook should return an error")
+				assert.Error(t, err, "newOTLPHook should return an error")
 				assert.Nil(t, hook, "Hook should be nil on error")
 			} else {
-				require.NoError(t, err, "NewOTLPHook should not return an error")
+				require.NoError(t, err, "newOTLPHook should not return an error")
 				assert.NotNil(t, hook, "Hook should not be nil")
 
 				// Verify hook type
-				otlpHook, ok := hook.(*OTLPHook)
-				assert.True(t, ok, "Hook should be of type *OTLPHook")
+				otlpHook, ok := hook.(*otlpHook)
+				assert.True(t, ok, "Hook should be of type *otlpHook")
 				assert.NotNil(t, otlpHook.logger, "OTLP hook should have a logger")
 				assert.NotNil(t, otlpHook.ctx, "OTLP hook should have a context")
 			}

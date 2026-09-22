@@ -92,8 +92,8 @@ func TestFileHandler_ListAvailableImages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// This test is simplified since we can't easily mock the concrete use cases
-			// In a real implementation, we would need to refactor FileHandler to accept interfaces
-			t.Skip("Skipping due to concrete type dependencies - requires refactoring FileHandler to use interfaces")
+			// In a real implementation, we would need to refactor fileHandler to accept interfaces
+			t.Skip("Skipping due to concrete type dependencies - requires refactoring fileHandler to use interfaces")
 		})
 	}
 }
@@ -111,14 +111,14 @@ func TestFileHandler_UploadImage(t *testing.T) {
 			fileData: []byte("fake image data"),
 			assertResult: func(t *testing.T, response *connect.Response[pb.UploadImageResponse], err error) {
 				// This test would verify successful upload
-				t.Skip("Skipping due to concrete type dependencies - requires refactoring FileHandler to use interfaces")
+				t.Skip("Skipping due to concrete type dependencies - requires refactoring fileHandler to use interfaces")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping due to concrete type dependencies - requires refactoring FileHandler to use interfaces")
+			t.Skip("Skipping due to concrete type dependencies - requires refactoring fileHandler to use interfaces")
 		})
 	}
 }
@@ -131,14 +131,14 @@ func TestFileHandler_ListAvailableVideos(t *testing.T) {
 		{
 			name: "Success_ReturnsVideos",
 			assertResult: func(t *testing.T, response *connect.Response[pb.ListAvailableVideosResponse], err error) {
-				t.Skip("Skipping due to concrete type dependencies - requires refactoring FileHandler to use interfaces")
+				t.Skip("Skipping due to concrete type dependencies - requires refactoring fileHandler to use interfaces")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping due to concrete type dependencies - requires refactoring FileHandler to use interfaces")
+			t.Skip("Skipping due to concrete type dependencies - requires refactoring fileHandler to use interfaces")
 		})
 	}
 }
@@ -155,14 +155,14 @@ func TestFileHandler_UploadVideo(t *testing.T) {
 			filename: "test.mp4",
 			fileData: []byte("fake video data"),
 			assertResult: func(t *testing.T, response *connect.Response[pb.UploadVideoResponse], err error) {
-				t.Skip("Skipping due to concrete type dependencies - requires refactoring FileHandler to use interfaces")
+				t.Skip("Skipping due to concrete type dependencies - requires refactoring fileHandler to use interfaces")
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Skip("Skipping due to concrete type dependencies - requires refactoring FileHandler to use interfaces")
+			t.Skip("Skipping due to concrete type dependencies - requires refactoring fileHandler to use interfaces")
 		})
 	}
 }

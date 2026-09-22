@@ -7,17 +7,17 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// RegistryCameraSource implements video.cameraSource by reading the
+// registryCameraSource implements video.cameraSource by reading the
 // Cameras list from the first registered accelerator session.
-type RegistryCameraSource struct {
-	registry *Registry
+type registryCameraSource struct {
+	registry *registry
 }
 
-func NewRegistryCameraSource(registry *Registry) *RegistryCameraSource {
-	return &RegistryCameraSource{registry: registry}
+func NewRegistryCameraSource(registry *registry) *registryCameraSource {
+	return &registryCameraSource{registry: registry}
 }
 
-func (r *RegistryCameraSource) ListCameras(ctx context.Context) ([]domain.RemoteCamera, error) {
+func (r *registryCameraSource) ListCameras(ctx context.Context) ([]domain.RemoteCamera, error) {
 	sess, ok := r.registry.First()
 	if !ok || sess == nil {
 		log.Debug().Msg("ListCameras: no accelerator session registered")

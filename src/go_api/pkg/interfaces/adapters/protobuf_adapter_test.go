@@ -10,7 +10,7 @@ import (
 )
 
 func TestProtobufAdapter_ToBlurParameters(t *testing.T) {
-	adapter := NewProtobufAdapter()
+	adapter := newProtobufAdapter()
 
 	tests := []struct {
 		name     string
@@ -63,7 +63,7 @@ func TestProtobufAdapter_ToBlurParameters(t *testing.T) {
 }
 
 func TestProtobufAdapter_ToBorderMode(t *testing.T) {
-	adapter := NewProtobufAdapter()
+	adapter := newProtobufAdapter()
 
 	tests := []struct {
 		name     string
@@ -101,7 +101,7 @@ func TestProtobufAdapter_ToBorderMode(t *testing.T) {
 }
 
 func TestProtobufAdapter_ToProtobufBlurParameters(t *testing.T) {
-	adapter := NewProtobufAdapter()
+	adapter := newProtobufAdapter()
 
 	tests := []struct {
 		name     string
@@ -149,7 +149,7 @@ func TestProtobufAdapter_ToProtobufBlurParameters(t *testing.T) {
 }
 
 func TestProtobufAdapter_ToProtobufBorderMode(t *testing.T) {
-	adapter := NewProtobufAdapter()
+	adapter := newProtobufAdapter()
 
 	tests := []struct {
 		name     string
@@ -182,7 +182,7 @@ func TestProtobufAdapter_ToProtobufBorderMode(t *testing.T) {
 }
 
 func TestProtobufAdapter_BlurParametersRoundTrip(t *testing.T) {
-	adapter := NewProtobufAdapter()
+	adapter := newProtobufAdapter()
 
 	tests := []struct {
 		name string
@@ -215,4 +215,3 @@ func TestProtobufAdapter_BlurParametersRoundTrip(t *testing.T) {
 		})
 	}
 }
-

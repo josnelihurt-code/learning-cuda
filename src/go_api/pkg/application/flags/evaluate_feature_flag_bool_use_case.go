@@ -19,15 +19,15 @@ type EvaluateFeatureFlagBooleanUseCaseOutput struct {
 	Result bool
 }
 
-type EvaluateFeatureFlagBooleanUseCase struct {
+type evaluateFeatureFlagBooleanUseCase struct {
 	repository featureFlagEvaluator
 }
 
-func NewEvaluateFeatureFlagBooleanUseCase(repo featureFlagEvaluator) *EvaluateFeatureFlagBooleanUseCase {
-	return &EvaluateFeatureFlagBooleanUseCase{repository: repo}
+func NewEvaluateFeatureFlagBooleanUseCase(repo featureFlagEvaluator) *evaluateFeatureFlagBooleanUseCase {
+	return &evaluateFeatureFlagBooleanUseCase{repository: repo}
 }
 
-func (uc *EvaluateFeatureFlagBooleanUseCase) Execute(
+func (uc *evaluateFeatureFlagBooleanUseCase) Execute(
 	ctx context.Context,
 	input EvaluateFeatureFlagBooleanUseCaseInput,
 ) (EvaluateFeatureFlagBooleanUseCaseOutput, error) {

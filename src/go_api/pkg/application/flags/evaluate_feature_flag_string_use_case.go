@@ -19,15 +19,15 @@ type EvaluateFeatureFlagStringUseCaseOutput struct {
 	Result string
 }
 
-type EvaluateFeatureFlagStringUseCase struct {
+type evaluateFeatureFlagStringUseCase struct {
 	repository featureFlagEvaluator
 }
 
-func NewEvaluateFeatureFlagStringUseCase(repo featureFlagEvaluator) *EvaluateFeatureFlagStringUseCase {
-	return &EvaluateFeatureFlagStringUseCase{repository: repo}
+func NewEvaluateFeatureFlagStringUseCase(repo featureFlagEvaluator) *evaluateFeatureFlagStringUseCase {
+	return &evaluateFeatureFlagStringUseCase{repository: repo}
 }
 
-func (uc *EvaluateFeatureFlagStringUseCase) Execute(
+func (uc *evaluateFeatureFlagStringUseCase) Execute(
 	ctx context.Context,
 	input EvaluateFeatureFlagStringUseCaseInput,
 ) (EvaluateFeatureFlagStringUseCaseOutput, error) {

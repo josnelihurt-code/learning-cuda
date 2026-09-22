@@ -12,7 +12,7 @@ import (
 // and hides disconnected / misconfigured state from callers.
 type mqttLink struct {
 	mu     sync.Mutex
-	client *Client
+	client *client
 }
 
 func newMQTTLink(cfg config.MQTTConfig) *mqttLink {
@@ -21,7 +21,7 @@ func newMQTTLink(cfg config.MQTTConfig) *mqttLink {
 		logger.Global().Info().Msg("MQTT broker not configured; device monitor disabled")
 		return l
 	}
-	c, err := NewClient(cfg)
+	c, err := newClient(cfg)
 	if err != nil {
 		logger.Global().Warn().Err(err).Str("broker", cfg.Broker).Int("port", cfg.Port).
 			Msg("MQTT broker unreachable; device monitor disabled")
@@ -46,7 +46,7 @@ func (l *mqttLink) disconnect() {
 	}
 }
 
-func (l *mqttLink) subscribeSensorWithRaw(cb func(SensorData) error) error {
+func (l *mqttLink) subscribeSensorWithRaw(cb func(sensorData) error) error {
 	l.mu.Lock()
 	c := l.client
 	l.mu.Unlock()
@@ -56,7 +56,7 @@ func (l *mqttLink) subscribeSensorWithRaw(cb func(SensorData) error) error {
 	return c.SubscribeToSensorWithRaw(cb)
 }
 
-func (l *mqttLink) subscribeInfo1(cb func(Info1Data) error) error {
+func (l *mqttLink) subscribeInfo1(cb func(info1Data) error) error {
 	l.mu.Lock()
 	c := l.client
 	l.mu.Unlock()
@@ -66,7 +66,7 @@ func (l *mqttLink) subscribeInfo1(cb func(Info1Data) error) error {
 	return c.SubscribeToInfo1(cb)
 }
 
-func (l *mqttLink) subscribeInfo2(cb func(Info2Data) error) error {
+func (l *mqttLink) subscribeInfo2(cb func(info2Data) error) error {
 	l.mu.Lock()
 	c := l.client
 	l.mu.Unlock()

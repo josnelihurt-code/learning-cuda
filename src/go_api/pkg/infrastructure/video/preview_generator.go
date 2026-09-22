@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func GeneratePreview(ctx context.Context, videoPath, previewPath string) error {
+func generatePreview(ctx context.Context, videoPath, previewPath string) error {
 	// TODO: Replace exec.Command with a Go library (consider github.com/u2takey/ffmpeg-go or github.com/giorgisio/goav)
 	// to avoid external process dependency and improve error handling
 	cmd := exec.CommandContext(ctx, "ffprobe",

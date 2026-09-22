@@ -23,14 +23,14 @@ func TestRepositoryImpl_GetGoVersion(t *testing.T) {
 	version := repo.GetGoVersion()
 
 	if _, err := os.Stat(filepath.Join("..", "..", "..", "..", "..", "src", "go_api", "VERSION")); err == nil {
-		assert.NotEqual(t, UnknownValue, version)
+		assert.NotEqual(t, unknownValue, version)
 		assert.NotEmpty(t, version)
 	} else {
-		assert.Equal(t, UnknownValue, version)
+		assert.Equal(t, unknownValue, version)
 	}
 }
 
-// GetCppVersion is not implemented on RepositoryImpl (tracked as backlog).
+// GetCppVersion is not implemented on repositoryImpl (tracked as backlog).
 // This test covers the real API such an implementation would rely on: the
 // constructor-resolved cpp VERSION path and the readVersionFile fallback.
 func TestRepositoryImpl_CppVersionFile(t *testing.T) {
@@ -40,10 +40,10 @@ func TestRepositoryImpl_CppVersionFile(t *testing.T) {
 	version := repo.readVersionFile(repo.cppVersionPath)
 
 	if _, err := os.Stat(filepath.Join("..", "..", "..", "..", "..", "src", "cpp_accelerator", "VERSION")); err == nil {
-		assert.NotEqual(t, UnknownValue, version)
+		assert.NotEqual(t, unknownValue, version)
 		assert.NotEmpty(t, version)
 	} else {
-		assert.Equal(t, UnknownValue, version)
+		assert.Equal(t, unknownValue, version)
 	}
 }
 
@@ -53,20 +53,20 @@ func TestRepositoryImpl_GetProtoVersion(t *testing.T) {
 	version := repo.GetProtoVersion()
 
 	if _, err := os.Stat(filepath.Join("..", "..", "..", "..", "..", "proto", "VERSION")); err == nil {
-		assert.NotEqual(t, UnknownValue, version)
+		assert.NotEqual(t, unknownValue, version)
 		assert.NotEmpty(t, version)
 	} else {
-		assert.Equal(t, UnknownValue, version)
+		assert.Equal(t, unknownValue, version)
 	}
 }
 
 func TestRepositoryImpl_readVersionFile_NonExistent(t *testing.T) {
-	repo := &RepositoryImpl{
+	repo := &repositoryImpl{
 		goVersionPath: "/nonexistent/path/VERSION",
 	}
 
 	version := repo.readVersionFile("/nonexistent/path/VERSION")
-	assert.Equal(t, UnknownValue, version)
+	assert.Equal(t, unknownValue, version)
 }
 
 func TestFindProjectRoot(t *testing.T) {

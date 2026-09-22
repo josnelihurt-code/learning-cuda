@@ -43,7 +43,7 @@ type webRTCSignalingSession struct {
 
 func newWebRTCSignalingSession(
 	sessionID string,
-	client WebRTCSignalingClient,
+	client webRTCSignalingClient,
 	onTerminated func(*webRTCSignalingSession),
 ) (*webRTCSignalingSession, error) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -249,23 +249,23 @@ func (s *webRTCSignalingSession) waitForMatch(
 	}
 }
 
-type WebRTCSignalingSessionManager struct {
-	client      WebRTCSignalingClient
+type webRTCSignalingSessionManager struct {
+	client      webRTCSignalingClient
 	pollTimeout time.Duration
 
 	mu       sync.Mutex
 	sessions map[string]*webRTCSignalingSession
 }
 
-func NewWebRTCSignalingSessionManager(client WebRTCSignalingClient) *WebRTCSignalingSessionManager {
-	return &WebRTCSignalingSessionManager{
+func newWebRTCSignalingSessionManager(client webRTCSignalingClient) *webRTCSignalingSessionManager {
+	return &webRTCSignalingSessionManager{
 		client:      client,
 		pollTimeout: defaultWebRTCPollTimeout,
 		sessions:    make(map[string]*webRTCSignalingSession),
 	}
 }
 
-func (m *WebRTCSignalingSessionManager) getSession(sessionID string) (*webRTCSignalingSession, error) {
+func (m *webRTCSignalingSessionManager) getSession(sessionID string) (*webRTCSignalingSession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -277,7 +277,7 @@ func (m *WebRTCSignalingSessionManager) getSession(sessionID string) (*webRTCSig
 	return session, nil
 }
 
-func (m *WebRTCSignalingSessionManager) createSession(sessionID string) (*webRTCSignalingSession, error) {
+func (m *webRTCSignalingSessionManager) createSession(sessionID string) (*webRTCSignalingSession, error) {
 	m.mu.Lock()
 	existing, ok := m.sessions[sessionID]
 	if ok {
@@ -305,7 +305,7 @@ func (m *WebRTCSignalingSessionManager) createSession(sessionID string) (*webRTC
 
 // evictIfCurrent matches by pointer identity so a late termination cannot
 // evict a replacement installed under the same session ID.
-func (m *WebRTCSignalingSessionManager) evictIfCurrent(sessionID string, session *webRTCSignalingSession) {
+func (m *webRTCSignalingSessionManager) evictIfCurrent(sessionID string, session *webRTCSignalingSession) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -314,7 +314,7 @@ func (m *WebRTCSignalingSessionManager) evictIfCurrent(sessionID string, session
 	}
 }
 
-func (m *WebRTCSignalingSessionManager) removeSession(sessionID string) {
+func (m *webRTCSignalingSessionManager) removeSession(sessionID string) {
 	m.mu.Lock()
 	session, ok := m.sessions[sessionID]
 	if ok {
@@ -327,7 +327,7 @@ func (m *WebRTCSignalingSessionManager) removeSession(sessionID string) {
 	}
 }
 
-func (m *WebRTCSignalingSessionManager) StartSession(
+func (m *webRTCSignalingSessionManager) StartSession(
 	ctx context.Context,
 	req *pb.StartSessionRequest,
 ) (*pb.StartSessionResponse, error) {
@@ -364,7 +364,7 @@ func (m *WebRTCSignalingSessionManager) StartSession(
 	return responseMessage.GetStartSessionResponse(), nil
 }
 
-func (m *WebRTCSignalingSessionManager) SendIceCandidate(
+func (m *webRTCSignalingSessionManager) SendIceCandidate(
 	ctx context.Context,
 	req *pb.SendIceCandidateRequest,
 ) (*pb.SendIceCandidateResponse, error) {
@@ -400,7 +400,7 @@ func (m *WebRTCSignalingSessionManager) SendIceCandidate(
 	return responseMessage.GetIceCandidateResponse(), nil
 }
 
-func (m *WebRTCSignalingSessionManager) PollEvents(
+func (m *webRTCSignalingSessionManager) PollEvents(
 	ctx context.Context,
 	req *pb.PollEventsRequest,
 ) (*pb.PollEventsResponse, error) {
@@ -453,7 +453,7 @@ func (m *WebRTCSignalingSessionManager) PollEvents(
 	}, nil
 }
 
-func (m *WebRTCSignalingSessionManager) CloseSession(
+func (m *webRTCSignalingSessionManager) CloseSession(
 	ctx context.Context,
 	req *pb.CloseSessionRequest,
 ) (*pb.CloseSessionResponse, error) {

@@ -16,12 +16,12 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-type OTLPHook struct {
+type otlpHook struct {
 	logger otelog.Logger
 	ctx    context.Context
 }
 
-func NewOTLPHook(endpoint, environment, serviceName, serviceVersion, authHeader string) (zerolog.Hook, error) {
+func newOTLPHook(endpoint, environment, serviceName, serviceVersion, authHeader string) (zerolog.Hook, error) {
 	ctx := context.Background()
 
 	res, err := resource.New(ctx,
@@ -74,13 +74,13 @@ func NewOTLPHook(endpoint, environment, serviceName, serviceVersion, authHeader 
 	global.SetLoggerProvider(loggerProvider)
 	otelLogger := global.Logger("zerolog")
 
-	return &OTLPHook{
+	return &otlpHook{
 		logger: otelLogger,
 		ctx:    ctx,
 	}, nil
 }
 
-func (h *OTLPHook) Run(e *zerolog.Event, level zerolog.Level, message string) {
+func (h *otlpHook) Run(e *zerolog.Event, level zerolog.Level, message string) {
 	ctx := h.ctx
 	spanContext := trace.SpanContextFromContext(ctx)
 	severity := mapZerologToOTELSeverity(level)

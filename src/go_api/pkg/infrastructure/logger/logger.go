@@ -100,7 +100,7 @@ func buildOTLPHook(cfg *Config) zerolog.Hook {
 		serviceVersion = "1.0.0"
 	}
 
-	hook, err := NewOTLPHook(cfg.RemoteEndpoint, cfg.RemoteEnvironment, serviceName, serviceVersion, cfg.RemoteAuthHeader)
+	hook, err := newOTLPHook(cfg.RemoteEndpoint, cfg.RemoteEnvironment, serviceName, serviceVersion, cfg.RemoteAuthHeader)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: Failed to initialize OTLP hook: %v\n", err)
 		return nil

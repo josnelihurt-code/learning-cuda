@@ -12,8 +12,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-// AcceleratorSession represents a live connection from one registered accelerator.
-type AcceleratorSession struct {
+// acceleratorSession represents a live connection from one registered accelerator.
+type acceleratorSession struct {
 	DeviceID        string
 	DisplayName     string
 	AssignedSession string // server-minted UUID; matches RegisterAck.assigned_session_id
@@ -44,9 +44,9 @@ func newAcceleratorSession(
 	keepaliveInterval time.Duration,
 	keepaliveTimeout time.Duration,
 	log zerolog.Logger,
-) *AcceleratorSession {
+) *acceleratorSession {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &AcceleratorSession{
+	return &acceleratorSession{
 		DeviceID:          reg.DeviceId,
 		DisplayName:       reg.DisplayName,
 		AssignedSession:   assignedID,
@@ -65,23 +65,23 @@ func newAcceleratorSession(
 	}
 }
 
-func (s *AcceleratorSession) touch() {
+func (s *acceleratorSession) touch() {
 	s.lastSeenMu.Lock()
 	s.lastSeen = time.Now()
 	s.lastSeenMu.Unlock()
 }
 
-func (s *AcceleratorSession) timeSinceLastSeen() time.Duration {
+func (s *acceleratorSession) timeSinceLastSeen() time.Duration {
 	s.lastSeenMu.RLock()
 	defer s.lastSeenMu.RUnlock()
 	return time.Since(s.lastSeen)
 }
 
-func (s *AcceleratorSession) isStale() bool {
+func (s *acceleratorSession) isStale() bool {
 	return s.timeSinceLastSeen() > s.keepaliveTimeout
 }
 
-func (s *AcceleratorSession) runKeepaliveSender() {
+func (s *acceleratorSession) runKeepaliveSender() {
 	ticker := time.NewTicker(s.keepaliveInterval)
 	defer ticker.Stop()
 
@@ -108,7 +108,7 @@ func (s *AcceleratorSession) runKeepaliveSender() {
 	}
 }
 
-func (s *AcceleratorSession) runStaleWatchdog() {
+func (s *acceleratorSession) runStaleWatchdog() {
 	tick := max(s.keepaliveInterval/2, time.Second)
 	ticker := time.NewTicker(tick)
 	defer ticker.Stop()
@@ -131,7 +131,7 @@ func (s *AcceleratorSession) runStaleWatchdog() {
 }
 
 // Send writes an envelope to the accelerator. Thread-safe.
-func (s *AcceleratorSession) Send(msg *gen.AcceleratorMessage) error {
+func (s *acceleratorSession) Send(msg *gen.AcceleratorMessage) error {
 	s.sendMu.Lock()
 	defer s.sendMu.Unlock()
 	return s.stream.Send(&gen.ConnectResponse{Message: msg})
@@ -139,7 +139,7 @@ func (s *AcceleratorSession) Send(msg *gen.AcceleratorMessage) error {
 
 // Await blocks until a response with the given command_id arrives, or ctx is
 // done, or the session terminates.
-func (s *AcceleratorSession) Await(ctx context.Context, commandID string) (*gen.AcceleratorMessage, error) {
+func (s *acceleratorSession) Await(ctx context.Context, commandID string) (*gen.AcceleratorMessage, error) {
 	ch := s.pending.register(commandID)
 	defer s.pending.cancel(commandID)
 	select {
@@ -154,7 +154,7 @@ func (s *AcceleratorSession) Await(ctx context.Context, commandID string) (*gen.
 
 // SubscribeSignaling registers a channel that receives inbound SignalingMessage
 // envelopes from the accelerator.  Returns the channel and an unsubscribe func.
-func (s *AcceleratorSession) SubscribeSignaling(subscriberID string) (<-chan *gen.AcceleratorMessage, func()) {
+func (s *acceleratorSession) SubscribeSignaling(subscriberID string) (<-chan *gen.AcceleratorMessage, func()) {
 	ch := make(chan *gen.AcceleratorMessage, 32)
 	s.signalingMu.Lock()
 	s.signalingChs[subscriberID] = ch
@@ -163,7 +163,7 @@ func (s *AcceleratorSession) SubscribeSignaling(subscriberID string) (<-chan *ge
 }
 
 // UnsubscribeSignaling removes the subscriber and closes its channel.
-func (s *AcceleratorSession) UnsubscribeSignaling(subscriberID string) {
+func (s *acceleratorSession) UnsubscribeSignaling(subscriberID string) {
 	s.signalingMu.Lock()
 	defer s.signalingMu.Unlock()
 	if ch, ok := s.signalingChs[subscriberID]; ok {
@@ -173,7 +173,7 @@ func (s *AcceleratorSession) UnsubscribeSignaling(subscriberID string) {
 }
 
 // deliverSignaling fans out a signaling envelope to all active subscribers.
-func (s *AcceleratorSession) deliverSignaling(msg *gen.AcceleratorMessage) {
+func (s *acceleratorSession) deliverSignaling(msg *gen.AcceleratorMessage) {
 	s.signalingMu.RLock()
 	defer s.signalingMu.RUnlock()
 	for _, ch := range s.signalingChs {
@@ -186,7 +186,7 @@ func (s *AcceleratorSession) deliverSignaling(msg *gen.AcceleratorMessage) {
 }
 
 // closeAllSignaling closes every subscriber channel on session teardown.
-func (s *AcceleratorSession) closeAllSignaling() {
+func (s *acceleratorSession) closeAllSignaling() {
 	s.signalingMu.Lock()
 	defer s.signalingMu.Unlock()
 	for id, ch := range s.signalingChs {

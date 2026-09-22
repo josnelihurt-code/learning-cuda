@@ -8,8 +8,8 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 )
 
-// ExtractFromProtobuf extracts trace context from protobuf TraceContext message
-func ExtractFromProtobuf(ctx context.Context, traceCtx *pb.TraceContext) context.Context {
+// extractFromProtobuf extracts trace context from protobuf TraceContext message
+func extractFromProtobuf(ctx context.Context, traceCtx *pb.TraceContext) context.Context {
 	if traceCtx == nil || traceCtx.Traceparent == "" {
 		return ctx
 	}
@@ -23,4 +23,3 @@ func ExtractFromProtobuf(ctx context.Context, traceCtx *pb.TraceContext) context
 
 	return otel.GetTextMapPropagator().Extract(ctx, carrier)
 }
-

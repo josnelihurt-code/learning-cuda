@@ -23,7 +23,7 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/video"
 )
 
-type Container struct {
+type container struct {
 	Config *config.Manager
 
 	FeatureFlagRepo *featureflags.GoffRepository
@@ -42,7 +42,7 @@ type Container struct {
 	DeviceMonitor      *mqtt.DeviceMonitor
 }
 
-func New(ctx context.Context, configFile string) (*Container, error) {
+func New(ctx context.Context, configFile string) (*container, error) {
 	cfg := config.New(configFile)
 
 	log := logger.New(&logger.Config{
@@ -57,7 +57,7 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 		RemoteAuthHeader:  cfg.Observability.AuthHeader(),
 		ServiceName:       cfg.Observability.ServiceName,
 	})
-	log.Info().Str("config_file", configFile).Any("config", cfg.Redacted()).Msg("Container initialized")
+	log.Info().Str("config_file", configFile).Any("config", cfg.Redacted()).Msg("container initialized")
 
 	// Feature flags are a hard dependency of the wired handlers; there is no degraded mode.
 	if err := validateFeatureFlagConfig(cfg); err != nil {
@@ -119,7 +119,7 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 
 	deviceMonitor := mqtt.NewDeviceMonitor(ctx, cfg.MQTT)
 
-	return &Container{
+	return &container{
 		Config:                            cfg,
 		FeatureFlagRepo:                   featureFlagRepo,
 		EvaluateFeatureFlagBooleanUseCase: evaluateFFBooleanUseCase,
@@ -143,7 +143,7 @@ func validateFeatureFlagConfig(cfg *config.Manager) error {
 	return nil
 }
 
-func (c *Container) Close(ctx context.Context) error {
+func (c *container) Close(ctx context.Context) error {
 	if c.AcceleratorControl != nil {
 		stopCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()

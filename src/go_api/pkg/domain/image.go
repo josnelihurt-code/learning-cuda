@@ -1,7 +1,7 @@
 package domain
 
-// Image represents an image with its data and metadata
-type Image struct {
+// image represents an image with its data and metadata
+type image struct {
 	Data   []byte
 	Width  int
 	Height int

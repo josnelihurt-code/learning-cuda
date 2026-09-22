@@ -23,11 +23,11 @@ func TestNewListInputsUseCase(t *testing.T) {
 func TestListInputsUseCase_Execute(t *testing.T) {
 	tests := []struct {
 		name         string
-		assertResult func(t *testing.T, result []InputSource, err error)
+		assertResult func(t *testing.T, result []inputSource, err error)
 	}{
 		{
 			name: "Success_ReturnsStaticSources",
-			assertResult: func(t *testing.T, result []InputSource, err error) {
+			assertResult: func(t *testing.T, result []inputSource, err error) {
 				assert.NoError(t, err)
 				require.NotNil(t, result)
 				assert.Len(t, result, 2)
@@ -47,7 +47,7 @@ func TestListInputsUseCase_Execute(t *testing.T) {
 		},
 		{
 			name: "Success_VerifySourceCounts",
-			assertResult: func(t *testing.T, result []InputSource, err error) {
+			assertResult: func(t *testing.T, result []inputSource, err error) {
 				assert.NoError(t, err)
 				require.NotNil(t, result)
 

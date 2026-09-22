@@ -10,8 +10,8 @@ import (
 )
 
 // A parseable Time keeps handleSensorData deterministic instead of falling back to time.Now.
-func sensorDataFor(power, voltage float64) SensorData {
-	var data SensorData
+func sensorDataFor(power, voltage float64) sensorData {
+	var data sensorData
 	data.Time = "2026-09-19T10:00:00"
 	data.ENERGY.Power = power
 	data.ENERGY.Voltage = voltage

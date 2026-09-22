@@ -13,8 +13,8 @@ import (
 // from the same handler instances that are registered on the mux, so each
 // handler is constructed exactly once per process.
 func SetupVanguardTranscoder(
-	configHandler *ConfigHandler,
-	fileHandler *FileHandler,
+	configHandler *configHandler,
+	fileHandler *fileHandler,
 	interceptors []connect.Interceptor,
 ) http.Handler {
 	log := logger.Global()

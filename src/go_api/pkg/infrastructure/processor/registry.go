@@ -7,17 +7,17 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// Registry holds the set of registered accelerator sessions.
+// registry holds the set of registered accelerator sessions.
 // v1 enforces exactly one session at a time; the map shape supports v2 multi-device.
-type Registry struct {
+type registry struct {
 	mu       sync.RWMutex
-	sessions map[string]*AcceleratorSession
+	sessions map[string]*acceleratorSession
 	log      zerolog.Logger
 }
 
-func NewRegistry(log zerolog.Logger) *Registry {
-	return &Registry{
-		sessions: make(map[string]*AcceleratorSession),
+func NewRegistry(log zerolog.Logger) *registry {
+	return &registry{
+		sessions: make(map[string]*acceleratorSession),
 		log:      log,
 	}
 }
@@ -27,7 +27,7 @@ func NewRegistry(log zerolog.Logger) *Registry {
 // device evicts its own stale session instead of being rejected: otherwise a
 // reconnect that beats the old stream's teardown gets AlreadyExists and the
 // device backs off, staying offline for no reason.
-func (r *Registry) Add(s *AcceleratorSession) error {
+func (r *registry) Add(s *acceleratorSession) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for deviceID := range r.sessions {
@@ -51,7 +51,7 @@ func (r *Registry) Add(s *AcceleratorSession) error {
 // registered session is the one passed in. Removing by device_id alone lets a
 // slow teardown of an old stream delete the entry a newer stream just created —
 // the accelerator then believes it is registered while the API reports none.
-func (r *Registry) Remove(deviceID string, s *AcceleratorSession) {
+func (r *registry) Remove(deviceID string, s *acceleratorSession) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	current, ok := r.sessions[deviceID]
@@ -70,7 +70,7 @@ func (r *Registry) Remove(deviceID string, s *AcceleratorSession) {
 }
 
 // Get returns the session for the given device_id, or nil + false.
-func (r *Registry) Get(deviceID string) (*AcceleratorSession, bool) {
+func (r *registry) Get(deviceID string) (*acceleratorSession, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	s, ok := r.sessions[deviceID]
@@ -79,7 +79,7 @@ func (r *Registry) Get(deviceID string) (*AcceleratorSession, bool) {
 
 // First returns the singleton session in v1, or nil + false if none registered.
 // v2 will deprecate this in favour of explicit device selection.
-func (r *Registry) First() (*AcceleratorSession, bool) {
+func (r *registry) First() (*acceleratorSession, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 	for _, s := range r.sessions {

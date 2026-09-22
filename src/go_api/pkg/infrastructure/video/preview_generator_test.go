@@ -24,7 +24,7 @@ func TestGeneratePreview(t *testing.T) {
 		tempDir := t.TempDir()
 		previewPath := filepath.Join(tempDir, "test-preview.png")
 
-		err := GeneratePreview(ctx, videoPath, previewPath)
+		err := generatePreview(ctx, videoPath, previewPath)
 		require.NoError(t, err)
 
 		stat, err := os.Stat(previewPath)
@@ -36,7 +36,7 @@ func TestGeneratePreview(t *testing.T) {
 		tempDir := t.TempDir()
 		previewPath := filepath.Join(tempDir, "invalid-preview.png")
 
-		err := GeneratePreview(ctx, "/nonexistent/video.mp4", previewPath)
+		err := generatePreview(ctx, "/nonexistent/video.mp4", previewPath)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "ffprobe failed")
 	})
@@ -49,7 +49,7 @@ func TestGeneratePreview(t *testing.T) {
 		err := os.WriteFile(corruptedVideoPath, []byte("not a video"), 0o600)
 		require.NoError(t, err)
 
-		err = GeneratePreview(ctx, corruptedVideoPath, previewPath)
+		err = generatePreview(ctx, corruptedVideoPath, previewPath)
 		assert.Error(t, err)
 	})
 }
