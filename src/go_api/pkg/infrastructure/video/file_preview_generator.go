@@ -10,23 +10,23 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// FilePreviewGeneratorRepository generates preview images for stored
+// FilePreviewGenerator generates preview images for stored
 // videos via ffmpeg into diskDir, exposed under publicBase.
-type FilePreviewGeneratorRepository struct {
+type FilePreviewGenerator struct {
 	diskDir    string
 	publicBase string
 }
 
-func NewFilePreviewGeneratorRepository(diskDir, publicBase string) *FilePreviewGeneratorRepository {
-	return &FilePreviewGeneratorRepository{
+func NewFilePreviewGenerator(diskDir, publicBase string) *FilePreviewGenerator {
+	return &FilePreviewGenerator{
 		diskDir:    diskDir,
 		publicBase: publicBase,
 	}
 }
 
-func (g *FilePreviewGeneratorRepository) Generate(ctx context.Context, videoID, videoPath string) (string, error) {
+func (g *FilePreviewGenerator) Generate(ctx context.Context, videoID, videoPath string) (string, error) {
 	tracer := otel.Tracer("video-preview-generator")
-	_, span := tracer.Start(ctx, "FilePreviewGeneratorRepository.Generate",
+	_, span := tracer.Start(ctx, "FilePreviewGenerator.Generate",
 		trace.WithSpanKind(trace.SpanKindInternal),
 	)
 	defer span.End()

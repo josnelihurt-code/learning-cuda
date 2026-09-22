@@ -26,6 +26,15 @@ them. Cross-package wiring passes concrete adapters, which satisfy the
 port structurally. Exporting a port leaks the abstraction and invites
 imports against the wrong direction.
 
+## Ports are named by role, not by pattern
+
+Ports (consumer-side interfaces) are named for the role they play for the
+consumer. The Repository suffix is reserved for actual repositories:
+collection semantics over domain entities (List/Get/Save). A port that
+persists bytes is a Storage; one that produces an artifact is a Generator;
+adapters take an implementation prefix plus the role (FileVideoStorage,
+StaticImageRepository). Never suffix a port just to mark it as a port.
+
 ## Version files gate deploys
 
 Production deploys are triggered by `VERSION` file bumps, not by code changes.

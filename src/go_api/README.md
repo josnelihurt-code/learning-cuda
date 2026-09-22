@@ -260,7 +260,7 @@ All use cases follow the same pattern: they receive domain models, orchestrate b
   - `SubscribeSignaling`/`UnsubscribeSignaling`/`deliverSignaling`: WebRTC signaling fanout
   - Inner `pendingMap` maps command_id to response channels
 - `signaling_adapter.go`: Adapts accelerator bidi stream to WebRTC signaling service interface
-- `camera_repository.go`: `RegistryCameraRepository` reads the camera list from the first registered accelerator session
+- `camera_repository.go`: `RegistryCameraSource` reads the camera list from the first registered accelerator session
 
 **Feature Flags** (`pkg/infrastructure/featureflags/`):
 - Goff client integration for feature flag management (YAML-based)

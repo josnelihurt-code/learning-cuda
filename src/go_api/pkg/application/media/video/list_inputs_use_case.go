@@ -28,13 +28,13 @@ type ListInputsUseCaseOutput struct {
 
 type ListInputsUseCase struct {
 	videoRepository  videoRepository
-	cameraRepository cameraRepository
+	cameraSource cameraSource
 }
 
-func NewListInputsUseCase(videoRepository videoRepository, cameraRepository cameraRepository) *ListInputsUseCase {
+func NewListInputsUseCase(videoRepository videoRepository, cameraSource cameraSource) *ListInputsUseCase {
 	return &ListInputsUseCase{
 		videoRepository:  videoRepository,
-		cameraRepository: cameraRepository,
+		cameraSource: cameraSource,
 	}
 }
 
@@ -76,8 +76,8 @@ func (uc *ListInputsUseCase) Execute(ctx context.Context, _ ListInputsUseCaseInp
 		}
 	}
 
-	if uc.cameraRepository != nil {
-		cameras, camErr := uc.cameraRepository.ListCameras(ctx)
+	if uc.cameraSource != nil {
+		cameras, camErr := uc.cameraSource.ListCameras(ctx)
 		if camErr == nil {
 			for _, cam := range cameras {
 				sources = append(sources, InputSource{
