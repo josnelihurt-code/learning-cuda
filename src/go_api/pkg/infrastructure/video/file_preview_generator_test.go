@@ -6,9 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestError_FilePreviewGeneratorRepositoryGenerateFailsForMissingVideo(t *testing.T) {
+func TestError_FilePreviewGeneratorGenerateFailsForMissingVideo(t *testing.T) {
 	// Arrange
-	sut := NewFilePreviewGeneratorRepository(t.TempDir(), "/data/video_previews")
+	sut := NewFilePreviewGenerator(t.TempDir(), "/data/video_previews")
 
 	// Act
 	previewPath, err := sut.Generate(t.Context(), "missing", "/data/videos/missing.mp4")

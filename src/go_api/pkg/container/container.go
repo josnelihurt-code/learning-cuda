@@ -105,17 +105,17 @@ func New(ctx context.Context, configFile string) (*Container, error) {
 	getSystemInfoUseCase := systemapp.NewGetSystemInfoUseCase(configRepo, buildInfoRepo, versionRepo)
 
 	videoRepo := video.NewFileVideoRepository(ctx, "data/videos", "data/video_previews")
-	cameraRepo := processor.NewRegistryCameraRepository(registry)
-	listInputsUseCase := videoapp.NewListInputsUseCase(videoRepo, cameraRepo)
+	cameraSource := processor.NewRegistryCameraSource(registry)
+	listInputsUseCase := videoapp.NewListInputsUseCase(videoRepo, cameraSource)
 
 	staticImageRepo := filesystem.NewStaticImageRepository(cfg.StaticImages.Directory)
 	listAvailableImagesUseCase := imageapp.NewListAvailableImagesUseCase(staticImageRepo) //nolint:language
 	uploadImageUseCase := imageapp.NewUploadImageUseCase(staticImageRepo)
 
 	listVideosUseCase := videoapp.NewListVideosUseCase(videoRepo)
-	videoStorageRepository := video.NewFileVideoStorageRepository("data/videos", "/data/videos")
-	videoPreviewGeneratorRepository := video.NewFilePreviewGeneratorRepository("data/video_previews", "/data/video_previews")
-	uploadVideoUseCase := videoapp.NewUploadVideoUseCase(videoRepo, videoStorageRepository, videoPreviewGeneratorRepository)
+	videoStorage := video.NewFileVideoStorage("data/videos", "/data/videos")
+	videoPreviewGenerator := video.NewFilePreviewGenerator("data/video_previews", "/data/video_previews")
+	uploadVideoUseCase := videoapp.NewUploadVideoUseCase(videoRepo, videoStorage, videoPreviewGenerator)
 
 	deviceMonitor := mqtt.NewDeviceMonitor(ctx, cfg.MQTT)
 
