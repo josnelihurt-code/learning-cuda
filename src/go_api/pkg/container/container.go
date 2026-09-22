@@ -10,6 +10,7 @@ import (
 	ffapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/flags"
 	imageapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/image"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
+	remoteapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/remote"
 	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/build"
@@ -37,6 +38,8 @@ type container struct {
 	UploadImageUseCase                application.UseCase[imageapp.UploadImageUseCaseInput, imageapp.UploadImageUseCaseOutput]
 	ListVideosUseCase                 application.UseCase[videoapp.ListVideosUseCaseInput, videoapp.ListVideosUseCaseOutput]
 	UploadVideoUseCase                application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
+	StartJetsonNanoUseCase            application.UseCase[remoteapp.StartJetsonNanoUseCaseInput, remoteapp.StartJetsonNanoUseCaseOutput]
+	CheckAcceleratorHealthUseCase     application.UseCase[remoteapp.CheckAcceleratorHealthUseCaseInput, remoteapp.CheckAcceleratorHealthUseCaseOutput]
 
 	AcceleratorGateway *processor.AcceleratorGateway
 	AcceleratorControl *processor.ControlServer
@@ -302,6 +305,27 @@ func New(ctx context.Context, configFile string) (*container, error) {
 	)
 
 	deviceMonitor := mqtt.NewDeviceMonitor(ctx, cfg.MQTT)
+	startJetsonNanoUseCase := application.WithTrace(
+		"remote-management",
+		"StartJetsonNano",
+		remoteapp.NewStartJetsonNanoUseCase(deviceMonitor),
+		nil,
+		func(_ remoteapp.StartJetsonNanoUseCaseInput, out remoteapp.StartJetsonNanoUseCaseOutput, _ error) []attribute.KeyValue {
+			return []attribute.KeyValue{
+				attribute.Bool("jetson.success", out.Success),
+				attribute.String("jetson.step", out.Step),
+			}
+		},
+	)
+	checkAcceleratorHealthUseCase := application.WithTrace(
+		"remote-management",
+		"CheckAcceleratorHealth",
+		remoteapp.NewCheckAcceleratorHealthUseCase(acceleratorGateway),
+		nil,
+		func(_ remoteapp.CheckAcceleratorHealthUseCaseInput, out remoteapp.CheckAcceleratorHealthUseCaseOutput, _ error) []attribute.KeyValue {
+			return []attribute.KeyValue{attribute.Bool("accelerator.healthy", out.Healthy)}
+		},
+	)
 
 	return &container{
 		Config:                            cfg,
@@ -315,6 +339,8 @@ func New(ctx context.Context, configFile string) (*container, error) {
 		UploadImageUseCase:                uploadImageUseCase,
 		ListVideosUseCase:                 listVideosUseCase,
 		UploadVideoUseCase:                uploadVideoUseCase,
+		StartJetsonNanoUseCase:            startJetsonNanoUseCase,
+		CheckAcceleratorHealthUseCase:     checkAcceleratorHealthUseCase,
 		AcceleratorGateway:                acceleratorGateway,
 		AcceleratorControl:                controlServer,
 		DeviceMonitor:                     deviceMonitor,

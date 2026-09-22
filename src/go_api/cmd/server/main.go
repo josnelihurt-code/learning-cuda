@@ -85,6 +85,8 @@ func main() {
 		UploadImageUC:         di.UploadImageUseCase,
 		ListVideosUC:          di.ListVideosUseCase,
 		UploadVideoUC:         di.UploadVideoUseCase,
+		StartJetsonNanoUC:     di.StartJetsonNanoUseCase,
+		CheckAcceleratorHealthUC: di.CheckAcceleratorHealthUseCase,
 		DeviceMonitor:         di.DeviceMonitor,
 	})
 	if err != nil {
