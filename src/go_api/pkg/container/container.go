@@ -11,6 +11,7 @@ import (
 	imageapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/image"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
 	remoteapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/remote"
+	configquery "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/configquery"
 	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/build"
@@ -40,6 +41,8 @@ type container struct {
 	UploadVideoUseCase                application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
 	StartJetsonNanoUseCase            application.UseCase[remoteapp.StartJetsonNanoUseCaseInput, remoteapp.StartJetsonNanoUseCaseOutput]
 	CheckAcceleratorHealthUseCase     application.UseCase[remoteapp.CheckAcceleratorHealthUseCaseInput, remoteapp.CheckAcceleratorHealthUseCaseOutput]
+	GetStreamSettingsUseCase          application.UseCase[configquery.GetStreamSettingsUseCaseInput, configquery.GetStreamSettingsUseCaseOutput]
+	GetAvailableToolsUseCase          application.UseCase[configquery.GetAvailableToolsUseCaseInput, configquery.GetAvailableToolsUseCaseOutput]
 
 	AcceleratorGateway *processor.AcceleratorGateway
 	AcceleratorControl *processor.ControlServer
@@ -327,6 +330,29 @@ func New(ctx context.Context, configFile string) (*container, error) {
 		},
 	)
 
+	catalog := &managerCatalog{manager: cfg}
+	getStreamSettingsUseCase := application.WithTrace(
+		"config-query",
+		"GetStreamSettings",
+		configquery.NewGetStreamSettingsUseCase(catalog),
+		nil,
+		func(_ configquery.GetStreamSettingsUseCaseInput, out configquery.GetStreamSettingsUseCaseOutput, _ error) []attribute.KeyValue {
+			return []attribute.KeyValue{attribute.String("config.endpoint", out.WebRTCSignalingEndpoint)}
+		},
+	)
+	getAvailableToolsUseCase := application.WithTrace(
+		"config-query",
+		"GetAvailableTools",
+		configquery.NewGetAvailableToolsUseCase(catalog),
+		nil,
+		func(_ configquery.GetAvailableToolsUseCaseInput, out configquery.GetAvailableToolsUseCaseOutput, _ error) []attribute.KeyValue {
+			return []attribute.KeyValue{
+				attribute.String("config.environment", out.Environment),
+				attribute.Int("tools.category_count", len(out.Categories)),
+			}
+		},
+	)
+
 	return &container{
 		Config:                            cfg,
 		EvaluateFeatureFlagBooleanUseCase: evaluateFFBooleanUseCase,
@@ -341,6 +367,8 @@ func New(ctx context.Context, configFile string) (*container, error) {
 		UploadVideoUseCase:                uploadVideoUseCase,
 		StartJetsonNanoUseCase:            startJetsonNanoUseCase,
 		CheckAcceleratorHealthUseCase:     checkAcceleratorHealthUseCase,
+		GetStreamSettingsUseCase:          getStreamSettingsUseCase,
+		GetAvailableToolsUseCase:          getAvailableToolsUseCase,
 		AcceleratorGateway:                acceleratorGateway,
 		AcceleratorControl:                controlServer,
 		DeviceMonitor:                     deviceMonitor,

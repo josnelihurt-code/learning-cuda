@@ -85,9 +85,11 @@ func main() {
 		UploadImageUC:         di.UploadImageUseCase,
 		ListVideosUC:          di.ListVideosUseCase,
 		UploadVideoUC:         di.UploadVideoUseCase,
-		StartJetsonNanoUC:     di.StartJetsonNanoUseCase,
+		StartJetsonNanoUC:        di.StartJetsonNanoUseCase,
 		CheckAcceleratorHealthUC: di.CheckAcceleratorHealthUseCase,
-		DeviceMonitor:         di.DeviceMonitor,
+		GetStreamSettingsUC:      di.GetStreamSettingsUseCase,
+		GetAvailableToolsUC:      di.GetAvailableToolsUseCase,
+		DeviceMonitor:            di.DeviceMonitor,
 	})
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to initialize app")

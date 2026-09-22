@@ -14,6 +14,7 @@ import (
 	imageapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/image"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
 	remoteapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/remote"
+	configquery "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/configquery"
 	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
@@ -77,6 +78,8 @@ type Deps struct {
 	UploadVideoUC         application.UseCase[videoapp.UploadVideoUseCaseInput, videoapp.UploadVideoUseCaseOutput]
 	StartJetsonNanoUC     application.UseCase[remoteapp.StartJetsonNanoUseCaseInput, remoteapp.StartJetsonNanoUseCaseOutput]
 	CheckAcceleratorHealthUC application.UseCase[remoteapp.CheckAcceleratorHealthUseCaseInput, remoteapp.CheckAcceleratorHealthUseCaseOutput]
+	GetStreamSettingsUC      application.UseCase[configquery.GetStreamSettingsUseCaseInput, configquery.GetStreamSettingsUseCaseOutput]
+	GetAvailableToolsUC      application.UseCase[configquery.GetAvailableToolsUseCaseInput, configquery.GetAvailableToolsUseCaseOutput]
 
 	// Infrastructure
 	AcceleratorControl acceleratorControl
@@ -129,6 +132,12 @@ func New(ctx context.Context, deps Deps) (*app, error) {
 	}
 	if deps.CheckAcceleratorHealthUC == nil {
 		return nil, errors.New("check accelerator health use case is required")
+	}
+	if deps.GetStreamSettingsUC == nil {
+		return nil, errors.New("get stream settings use case is required")
+	}
+	if deps.GetAvailableToolsUC == nil {
+		return nil, errors.New("get available tools use case is required")
 	}
 	if deps.DeviceMonitor == nil {
 		return nil, errors.New("MQTT device monitor is required")
@@ -192,7 +201,8 @@ func (a *app) setupConnectRPCServices(mux *http.ServeMux) {
 		EvaluateFFStringUC:  a.EvaluateFFStringUC,
 		ListFeatureFlagsUC:  a.ListFeatureFlagsUC,
 		UpsertFeatureFlagUC: a.UpsertFeatureFlagUC,
-		ConfigManager:       a.Config,
+		GetStreamSettingsUC: a.GetStreamSettingsUC,
+		GetAvailableToolsUC: a.GetAvailableToolsUC,
 	})
 	fileHandler := connectrpc.NewFileHandler(
 		a.ListAvailableImagesUC,

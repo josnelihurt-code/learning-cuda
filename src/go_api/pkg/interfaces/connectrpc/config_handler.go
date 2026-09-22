@@ -10,8 +10,8 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/application"
 	ffapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/flags"
 	videoapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/media/video"
+	configquery "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/configquery"
 	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
-	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 	"go.opentelemetry.io/otel/attribute"
@@ -24,13 +24,14 @@ type configHandler struct {
 
 // ConfigHandlerDeps groups all dependencies needed to create a configHandler.
 type ConfigHandlerDeps struct {
-	ListInputsUC         application.UseCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
-	EvaluateFFBooleanUC  application.UseCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
-	EvaluateFFStringUC   application.UseCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
-	GetSystemInfoUC      application.UseCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
-	ListFeatureFlagsUC   application.UseCase[ffapp.ListFeatureFlagsUseCaseInput, ffapp.ListFeatureFlagsUseCaseOutput]
-	UpsertFeatureFlagUC  application.UseCase[ffapp.UpsertFeatureFlagUseCaseInput, ffapp.UpsertFeatureFlagUseCaseOutput]
-	ConfigManager        *config.Manager
+	ListInputsUC            application.UseCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
+	EvaluateFFBooleanUC     application.UseCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
+	EvaluateFFStringUC      application.UseCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
+	GetSystemInfoUC         application.UseCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
+	ListFeatureFlagsUC      application.UseCase[ffapp.ListFeatureFlagsUseCaseInput, ffapp.ListFeatureFlagsUseCaseOutput]
+	UpsertFeatureFlagUC     application.UseCase[ffapp.UpsertFeatureFlagUseCaseInput, ffapp.UpsertFeatureFlagUseCaseOutput]
+	GetStreamSettingsUC     application.UseCase[configquery.GetStreamSettingsUseCaseInput, configquery.GetStreamSettingsUseCaseOutput]
+	GetAvailableToolsUC     application.UseCase[configquery.GetAvailableToolsUseCaseInput, configquery.GetAvailableToolsUseCaseOutput]
 }
 
 func NewConfigHandler(deps ConfigHandlerDeps) *configHandler {
@@ -46,12 +47,12 @@ func (h *configHandler) GetStreamConfig(
 	span := trace.SpanFromContext(ctx)
 	_ = req
 
-	if h.ConfigManager == nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("config manager not available"))
-	}
-
-	if h.ConfigManager.Server.WebRTCSignalingEndpoint == "" {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("webrtc signaling endpoint not configured"))
+	settings, err := h.GetStreamSettingsUC.Execute(ctx, configquery.GetStreamSettingsUseCaseInput{})
+	if err != nil {
+		if errors.Is(err, configquery.ErrSignalingEndpointNotConfigured) {
+			return nil, connect.NewError(connect.CodeInternal, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	logLevelResolver := func() string {
@@ -87,22 +88,21 @@ func (h *configHandler) GetStreamConfig(
 		return consoleLogging.Result
 	}
 
-	// Return WebRTC signaling endpoint via ConnectRPC
 	logLevel := logLevelResolver()
 	consoleLogging := consoleLoggingResolver()
 	endpoints := []*pb.StreamEndpoint{
 		{
 			Type:           "webrtc",
-			Endpoint:       h.ConfigManager.Server.WebRTCSignalingEndpoint,
-			LogLevel:       logLevelResolver(),
-			ConsoleLogging: consoleLoggingResolver(),
+			Endpoint:       settings.WebRTCSignalingEndpoint,
+			LogLevel:       logLevel,
+			ConsoleLogging: consoleLogging,
 		},
 	}
 
 	logger.FromContext(ctx).Debug().Bool("console_logging", consoleLogging).Msg("StreamEndpoint console_logging value")
 
 	span.SetAttributes(
-		attribute.String("config.endpoint", h.ConfigManager.Server.WebRTCSignalingEndpoint),
+		attribute.String("config.endpoint", settings.WebRTCSignalingEndpoint),
 		attribute.String("config.log_level", logLevel),
 		attribute.Bool("config.console_logging", consoleLogging),
 		attribute.Int("config.endpoint_count", len(endpoints)),
@@ -202,76 +202,50 @@ func (h *configHandler) GetAvailableTools(
 	req *connect.Request[pb.GetAvailableToolsRequest],
 ) (*connect.Response[pb.GetAvailableToolsResponse], error) {
 	span := trace.SpanFromContext(ctx)
+	_ = req
 
-	if h.ConfigManager == nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("config manager not available"))
+	output, err := h.GetAvailableToolsUC.Execute(ctx, configquery.GetAvailableToolsUseCaseInput{})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
-	categories := []*pb.ToolCategory{}
-
-	if len(h.ConfigManager.Tools.Observability) > 0 {
-		tools := h.buildTools(h.ConfigManager.Tools.Observability)
+	categories := make([]*pb.ToolCategory, 0, len(output.Categories))
+	for _, cat := range output.Categories {
+		tools := make([]*pb.Tool, 0, len(cat.Tools))
+		for _, toolDef := range cat.Tools {
+			tool := &pb.Tool{
+				Id:       toolDef.ID,
+				Name:     toolDef.Name,
+				IconPath: toolDef.IconPath,
+				Type:     toolDef.Type,
+			}
+			if toolDef.Type == "url" {
+				tool.Url = toolDef.URL
+			} else if toolDef.Type == "action" {
+				tool.Action = toolDef.Action
+			}
+			tools = append(tools, tool)
+		}
 		categories = append(categories, &pb.ToolCategory{
-			Id:    "observability",
-			Name:  "Observability",
-			Tools: tools,
-		})
-	}
-
-	if len(h.ConfigManager.Tools.Features) > 0 {
-		tools := h.buildTools(h.ConfigManager.Tools.Features)
-		categories = append(categories, &pb.ToolCategory{
-			Id:    "features",
-			Name:  "Features",
-			Tools: tools,
-		})
-	}
-
-	if len(h.ConfigManager.Tools.Testing) > 0 {
-		tools := h.buildTools(h.ConfigManager.Tools.Testing)
-		categories = append(categories, &pb.ToolCategory{
-			Id:    "testing",
-			Name:  "Testing",
+			Id:    cat.ID,
+			Name:  cat.Name,
 			Tools: tools,
 		})
 	}
 
 	span.SetAttributes(
-		attribute.String("config.environment", h.ConfigManager.Environment),
+		attribute.String("config.environment", output.Environment),
 		attribute.Int("tools.category_count", len(categories)),
 	)
 
 	logger.FromContext(ctx).Debug().
 		Int("category_count", len(categories)).
-		Str("environment", h.ConfigManager.Environment).
+		Str("environment", output.Environment).
 		Msg("GetAvailableTools: returning categories")
 
 	return connect.NewResponse(&pb.GetAvailableToolsResponse{
 		Categories: categories,
 	}), nil
-}
-
-func (h *configHandler) buildTools(toolDefs []config.ToolDefinition) []*pb.Tool {
-	tools := make([]*pb.Tool, 0, len(toolDefs))
-
-	for _, toolDef := range toolDefs {
-		tool := &pb.Tool{
-			Id:       toolDef.ID,
-			Name:     toolDef.Name,
-			IconPath: toolDef.IconPath,
-			Type:     toolDef.Type,
-		}
-
-		if toolDef.Type == "url" {
-			tool.Url = toolDef.URL
-		} else if toolDef.Type == "action" {
-			tool.Action = toolDef.Action
-		}
-
-		tools = append(tools, tool)
-	}
-
-	return tools
 }
 
 func (h *configHandler) GetSystemInfo(
