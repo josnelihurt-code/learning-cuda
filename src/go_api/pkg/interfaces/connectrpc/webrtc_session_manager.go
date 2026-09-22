@@ -25,10 +25,11 @@ type queuedSignalingEvent struct {
 }
 
 type webRTCSignalingSession struct {
-	id        string
-	stream    pb.WebRTCSignalingService_SignalingStreamClient
-	cancel    context.CancelFunc
-	closeOnce sync.Once
+	id           string
+	stream       pb.WebRTCSignalingService_SignalingStreamClient
+	cancel       context.CancelFunc
+	closeOnce    sync.Once
+	onTerminated func(*webRTCSignalingSession)
 
 	sendMu sync.Mutex
 
@@ -43,6 +44,7 @@ type webRTCSignalingSession struct {
 func newWebRTCSignalingSession(
 	sessionID string,
 	client WebRTCSignalingClient,
+	onTerminated func(*webRTCSignalingSession),
 ) (*webRTCSignalingSession, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	stream, err := client.SignalingStream(ctx)
@@ -52,10 +54,11 @@ func newWebRTCSignalingSession(
 	}
 
 	session := &webRTCSignalingSession{
-		id:       sessionID,
-		stream:   stream,
-		cancel:   cancel,
-		notifyCh: make(chan struct{}),
+		id:           sessionID,
+		stream:       stream,
+		cancel:       cancel,
+		notifyCh:     make(chan struct{}),
+		onTerminated: onTerminated,
 	}
 
 	go session.receiveLoop()
@@ -137,6 +140,8 @@ func (s *webRTCSignalingSession) removeEvent(cursor int64) {
 	s.events = filtered
 }
 
+// markClosed runs onTerminated under s.mu; the callback must not re-enter
+// the session, keeping the lock order session.mu -> manager.mu.
 func (s *webRTCSignalingSession) markClosed(err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -148,6 +153,10 @@ func (s *webRTCSignalingSession) markClosed(err error) {
 	s.closed = true
 	s.lastErr = err
 	close(s.notifyCh)
+
+	if s.onTerminated != nil {
+		s.onTerminated(s)
+	}
 }
 
 func (s *webRTCSignalingSession) shutdown() {
@@ -280,7 +289,9 @@ func (m *WebRTCSignalingSessionManager) createSession(sessionID string) (*webRTC
 		existing.shutdown()
 	}
 
-	session, err := newWebRTCSignalingSession(sessionID, m.client)
+	session, err := newWebRTCSignalingSession(sessionID, m.client, func(s *webRTCSignalingSession) {
+		m.evictIfCurrent(sessionID, s)
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -290,6 +301,17 @@ func (m *WebRTCSignalingSessionManager) createSession(sessionID string) (*webRTC
 	m.mu.Unlock()
 
 	return session, nil
+}
+
+// evictIfCurrent matches by pointer identity so a late termination cannot
+// evict a replacement installed under the same session ID.
+func (m *WebRTCSignalingSessionManager) evictIfCurrent(sessionID string, session *webRTCSignalingSession) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if current, ok := m.sessions[sessionID]; ok && current == session {
+		delete(m.sessions, sessionID)
+	}
 }
 
 func (m *WebRTCSignalingSessionManager) removeSession(sessionID string) {
