@@ -18,7 +18,10 @@ func main() {
 	configFile := flag.String("config", "config/config.yaml", "Path to configuration file")
 	flag.Parse()
 
-	ctx := context.Background()
+	// rootCtx is never cancelled, so shutdown deadlines derived from it survive ctx cancellation.
+	rootCtx := context.Background()
+	ctx, stop := signal.NotifyContext(rootCtx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	di, err := container.New(ctx, *configFile)
 	if err != nil {
@@ -44,20 +47,19 @@ func main() {
 	if err != nil {
 		log.Warn().Err(err).Msg("Failed to initialize meter provider")
 	}
+	shutdownWithTimeout := func(name string, shutdown func(context.Context) error) {
+		shutdownCtx, cancel := context.WithTimeout(rootCtx, 5*time.Second)
+		defer cancel()
+		if err := shutdown(shutdownCtx); err != nil {
+			log.Error().Err(err).Msgf("Error shutting down %s", name)
+		}
+	}
 	shutdownTelemetry := func() {
 		if tracerProvider != nil {
-			shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-			if err := tracerProvider.Shutdown(shutdownCtx); err != nil {
-				log.Error().Err(err).Msg("Error shutting down tracer provider")
-			}
-			cancel()
+			shutdownWithTimeout("tracer provider", tracerProvider.Shutdown)
 		}
 		if meterProvider != nil {
-			shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
-			if err := meterProvider.Shutdown(shutdownCtx); err != nil {
-				log.Error().Err(err).Msg("Error shutting down meter provider")
-			}
-			cancel()
+			shutdownWithTimeout("meter provider", meterProvider.Shutdown)
 		}
 	}
 
@@ -80,26 +82,18 @@ func main() {
 		logger.Global().Fatal().Err(err).Msg("Failed to initialize app")
 	}
 
-	errChan := make(chan error, 1)
 	go func() {
-		errChan <- server.Run()
+		<-ctx.Done()
+		log.Info().Msg("Received signal, shutting down gracefully")
 	}()
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-
-	select {
-	case err := <-errChan:
-		if err != nil {
-			log.Error().Err(err).Msg("Server error")
-			di.Close(ctx)
-			shutdownTelemetry()
-			os.Exit(1)
-		}
-	case sig := <-sigChan:
-		log.Info().Str("signal", sig.String()).Msg("Received signal, shutting down gracefully")
+	if err := server.Run(); err != nil {
+		log.Error().Err(err).Msg("Server error")
+		di.Close(rootCtx)
+		shutdownTelemetry()
+		os.Exit(1)
 	}
 
-	di.Close(ctx)
+	di.Close(rootCtx)
 	shutdownTelemetry()
 }
