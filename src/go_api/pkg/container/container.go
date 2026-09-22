@@ -27,10 +27,10 @@ import (
 type container struct {
 	Config *config.Manager
 
-	FeatureFlagRepo *featureflags.GoffRepository
-
 	EvaluateFeatureFlagBooleanUseCase application.UseCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
 	EvaluateFeatureFlagStringUseCase  application.UseCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
+	ListFeatureFlagsUseCase           application.UseCase[ffapp.ListFeatureFlagsUseCaseInput, ffapp.ListFeatureFlagsUseCaseOutput]
+	UpsertFeatureFlagUseCase          application.UseCase[ffapp.UpsertFeatureFlagUseCaseInput, ffapp.UpsertFeatureFlagUseCaseOutput]
 	GetSystemInfoUseCase              application.UseCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
 	ListInputsUseCase                 application.UseCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
 	ListAvailableImagesUseCase        application.UseCase[imageapp.ListAvailableImagesUseCaseInput, imageapp.ListAvailableImagesUseCaseOutput]
@@ -134,6 +134,27 @@ func New(ctx context.Context, configFile string) (*container, error) {
 				attribute.String("flag.result", out.Result),
 			}
 		},
+	)
+	listFeatureFlagsUseCase := application.WithTrace(
+		"feature-flag-admin",
+		"ListFeatureFlags",
+		ffapp.NewListFeatureFlagsUseCase(featureFlagRepo),
+		nil,
+		func(_ ffapp.ListFeatureFlagsUseCaseInput, out ffapp.ListFeatureFlagsUseCaseOutput, _ error) []attribute.KeyValue {
+			return []attribute.KeyValue{attribute.Int("flags.count", len(out.Flags))}
+		},
+	)
+	upsertFeatureFlagUseCase := application.WithTrace(
+		"feature-flag-admin",
+		"UpsertFeatureFlag",
+		ffapp.NewUpsertFeatureFlagUseCase(featureFlagRepo),
+		func(in ffapp.UpsertFeatureFlagUseCaseInput) []attribute.KeyValue {
+			return []attribute.KeyValue{
+				attribute.String("flag.key", in.Key),
+				attribute.String("flag.type", string(in.Type)),
+			}
+		},
+		nil,
 	)
 
 	getSystemInfoUseCase := application.WithTrace(
@@ -284,9 +305,10 @@ func New(ctx context.Context, configFile string) (*container, error) {
 
 	return &container{
 		Config:                            cfg,
-		FeatureFlagRepo:                   featureFlagRepo,
 		EvaluateFeatureFlagBooleanUseCase: evaluateFFBooleanUseCase,
 		EvaluateFeatureFlagStringUseCase:  evaluateFFStringUseCase,
+		ListFeatureFlagsUseCase:           listFeatureFlagsUseCase,
+		UpsertFeatureFlagUseCase:          upsertFeatureFlagUseCase,
 		GetSystemInfoUseCase:              getSystemInfoUseCase,
 		ListInputsUseCase:                 listInputsUseCase,
 		ListAvailableImagesUseCase:        listAvailableImagesUseCase,

@@ -2,8 +2,8 @@ package connectrpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"strconv"
 
 	"connectrpc.com/connect"
 	pb "github.com/jrb/cuda-learning/proto/gen"
@@ -13,7 +13,6 @@ import (
 	systemapp "github.com/jrb/cuda-learning/src/go_api/pkg/application/platform/system"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/domain"
-	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/featureflags"
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -25,15 +24,13 @@ type configHandler struct {
 
 // ConfigHandlerDeps groups all dependencies needed to create a configHandler.
 type ConfigHandlerDeps struct {
-	// Use Cases
-	ListInputsUC        application.UseCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
-	EvaluateFFBooleanUC application.UseCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
-	EvaluateFFStringUC  application.UseCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
-	GetSystemInfoUC     application.UseCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
-	// Repositories
-	FeatureFlagRepo *featureflags.GoffRepository
-	// Managers
-	ConfigManager *config.Manager
+	ListInputsUC         application.UseCase[videoapp.ListInputsUseCaseInput, videoapp.ListInputsUseCaseOutput]
+	EvaluateFFBooleanUC  application.UseCase[ffapp.EvaluateFeatureFlagBooleanUseCaseInput, ffapp.EvaluateFeatureFlagBooleanUseCaseOutput]
+	EvaluateFFStringUC   application.UseCase[ffapp.EvaluateFeatureFlagStringUseCaseInput, ffapp.EvaluateFeatureFlagStringUseCaseOutput]
+	GetSystemInfoUC      application.UseCase[systemapp.GetSystemInfoUseCaseInput, systemapp.GetSystemInfoUseCaseOutput]
+	ListFeatureFlagsUC   application.UseCase[ffapp.ListFeatureFlagsUseCaseInput, ffapp.ListFeatureFlagsUseCaseOutput]
+	UpsertFeatureFlagUC  application.UseCase[ffapp.UpsertFeatureFlagUseCaseInput, ffapp.UpsertFeatureFlagUseCaseOutput]
+	ConfigManager        *config.Manager
 }
 
 func NewConfigHandler(deps ConfigHandlerDeps) *configHandler {
@@ -121,15 +118,12 @@ func (h *configHandler) ListFeatureFlags(
 	req *connect.Request[pb.ListFeatureFlagsRequest],
 ) (*connect.Response[pb.ListFeatureFlagsResponse], error) {
 	_ = req
-	if h.FeatureFlagRepo == nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("feature flags repository not available"))
-	}
-	flags, err := h.FeatureFlagRepo.ListFlags(ctx)
+	output, err := h.ListFeatureFlagsUC.Execute(ctx, ffapp.ListFeatureFlagsUseCaseInput{})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	result := make([]*pb.ManagedFeatureFlag, 0, len(flags))
-	for _, flag := range flags {
+	result := make([]*pb.ManagedFeatureFlag, 0, len(output.Flags))
+	for _, flag := range output.Flags {
 		result = append(result, &pb.ManagedFeatureFlag{
 			Key:          flag.Key,
 			Name:         flag.Name,
@@ -149,28 +143,19 @@ func (h *configHandler) UpsertFeatureFlag(
 	if req.Msg.GetFlag() == nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("flag is required"))
 	}
-	if h.FeatureFlagRepo == nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("feature flags repository not available"))
-	}
 	in := req.Msg.GetFlag()
-	flagType := domain.FeatureFlagType(in.GetType())
-	defaultValue := any(in.GetDefaultValue())
-	if flagType == domain.BooleanFlagType {
-		parsed, err := strconv.ParseBool(in.GetDefaultValue())
-		if err != nil {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid boolean default value: %w", err))
-		}
-		defaultValue = parsed
-	}
-	err := h.FeatureFlagRepo.UpsertFlag(ctx, domain.FeatureFlag{
-		Key:          in.GetKey(),
-		Name:         in.GetName(),
-		Type:         flagType,
-		Enabled:      in.GetEnabled(),
-		DefaultValue: defaultValue,
-		Description:  in.GetDescription(),
+	_, err := h.UpsertFeatureFlagUC.Execute(ctx, ffapp.UpsertFeatureFlagUseCaseInput{
+		Key:                in.GetKey(),
+		Name:               in.GetName(),
+		Type:               domain.FeatureFlagType(in.GetType()),
+		Enabled:            in.GetEnabled(),
+		DefaultValueString: in.GetDefaultValue(),
+		Description:        in.GetDescription(),
 	})
 	if err != nil {
+		if errors.Is(err, ffapp.ErrInvalidBooleanDefault) {
+			return nil, connect.NewError(connect.CodeInvalidArgument, err)
+		}
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	return connect.NewResponse(&pb.UpsertFeatureFlagResponse{Message: "Flag updated successfully"}), nil
