@@ -19,6 +19,13 @@ protocol quirk, deliberately preserved behavior) gets one focused
 sentence, not a paragraph. Comment noise is a blocking review defect:
 when in doubt, delete the comment.
 
+## Ports are unexported
+
+Consumer-owned port interfaces are unexported: only their package names
+them. Cross-package wiring passes concrete adapters, which satisfy the
+port structurally. Exporting a port leaks the abstraction and invites
+imports against the wrong direction.
+
 ## Version files gate deploys
 
 Production deploys are triggered by `VERSION` file bumps, not by code changes.
