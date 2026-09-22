@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jrb/cuda-learning/src/go_api/pkg/config"
@@ -11,28 +12,34 @@ import (
 	"github.com/jrb/cuda-learning/src/go_api/pkg/infrastructure/logger"
 )
 
-type DeviceMonitor struct {
-	link          *mqttLink
-	status        *domain.DeviceStatus
-	mu            sync.RWMutex
-	subscribers   []func(*domain.DeviceStatus)
-	subscribersMu sync.RWMutex
-	ctx           context.Context
-	cancel        context.CancelFunc
-	started       bool
-	startedMu     sync.RWMutex
+// The id, not a slice index, identifies the entry: indices shift on removal
+// and func values are not comparable.
+type deviceSubscriber struct {
+	id       uint64
+	callback func(*domain.DeviceStatus)
 }
 
-// NewDeviceMonitor always returns a monitor backed by an mqttLink. The link may
-// have no live MQTT session; connection details stay inside mqttLink.
+type DeviceMonitor struct {
+	link             *mqttLink
+	status           *domain.DeviceStatus
+	mu               sync.RWMutex
+	subscribers      []deviceSubscriber
+	nextSubscriberID atomic.Uint64
+	subscribersMu    sync.RWMutex
+	ctx              context.Context
+	cancel           context.CancelFunc
+	started          bool
+	startedMu        sync.RWMutex
+}
+
+// NewDeviceMonitor never fails; the returned monitor's mqttLink may not have
+// a live MQTT session yet.
 func NewDeviceMonitor(ctx context.Context, cfg config.MQTTConfig) *DeviceMonitor {
-	baseCtx, cancel := context.WithCancel(ctx)
 	return &DeviceMonitor{
 		link:        newMQTTLink(cfg),
 		status:      domain.NewDeviceStatus(),
-		subscribers: make([]func(*domain.DeviceStatus), 0),
-		ctx:         baseCtx,
-		cancel:      cancel,
+		subscribers: make([]deviceSubscriber, 0),
+		ctx:         ctx,
 	}
 }
 
@@ -94,8 +101,6 @@ func (dm *DeviceMonitor) Start(ctx context.Context) error {
 	return nil
 }
 
-// dropPump adapts an MQTT callback subscription to a buffered channel,
-// dropping messages when the consumer falls behind.
 func dropPump[T any](out chan<- T) func(T) error {
 	return func(v T) error {
 		select {
@@ -132,47 +137,47 @@ func (dm *DeviceMonitor) handleSensorData(data SensorData) {
 	dm.mu.Lock()
 	dm.status.UpdatePower(data.ENERGY.Power, timestamp)
 	dm.status.UpdateVoltage(data.ENERGY.Voltage)
-	statusCopy := dm.status
+	snapshot := dm.status.Clone()
 	dm.mu.Unlock()
 
-	dm.notify(statusCopy)
+	dm.notify(snapshot)
 }
 
 func (dm *DeviceMonitor) handleInfo1Data(data Info1Data) {
 	dm.mu.Lock()
 	dm.status.UpdateInfo1(data.Info1.Version, data.Info1.Module)
-	statusCopy := dm.status
+	snapshot := dm.status.Clone()
 	dm.mu.Unlock()
 
-	dm.notify(statusCopy)
+	dm.notify(snapshot)
 }
 
 func (dm *DeviceMonitor) handleInfo2Data(data Info2Data) {
 	dm.mu.Lock()
 	dm.status.UpdateInfo2(data.Info2.Hostname, data.Info2.IPAddress)
-	statusCopy := dm.status
+	snapshot := dm.status.Clone()
 	dm.mu.Unlock()
 
-	dm.notify(statusCopy)
+	dm.notify(snapshot)
 }
 
 func (dm *DeviceMonitor) handleLWTStatus(status string) {
 	dm.mu.Lock()
 	dm.status.UpdateLWTStatus(status)
-	statusCopy := dm.status
+	snapshot := dm.status.Clone()
 	dm.mu.Unlock()
 
-	dm.notify(statusCopy)
+	dm.notify(snapshot)
 }
 
 func (dm *DeviceMonitor) notify(status *domain.DeviceStatus) {
 	dm.subscribersMu.RLock()
-	subscribers := make([]func(*domain.DeviceStatus), len(dm.subscribers))
+	subscribers := make([]deviceSubscriber, len(dm.subscribers))
 	copy(subscribers, dm.subscribers)
 	dm.subscribersMu.RUnlock()
 
-	for _, callback := range subscribers {
-		callback(status)
+	for _, sub := range subscribers {
+		sub.callback(status)
 	}
 }
 
@@ -180,19 +185,29 @@ func (dm *DeviceMonitor) PowerOn() error {
 	return dm.link.publishPower(true)
 }
 
+// Subscribe delivers the current status snapshot immediately, then future
+// updates; the returned function removes only its own registration.
 func (dm *DeviceMonitor) Subscribe(callback func(*domain.DeviceStatus)) func() {
-	statusCopy := dm.status
-	callback(statusCopy)
+	id := dm.nextSubscriberID.Add(1)
+
+	dm.mu.RLock()
+	snapshot := dm.status.Clone()
+	dm.mu.RUnlock()
+	callback(snapshot)
+
 	dm.subscribersMu.Lock()
-	dm.subscribers = append(dm.subscribers, callback)
-	index := len(dm.subscribers) - 1
+	dm.subscribers = append(dm.subscribers, deviceSubscriber{id: id, callback: callback})
 	dm.subscribersMu.Unlock()
 
 	return func() {
 		dm.subscribersMu.Lock()
 		defer dm.subscribersMu.Unlock()
-		if index < len(dm.subscribers) {
-			dm.subscribers = append(dm.subscribers[:index], dm.subscribers[index+1:]...)
+		for i, sub := range dm.subscribers {
+			if sub.id != id {
+				continue
+			}
+			dm.subscribers = append(dm.subscribers[:i], dm.subscribers[i+1:]...)
+			return
 		}
 	}
 }
@@ -206,7 +221,9 @@ func (dm *DeviceMonitor) Stop() error {
 	dm.started = false
 	dm.startedMu.Unlock()
 
-	dm.cancel()
+	if dm.cancel != nil {
+		dm.cancel()
+	}
 	dm.link.disconnect()
 	return nil
 }
