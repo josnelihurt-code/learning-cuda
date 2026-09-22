@@ -3,7 +3,9 @@ package app
 import (
 	"context"
 	"errors"
+	"net"
 	"net/http"
+	"time"
 
 	"connectrpc.com/connect"
 	pb "github.com/jrb/cuda-learning/proto/gen"
@@ -211,6 +213,48 @@ func (a *App) setupHealthEndpoint(mux *http.ServeMux) {
 	logger.Global().Info().Msg("Health endpoint registered at /health")
 }
 
+// drainTimeout bounds how long Shutdown waits for in-flight HTTP requests after cancellation.
+const drainTimeout = 10 * time.Second
+
+type gracefulServer struct {
+	server *http.Server
+	serve  func() error
+}
+
+// serveWithGracefulShutdown runs each server and, once ctx is cancelled,
+// drains them all with a bounded Shutdown. http.ErrServerClosed is the
+// clean-shutdown success path and is filtered.
+func serveWithGracefulShutdown(ctx context.Context, servers ...gracefulServer) error {
+	// Derive the group context so a serve error cancels the watcher too —
+	// otherwise Wait would block forever on a ctx that never fires.
+	g, ctx := errgroup.WithContext(ctx)
+
+	for _, s := range servers {
+		g.Go(func() error {
+			if err := s.serve(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				return err
+			}
+			return nil
+		})
+	}
+
+	g.Go(func() error {
+		<-ctx.Done()
+		// Drain with a fresh bounded context — ctx is already cancelled.
+		drainCtx, cancel := context.WithTimeout(context.Background(), drainTimeout)
+		defer cancel()
+		for _, s := range servers {
+			if err := s.server.Shutdown(drainCtx); err != nil {
+				logger.Global().Warn().Err(err).Msg("HTTP server drain failed or timed out")
+				return err
+			}
+		}
+		return nil
+	})
+
+	return g.Wait()
+}
+
 func (a *App) Run() error {
 	log := logger.Global()
 	defer func() {
@@ -244,29 +288,52 @@ func (a *App) Run() error {
 	a.setupConnectRPCServices(mux)
 	handler := a.makeTelemetryMiddleware(mux)
 
-	var g errgroup.Group
-
-	g.Go(func() error {
-		log.Info().
-			Str("port", a.Config.Server.HTTPPort).
-			Msg("Starting HTTP server")
-		return http.ListenAndServe(a.Config.Server.HTTPPort, handler)
-	})
+	// Explicit http.Server values on pre-bound listeners so Run can drain
+	// them on cancellation instead of being cut by the process exiting.
+	httpServer := &http.Server{
+		Addr:    a.Config.Server.HTTPPort,
+		Handler: handler,
+	}
+	httpListener, err := net.Listen("tcp", a.Config.Server.HTTPPort)
+	if err != nil {
+		log.Err(err).Str("port", a.Config.Server.HTTPPort).Msg("Failed to bind HTTP listener")
+		return err
+	}
+	servers := []gracefulServer{
+		{
+			server: httpServer,
+			serve: func() error {
+				log.Info().
+					Str("port", a.Config.Server.HTTPPort).
+					Msg("Starting HTTP server")
+				return httpServer.Serve(httpListener)
+			},
+		},
+	}
 
 	if a.Config.Server.TLS.Enabled {
-		g.Go(func() error {
-			log.Info().
-				Str("port", a.Config.Server.HTTPSPort).
-				Str("cert", a.Config.Server.TLS.CertFile).
-				Msg("Starting HTTPS server")
-			return http.ListenAndServeTLS(
-				a.Config.Server.HTTPSPort,
-				a.Config.Server.TLS.CertFile,
-				a.Config.Server.TLS.KeyFile,
-				handler,
-			)
+		httpsServer := &http.Server{
+			Addr:    a.Config.Server.HTTPSPort,
+			Handler: handler,
+		}
+		httpsListener, err := net.Listen("tcp", a.Config.Server.HTTPSPort)
+		if err != nil {
+			log.Err(err).Str("port", a.Config.Server.HTTPSPort).Msg("Failed to bind HTTPS listener")
+			return err
+		}
+		certFile := a.Config.Server.TLS.CertFile
+		keyFile := a.Config.Server.TLS.KeyFile
+		servers = append(servers, gracefulServer{
+			server: httpsServer,
+			serve: func() error {
+				log.Info().
+					Str("port", a.Config.Server.HTTPSPort).
+					Str("cert", certFile).
+					Msg("Starting HTTPS server")
+				return httpsServer.ServeTLS(httpsListener, certFile, keyFile)
+			},
 		})
 	}
 
-	return g.Wait()
+	return serveWithGracefulShutdown(a.appContext, servers...)
 }
