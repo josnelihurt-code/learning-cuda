@@ -57,8 +57,8 @@ func (m *MockVersionRepository) GetProtoVersion() string {
 }
 
 // assertSystemInfo compares the use case output against the expected values.
-// CppVersion is expected to be empty: the use case never populates it today
-// because GetCppVersion is not implemented on the version repository (backlog).
+// CppVersion is intentionally unset here; the live source is accelerator
+// registration, not a local VERSION file.
 func assertSystemInfo(t *testing.T, result *domain.SystemInfo, goVersion, cppVersion, protoVersion, branch, buildTime, commitHash, environment string) {
 	assert.Equal(t, goVersion, result.Version.GoVersion)
 	assert.Equal(t, cppVersion, result.Version.CppVersion)

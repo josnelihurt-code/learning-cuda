@@ -12,7 +12,6 @@ const (
 
 type repositoryImpl struct {
 	goVersionPath    string
-	cppVersionPath   string
 	protoVersionPath string
 }
 
@@ -43,7 +42,6 @@ func NewVersionRepository() *repositoryImpl {
 	projectRoot := findProjectRoot()
 	return &repositoryImpl{
 		goVersionPath:    filepath.Join(projectRoot, "src", "go_api", "VERSION"),
-		cppVersionPath:   filepath.Join(projectRoot, "src", "cpp_accelerator", "VERSION"),
 		protoVersionPath: filepath.Join(projectRoot, "proto", "VERSION"),
 	}
 }

@@ -13,7 +13,6 @@ func TestNewVersionRepository(t *testing.T) {
 	repo := NewVersionRepository()
 	require.NotNil(t, repo)
 	assert.NotEmpty(t, repo.goVersionPath)
-	assert.NotEmpty(t, repo.cppVersionPath)
 	assert.NotEmpty(t, repo.protoVersionPath)
 }
 
@@ -23,23 +22,6 @@ func TestRepositoryImpl_GetGoVersion(t *testing.T) {
 	version := repo.GetGoVersion()
 
 	if _, err := os.Stat(filepath.Join("..", "..", "..", "..", "..", "src", "go_api", "VERSION")); err == nil {
-		assert.NotEqual(t, unknownValue, version)
-		assert.NotEmpty(t, version)
-	} else {
-		assert.Equal(t, unknownValue, version)
-	}
-}
-
-// GetCppVersion is not implemented on repositoryImpl (tracked as backlog).
-// This test covers the real API such an implementation would rely on: the
-// constructor-resolved cpp VERSION path and the readVersionFile fallback.
-func TestRepositoryImpl_CppVersionFile(t *testing.T) {
-	repo := NewVersionRepository()
-	require.NotEmpty(t, repo.cppVersionPath)
-
-	version := repo.readVersionFile(repo.cppVersionPath)
-
-	if _, err := os.Stat(filepath.Join("..", "..", "..", "..", "..", "src", "cpp_accelerator", "VERSION")); err == nil {
 		assert.NotEqual(t, unknownValue, version)
 		assert.NotEmpty(t, version)
 	} else {
